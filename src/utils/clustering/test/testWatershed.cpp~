@@ -1,0 +1,95 @@
+#include "DGtal/base/Common.h"
+#include "DGtal/io/readers/ITKReader.h"
+#include "DGtal/io/writers/GenericWriter.h"
+#include "DGtal/kernel/BasicPointFunctors.h"
+#include "DGtal/images/ImageSelector.h"
+#include "DGtal/graph/DistanceBreadthFirstVisitor.h"
+#include "DGtal/io/viewers/Viewer3D.h"
+
+#include <QtGui/qapplication.h>
+#include "../Watershed.h"
+
+using namespace DGtal;
+using namespace std;
+
+void testVisu(int argc, char** argv) {
+     typedef ImageSelector<Z3i::Domain, double>::Type Image;
+    QApplication app(argc, argv);
+    Viewer3D<> viewer;
+    viewer.show();
+    Image image = ITKReader<Image>::importITK("/home/florent/test_img/Eigenvector/bronche2.mhd");
+    map<Z3i::Point, double> pointToValue;
+    for (auto it = image.domain().begin(), ite = image.domain().end(); it != ite; ++it) {
+        Z3i::Point p = *it;
+        pointToValue[p] = image(p);
+    }
+    double minVal = min_element(pointToValue.begin(), pointToValue.end(), [&](const pair<Z3i::Point, double>& one,
+                                                                              const pair<Z3i::Point, double>& two) {
+                                    return (one.second < two.second);
+                                })->second;
+    trace.info() << minVal << std::endl;
+    map<Z3i::Point, double> pointToValueObject;
+    for (const auto& pair : pointToValue) {
+        Z3i::Point p = pair.first;
+        double value = pair.second;
+        if (value >= minVal+1)
+            pointToValueObject[p] = value;
+    }
+    double maxVal = max_element(pointToValueObject.begin(), pointToValueObject.end(), [&](const pair<Z3i::Point, double>& one,
+                                                                                          const pair<Z3i::Point, double>& two) {
+                                    return (one.second < two.second);
+                                })->second;
+    trace.info() << maxVal << endl;
+    GradientColorMap<double, CMAP_JET > hueShade(minVal+1, maxVal);
+    for (const auto& pair : pointToValueObject) {
+        viewer << CustomColors3D(hueShade(pair.second), hueShade(pair.second)) << pair.first;
+    }
+    viewer << Viewer3D<>::updateDisplay;
+     app.exec();
+}
+
+void testWatershed(int argc, char** argv) {
+    typedef ImageSelector<Z3i::Domain, double>::Type Image;
+
+    Image image = ITKReader<Image>::importITK("/home/florent/test_img/Eigenvector/bronche2.mhd");
+    map<Z3i::Point, double> pointToValue;
+    for (auto it = image.domain().begin(), ite = image.domain().end(); it != ite; ++it) {
+        Z3i::Point p = *it;
+        pointToValue[p] = image(p);
+    }
+    double minVal = min_element(pointToValue.begin(), pointToValue.end(), [&](const pair<Z3i::Point, double>& one,
+                                                                                        const pair<Z3i::Point, double>& two) {
+                                    return (one.second < two.second);
+                                })->second;
+    trace.info() << minVal << std::endl;
+    map<Z3i::Point, double> pointToValueObject;
+    for (const auto& pair : pointToValue) {
+        Z3i::Point p = pair.first;
+        double value = pair.second;
+        if (value >= minVal+1)
+            pointToValueObject[p] = value;
+    }
+
+    double threshold = 0.10;
+    Watershed<Z3i::Point> watershed(pointToValueObject, threshold);
+    watershed.compute();
+    auto resultWatershed = watershed.getWatershed();
+    int bins = watershed.getBins();
+    QApplication app(argc, argv);
+    Viewer3D<> viewer;
+    viewer.show();
+    const Color CURVE3D_COLOR( 100, 100, 140, 128 );
+    GradientColorMap<int, CMAP_JET > hueShade(0, bins);
+    trace.info() << "Bins= " << bins << endl;
+    for (const auto& complexPoint : resultWatershed) {
+        viewer << CustomColors3D(hueShade(complexPoint.second.getLabel()), hueShade(complexPoint.second.getLabel())) << complexPoint.first;
+     }
+
+    viewer << Viewer3D<>::updateDisplay;
+    app.exec();
+}
+
+int main(int argc, char** argv) {
+    testWatershed(argc, argv);
+    return 0;
+}
