@@ -5,36 +5,38 @@
 #include <limits>
 #include "Statistics.h"
 
-namespace KMeans {
+template <typename Container>
+class KMeans {
 
-        template <typename Scalar>
-        std::vector<std::vector<Scalar > > kmeansAlgorithm(const std::vector<Scalar>& initialData, int k);
+public:
+        std::vector<Container> kmeansAlgorithm(int k);
 
-        template <typename Scalar>
-        std::vector<std::vector<Scalar> > initialize2Clusters(const std::vector<Scalar>& initialData);
+private:
+        std::vector<Container> initialize2Clusters();
 
-        template <typename Scalar>
-        void assignClasses(std::vector<std::vector<Scalar> > & clusters, const std::vector<Scalar>& initialData, const std::vector<Scalar>& centroids);
+        void assignClasses(std::vector<Container> & clusters, const Container& centroids);
 
-        template <typename Scalar>
-        void recomputeCentroids( std::vector<Scalar>& centroids, const std::vector<std::vector<Scalar> > & clusters);
+        void recomputeCentroids( Container& centroids, const std::vector<Container> & clusters);
+
+private:
+        Container myContainer;
 };
 
-template <typename Scalar>
-std::vector<std::vector<Scalar > > KMeans::kmeansAlgorithm(const std::vector<Scalar>& initialData, int  k) {
-        std::vector<std::vector<Scalar> > clusters = initialize2Clusters(initialData);
+template <typename Container>
+std::vector<Container> KMeans<Container>::kmeansAlgorithm(int  k) {
+        std::vector<Container> clusters = initialize2Clusters();
 
-        std::vector<Scalar> centroids;
-        for (const std::vector<Scalar>& point : clusters) {
+        Container centroids;
+        for (const Container& point : clusters) {
                 centroids.push_back(point[0]);
         }
 
         int cpt = 0;
         bool convergence = false;
         while (!convergence && cpt < 1000) {
-                std::vector<Scalar> previousCentroids = centroids;
+                Container previousCentroids = centroids;
 
-                assignClasses(clusters, initialData, centroids);
+                assignClasses(clusters, centroids);
                 recomputeCentroids(centroids, clusters);
                 cpt++;
 
@@ -44,24 +46,27 @@ std::vector<std::vector<Scalar > > KMeans::kmeansAlgorithm(const std::vector<Sca
         return clusters;
 }
 
-template <typename Scalar>
-std::vector<std::vector<Scalar> > KMeans::initialize2Clusters(const std::vector<Scalar>& initialData) {
-        std::vector<std::vector<Scalar> > clusters;
-        Scalar minVal = *min_element(initialData.begin(), initialData.end());
-        Scalar maxVal = *max_element(initialData.begin(), initialData.end());
+template <typename Container>
+std::vector<Container> KMeans<Container>::initialize2Clusters() {
+        typedef typename Container::value_type Scalar;
+        std::vector<Container> clusters;
+        Scalar minVal = *min_element(myContainer.begin(), myContainer.end());
+        Scalar maxVal = *max_element(myContainer.begin(), myContainer.end());
         clusters.push_back({minVal});
         clusters.push_back({maxVal});
         return clusters;
 }
 
-template <typename Scalar>
-void KMeans::assignClasses(std::vector<std::vector<Scalar> > & clusters, const std::vector<Scalar>& initialData, const std::vector<Scalar>& centroids) {
+template <typename Container>
+void KMeans<Container>::assignClasses(std::vector<Container> & clusters, const Container& centroids) {
+        typedef typename Container::value_type Scalar;
+
         int  k = clusters.size();
         for (int i  = 0; i < k; i++) {
                 clusters[i].clear();
         }
 
-        for (Scalar data : initialData) {
+        for (const Scalar& data : myContainer) {
                 Scalar distance = std::numeric_limits<Scalar>::max();
                 int index = 0;
                 for (int i = 0; i < k; i++) {
@@ -75,10 +80,11 @@ void KMeans::assignClasses(std::vector<std::vector<Scalar> > & clusters, const s
         }
 }
 
- template <typename Scalar>
- void KMeans::recomputeCentroids( std::vector<Scalar>& centroids, const std::vector<std::vector<Scalar> > & clusters) {
+ template <typename Container>
+ void KMeans<Container>::recomputeCentroids( Container& centroids, const std::vector<Container> & clusters) {
          for (int i = 0, end = clusters.size(); i < end; i++) {
-                 double mean = Statistics::mean(clusters[i]);
+                 Statistics<Container> stats(clusters[i]);
+                 double mean = stats.mean();
                  centroids[i] = mean;
          }
  }

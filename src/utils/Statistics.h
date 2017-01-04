@@ -18,7 +18,6 @@ template <typename Container>
 class Statistics {
 
 public:
-	Statistics() {}
 	Statistics(const Container& aData) : myData(aData) {}
 
 	double mean();
@@ -74,20 +73,23 @@ template <typename Image>
 typename Container::Space::RealVector Statistics<Container>::centerOfMass(const Image& image) {
     BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
 	double m000 = 0;
-	double m100 = 0;
-	double m010 = 0;
-	double m001 = 0;
+	std::vector<double> masses(Container::Space::RealVector::dimension, 0.0);
 
 	for (auto it = myData.domain().begin(), ite = myData.domain().end(); it != ite; ++it) {
-		DGtal::Z3i::Point current = *it;
-		m000 += myData(current);
-		m100 += current[0] * myData(current);
-		m010 += current[1] * myData(current);
-		m001 += current[2] * myData(current);
+	    typename Container::Space::Point current = *it;
+		m000 += image(current);
+		for (typename Container::Space::RealVector::Dimension i = 0; i < Container::Space::RealVector::dimension; i++) {
+			masses[i] += current[i] * image(current);
+		}
 	}
-	if (m000 != 0)
-		return DGtal::Z3i::RealPoint(m100/m000, m010/m000, m001/m000);
-	return DGtal::Z3i::RealPoint();
+	if (m000 != 0) {
+		typename Container::Space::RealVector v;
+		for (typename Container::Space::RealVector::Dimension i = 0; i < Container::Space::RealVector::dimension; i++)
+			v[i] = masses[i] * 1.0 / m000;
+		return v;
+	}
+
+	return typename Container::Space::RealVector();
 }
 
 template <typename Container>
@@ -100,7 +102,7 @@ typename Container::Space::RealVector Statistics<Container>::extractCenterOfMass
 		typename Container::RealVector centerOfMass = Statistics::centerOfMass(image);
 		return centerOfMass;
 	}
-	return DGtal::Z2i::RealPoint();
+	return typename Container::RealVector();
 }
 
 
@@ -193,7 +195,7 @@ Matrix Statistics<Container>::computeCovarianceMatrixImage(const Image& image) {
 	typedef typename Image::Domain Domain;
 	typedef typename Domain::Point Point;
 	int size = 0;
-	DGtal::Z2i::DigitalSet aSet(image.domain());
+    Container aSet(image.domain());
 	for (typename Domain::ConstIterator it = image.domain().begin(), ite = image.domain().end();
 		 it != ite; ++it) {
 		Point point = *it;
@@ -202,7 +204,8 @@ Matrix Statistics<Container>::computeCovarianceMatrixImage(const Image& image) {
 			aSet.insert(*it);
 		}
 	}
-	return computeCovarianceMatrix<Matrix>(aSet);
+	myData = aSet;
+	return computeCovarianceMatrix<Matrix>();
 }
 
 template <typename Container>

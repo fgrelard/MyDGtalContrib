@@ -1,4 +1,4 @@
-#include "../Statistics.h"
+#include "Statistics.h"
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/io/readers/GenericReader.h"
@@ -10,8 +10,8 @@ void testCenterOfMass() {
 	typedef ImageSelector<Z2i::Domain, unsigned char>::Type Image;
 
 	Image image = GenericReader<Image>::import("/home/florent/test_img/slices/boudin/slice_1.pgm");
-	
-	Z2i::Point point = Statistics::centerOfMass(image);
+	Statistics<Z2i::DigitalSet> stats(Z2i::DigitalSet(image.domain()));
+	Z2i::Point point = stats.centerOfMass(image);
 	trace.info() << point << endl;
 }
 
@@ -19,11 +19,12 @@ void testComputeCovarianceMatrix() {
 	typedef Eigen::MatrixXd MatrixXd;
 	typedef ImageSelector<Z2i::Domain, unsigned char>::Type Image;
 	typedef DGtal::Z2i::RealPoint RealPoint;
-	
-	Image image = GenericReader<Image>::import("/home/florent/trash/slice_250.pgm");
-	MatrixXd matrixCovariance = Statistics::computeCovarianceMatrix<MatrixXd>(image);
-	RealPoint vectorZero = Statistics::extractEigenVector<RealPoint>(matrixCovariance, 0);
-	RealPoint vectorOne = Statistics::extractEigenVector<RealPoint>(matrixCovariance, 1);
+
+	Image image = GenericReader<Image>::import("/home/florent/test_img/slices/boudin/slice_1.pgm");
+	Statistics<Z2i::DigitalSet> stats(Z2i::DigitalSet(image.domain()));
+	MatrixXd matrixCovariance = stats.computeCovarianceMatrixImage<MatrixXd>(image);
+	RealPoint vectorZero = stats.extractEigenVector(matrixCovariance, 0);
+	RealPoint vectorOne = stats.extractEigenVector(matrixCovariance, 1);
 	trace.info() << vectorZero << " " << vectorOne << endl;
 }
 

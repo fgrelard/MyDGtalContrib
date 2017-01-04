@@ -7,7 +7,7 @@
 #include "DGtal/io/viewers/Viewer3D.h"
 
 #include <QtGui/qapplication.h>
-#include "../Watershed.h"
+#include "clustering/Watershed.h"
 
 using namespace DGtal;
 using namespace std;
