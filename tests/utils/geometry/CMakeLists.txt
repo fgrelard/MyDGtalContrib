@@ -1,8 +1,7 @@
-add_subdirectory(clustering)
-add_subdirectory(geometry)
-
 SET(DGTAL_CONTRIB_TESTS
-  testStatistics
+  testCurve
+  testCurveProcessor
+  testCurveDecomposition
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})
