@@ -38,55 +38,50 @@ void testCurveTraversalAndGraph(int argc, char** argv) {
                 int r = rand() % 256, g = rand() % 256, b = rand() % 256;
                 viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << edge.pointSet();
         }
-         viewer << Viewer3D<>::updateDisplay;
-         app.exec();
-         trace.endBlock();
+        viewer << Viewer3D<>::updateDisplay;
+        app.exec();
+        trace.endBlock();
 }
 
 
-void testCurveEndPoints(int argc, char** argv) {
-        trace.beginBlock("Test curve endpoints");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
+void testCurveHierarchicalDecomposition(int argc, char** argv) {
+        trace.beginBlock("Test curve hierarchical decomp");
+        QApplication app(argc, argv);
+        Viewer3D<> viewer;
+        viewer.show();
 
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
+        Image image = GenericReader<Image>::import("/home/florent/test_img/Pruning/PF/skeletonBroncheConnexity.vol");
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
 
-
-
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
-         trace.endBlock();
-}
-
-void testCurveBranchingPoints(int argc, char** argv) {
-        trace.beginBlock("Test curve branching points");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
-
-        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
-        Z3i::DigitalSet setVolume(image.domain());
-        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
+        auto branchingPoints = curveProcessor.branchingPoints();
+        auto endPoints = curveProcessor.endPoints();
 
-        Z3i::DigitalSet newCurve = curveProcessor.branchingPoints();
-        for (const Z3i::Point& p : newCurve)
-                trace.info() << p << endl;
+        CurveDecomposition<Z3i::DigitalSet> curveDecomposition(setVolume, branchingPoints);
+        auto curve = curveDecomposition.curveTraversalForGraphDecomposition(*setVolume.begin());
+        std::vector<Edge<Z3i::DigitalSet> > graph = curveDecomposition.constructGraph(curve);
+        std::vector<WeightedEdge<Z3i::DigitalSet>* > hierarchicalGraph = curveDecomposition.hierarchicalDecomposition(graph, endPoints);
+        for (WeightedEdge<Z3i::DigitalSet>* edge : hierarchicalGraph) {
+                int label = edge->getLabel();
+                int r = label * 20 % 256;
+                int g = label * 50 % 256;
+                int b = label * 80 % 256;
+                viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << edge->pointSet();
+        }
 
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
-         trace.endBlock();
+        viewer << Viewer3D<>::updateDisplay;
+        app.exec();
+        trace.endBlock();
 }
+
 
 
 
 int main(int argc, char** argv) {
         srand(time(NULL));
-        testCurveTraversalAndGraph(argc, argv);
+        //testCurveTraversalAndGraph(argc, argv);
+        testCurveHierarchicalDecomposition(argc, argv);
         return 0;
 }

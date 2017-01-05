@@ -49,9 +49,10 @@ void testNeighborEdge() {
         aSet2.insert(Z3i::Point(-1,-1,-1));
         aSet2.insert(Z3i::Point(-1,-1,-2));
 
-        std::vector<Z3i::Point> branchingPoints;
+        Z3i::DigitalSet branchingPoints(Z3i::Domain(Z3i::Point(-100,-100,-100),
+                                                     Z3i::Point(100,100,100)));
 
-        branchingPoints.push_back(Z3i::Point(0,0,0));
+        branchingPoints.insert(Z3i::Point(0,0,0));
         Edge<Z3i::DigitalSet> curve2(aSet2);
         std::vector<Edge<Z3i::DigitalSet>* > edges;
         edges.push_back(new Edge<Z3i::DigitalSet>(curve));
@@ -77,9 +78,10 @@ void testNeighborGraphEdge() {
         aSet2.insert(Z3i::Point(-1,-1,-1));
         aSet2.insert(Z3i::Point(-1,-1,-2));
 
-        std::vector<Z3i::Point> branchingPoints;
+        Z3i::DigitalSet branchingPoints(Z3i::Domain(Z3i::Point(-100,-100,-100),
+                                                     Z3i::Point(100,100,100)));
 
-        branchingPoints.push_back(Z3i::Point(0,0,0));
+        branchingPoints.insert(Z3i::Point(0,0,0));
         WeightedEdge<Z3i::DigitalSet> curve2(aSet2, 2);
         std::vector<WeightedEdge<Z3i::DigitalSet>* > edges;
         edges.push_back(new WeightedEdge<Z3i::DigitalSet>(curve));

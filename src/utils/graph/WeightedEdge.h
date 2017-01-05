@@ -13,7 +13,7 @@ public:
 	int getLabel() const { return myLabel; }
 	void setLabel(int label) { myLabel = label; }
     std::vector< WeightedEdge<Container>* > neighboringEdges(const std::vector< WeightedEdge<Container>* >& edges,
-														  const std::vector<Point>& branchingPoints);
+                                                             const Container& branchingPoints);
 private:
 	int myLabel;
 };
@@ -21,7 +21,7 @@ private:
 
 template <typename Container>
 std::vector< WeightedEdge<Container>* > WeightedEdge<Container>::neighboringEdges(const std::vector< WeightedEdge<Container>* >& edges,
-																			const std::vector<Point>& branchingPoints) {
+                                                                                  const Container& branchingPoints) {
     typedef typename Container::value_type Point;
     typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
     typedef DGtal::MetricAdjacency<Space, 3> MetricAdjacency;

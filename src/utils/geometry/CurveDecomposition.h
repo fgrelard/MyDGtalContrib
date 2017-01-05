@@ -42,7 +42,7 @@ public:
     std::vector< GraphEdge > constructGraph(const CurveOrdered& curve);
 
     std::vector< WeightedGraphEdge* > hierarchicalDecomposition(const std::vector< GraphEdge >& edges,
-                                                                const std::vector< Point >& endPoints);
+                                                                const Container& endPoints);
 
 private:
     Curve<Container> myCurve;
@@ -131,11 +131,12 @@ template <typename Container>
 std::vector<typename CurveDecomposition<Container>::WeightedGraphEdge* >
 CurveDecomposition<Container>::
 hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Container>::GraphEdge >& edges,
-                          const std::vector<typename CurveDecomposition<Container>::Point>& endPoints) {
+                          const Container& endPoints) {
 
     std::queue<WeightedGraphEdge*> edgeQueue;
     std::vector<WeightedGraphEdge*> hierarchyGraph;
-    for (const DigitalSet& edge : edges.pointSet()) {
+    for (const GraphEdge& graphEdge : edges) {
+        DigitalSet edge = graphEdge.pointSet();
         WeightedGraphEdge* levelEdge = new WeightedGraphEdge(edge, std::numeric_limits<int>::max());
 
         for (const Point& e : endPoints) {
@@ -152,7 +153,7 @@ hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Containe
         WeightedGraphEdge* edgeCurrent  = edgeQueue.front();
         DigitalSet edgeCurrentSet = edgeCurrent->pointSet();
         edgeQueue.pop();
-        std::vector<WeightedGraphEdge*> neighborEdges = neighboringEdges(hierarchyGraph, edgeCurrentSet, myBranchingPoints);
+        std::vector<WeightedGraphEdge*> neighborEdges = edgeCurrent->neighboringEdges(hierarchyGraph, myBranchingPoints);
         for (WeightedGraphEdge* neighCurrent : neighborEdges) {
             int label = edgeCurrent->getLabel()+1;
             if (neighCurrent->getLabel() > label) {

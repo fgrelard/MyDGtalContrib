@@ -17,13 +17,13 @@ public:
     Edge(const Edge& other) : Curve<Container>(other) {}
 public:
     std::vector< Edge<Container>* > neighboringEdges(const std::vector< Edge<Container>* >& edges,
-                                                     const std::vector<Point>& branchingPoints);
+                                                     const Container& branchingPoints);
 
 };
 
 template <typename Container>
 std::vector< Edge<Container>* > Edge<Container>::neighboringEdges(const std::vector< Edge<Container>* >& edges,
-                                                                  const std::vector<Point>& branchingPoints) {
+                                                                  const Container& branchingPoints) {
     typedef typename Container::value_type Point;
     typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
     typedef DGtal::MetricAdjacency<Space, 3> MetricAdjacency;
