@@ -1,9 +1,5 @@
-add_subdirectory(path)
-
 SET(DGTAL_CONTRIB_TESTS
-  testCurve
-  testCurveProcessor
-  testCurveDecomposition
+  testLinkPoint
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

@@ -10,7 +10,7 @@ public:
         Curve(const Container& aCurve) : myPoints(aCurve) {}
         Curve(const Curve<Container>& other) : myPoints(other.myPoints) {}
         Container pointSet() const { return myPoints; }
-private:
+protected:
         Container myPoints;
 };
 
