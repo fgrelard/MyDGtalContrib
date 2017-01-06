@@ -7,7 +7,6 @@
 #include "DGtal/io/writers/GenericWriter.h"
 #include "DGtal/kernel/BasicPointFunctors.h"
 #include "DGtal/images/ImageSelector.h"
-#include "surface/SurfaceUtils.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include <QtGui/qapplication.h>
