@@ -64,7 +64,7 @@ MedialAxis<Container>::compute(const Container& aSet) {
 		for (const Point& n : neighbors) {
 			float distanceToBoundary = imageFct(n);
 			float minEnclosingRadius = sqrt(1+pow(d, 2));
-			if (d <= 1 || distanceToBoundary >= minEnclosingRadius) {
+			if (d <= 1 || distanceToBoundary > d) {
 				add = false;
 			}
 		}

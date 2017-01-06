@@ -5,6 +5,7 @@ SET(DGTAL_CONTRIB_TESTS
   testCurveProcessor
   testCurveDecomposition
   testMedialAxis
+  testDigitalPlaneProcessor
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

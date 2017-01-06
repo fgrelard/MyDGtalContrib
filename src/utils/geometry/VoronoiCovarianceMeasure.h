@@ -58,25 +58,7 @@
 namespace DGtal
 {
 
-	/////////////////////////////////////////////////////////////////////////////
-	// template class VoronoiCovarianceMeasure
-	/**
-	 * Description of template class 'VoronoiCovarianceMeasure' <p>
-	 * \brief Aim: This class precomputes the Voronoi Covariance Measure
-	 * of a set of points. It can compute the covariance measure of an
-	 * arbitrary function with given support.
-	 *
-	 * You may obtain the whole sequence (Point,VCM) by accessing the
-	 * map \ref vcmMap.
-	 *
-	 * @note Documentation in \ref moduleVCM_sec2.
-	 *
-	 * @tparam TSpace type of Digital Space (model of CSpace).
-	 *
-	 * @tparam TSeparableMetric a model of CSeparableMetric used for
-	 * computing the Voronoi map (e.g. Euclidean metric is
-	 * DGtal::ExactPredicateLpSeparableMetric<TSpace, 2> )
-	 */
+
 	template <typename TSpace, typename TSeparableMetric>
 	class VoronoiCovarianceMeasure
 	{
