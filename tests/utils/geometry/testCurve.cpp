@@ -1,4 +1,4 @@
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "graph/Edge.h"
 #include "graph/WeightedEdge.h"
 #include "DGtal/base/Common.h"

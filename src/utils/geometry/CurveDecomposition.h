@@ -4,7 +4,7 @@
 #include <vector>
 #include <queue>
 #include "graph/WeightedEdge.h"
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "geometry/PointUtil.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
 #include "DGtal/graph/GraphVisitorRange.h"

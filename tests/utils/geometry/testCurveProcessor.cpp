@@ -1,4 +1,4 @@
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "geometry/CurveProcessor.h"
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
@@ -90,8 +90,8 @@ void testCurveOrdered(int argc, char** argv) {
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
 
-        std::vector<Z3i::Point> newCurve = curveProcessor.convertToOrderedCurve();
-        for (const Z3i::Point& p : newCurve)
+        Curve<std::vector<Z3i::Point> > newCurve = curveProcessor.convertToOrderedCurve();
+        for (const Z3i::Point& p : newCurve.pointSet())
                 trace.info() << p << endl;
 
         // viewer << Viewer3D<>::updateDisplay;

@@ -4,7 +4,7 @@
 #include <vector>
 #include <queue>
 
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "DGtal/base/Common.h"
 #include "DGtal/topology/MetricAdjacency.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
@@ -26,7 +26,7 @@ public:
 	typedef typename Container::Space::RealVector RealVector;
 
 public:
-	CurveProcessor(const Container& container, bool isOrdered = false) : myCurve(container), myIsOrdered(isOrdered) {}
+	CurveProcessor(const Container& container, bool isOrdered = false) : myCurve(container) {}
 
 public:
 
@@ -36,15 +36,14 @@ public:
 
 	Container branchingPoints();
 
-	std::vector<Point> convertToOrderedCurve();
+	Curve< std::vector<Point> > convertToOrderedCurve();
 
-	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
+	Curve< std::vector<Point> > convertToOrderedCurve(const Point& startingPoint);
 
 
 
 private:
     Curve<Container> myCurve;
-	bool myIsOrdered;
 };
 
 
@@ -136,7 +135,7 @@ Container CurveProcessor<Container>::branchingPoints() {
 }
 
 template <typename Container>
-std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Container>::convertToOrderedCurve() {
+Curve< std::vector< typename CurveProcessor<Container>::Point > > CurveProcessor<Container>::convertToOrderedCurve() {
 	std::vector<Point> orientedEdge;
 
 	Container set = myCurve.pointSet();
@@ -150,7 +149,7 @@ std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Containe
 
 
 template <typename Container>
-std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<Container>::Point& startingPoint) {
+Curve< std::vector< typename CurveProcessor<Container>::Point > > CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<Container>::Point& startingPoint) {
 	std::vector<Point> orientedEdge;
 	Container edge = myCurve.pointSet();
 	if (edge.size() == 0) return orientedEdge;

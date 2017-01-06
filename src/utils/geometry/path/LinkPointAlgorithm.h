@@ -3,7 +3,7 @@
 
 #include "DGtal/base/Common.h"
 #include "DGtal/base/CBidirectionalRange.h"
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 
 template <typename Point>
 class LinkPointAlgorithm {

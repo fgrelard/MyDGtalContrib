@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <algorithm>
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "geometry/Distance.h"
 #include "DGtal/topology/DomainMetricAdjacency.h"
 

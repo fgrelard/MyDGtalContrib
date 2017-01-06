@@ -1,4 +1,4 @@
-#include "geometry/Curve.h"
+#include "shapes/Curve.h"
 #include "geometry/CurveDecomposition.h"
 #include "geometry/CurveProcessor.h"
 #include "DGtal/base/Common.h"
