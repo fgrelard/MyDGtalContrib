@@ -1,4 +1,0 @@
-#include <cstdlib>
-#include "shapes/Ball.h"
-#include "Statistics.h"
-
