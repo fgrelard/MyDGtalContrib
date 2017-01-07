@@ -9,7 +9,7 @@
 #include "DGtal/topology/DomainMetricAdjacency.h"
 #include "DGtal/topology/DigitalTopology.h"
 #include "geometry/DistanceToPointFunctor.h"
-
+#include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
 
 template <typename Container>
 class MedialAxis {
