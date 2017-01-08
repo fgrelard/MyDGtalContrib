@@ -41,7 +41,7 @@ public:
    * @param aMetric an instance of the metric.
    * @param verbose if 'true' displays information on ongoing computation.
    */
-  VCMAdjustableRadius( double _R, double _r, Metric aMetric = Metric(), bool verbose = false) :  Base( _R, _r, aMetric, verbose), myContainer(Domain(Point::zero, Point::zero)) {};
+  VCMAdjustableRadius( double _R, double _r, Metric aMetric = Metric(), bool verbose = false) :  Base( _R, _r, aMetric, verbose), myContainer(Domain(Point::zero, Point::zero)), mySmallRAdjustable(_r) {};
 
   /**
    * Destructor.
@@ -51,7 +51,8 @@ public:
   template <typename PointInputIterator>
   void init( PointInputIterator itb, PointInputIterator ite );
 
-  void setMySmallR(double r) {this->mySmallR = r;}
+  void setMySmallR(double r) {this->mySmallRAdjustable = r;}
+  Scalar r() const { return mySmallRAdjustable; }
 
   template <typename Point2ScalarFunction>
   MatrixNN measure( const Point2ScalarFunction& chi_r, const Point& p) const;
@@ -66,8 +67,9 @@ public:
 
   // ------------------------- Protected Datas ------------------------------
   // ------------------------- Private Datas --------------------------------
-private:
+protected:
   DigitalSet myContainer;
+  double mySmallRAdjustable;
 
   // ------------------------- Hidden services ------------------------------
 protected:
@@ -137,7 +139,7 @@ VCMAdjustableRadius<TSpace,TSeparableMetric>::measure( const Point2ScalarFunctio
                                                        const typename VCMAdjustableRadius<TSpace,TSeparableMetric>::Point& p ) const
 {
 
-  Ball<Point> ball(p, this->r());
+  Ball<Point> ball(p, r());
   std::vector<Point> neighbors = ball.intersection(this->myContainer);
   MatrixNN vcm;
   // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
@@ -199,7 +201,7 @@ measureJunction( const Vector& dirVector, Point2ScalarFunction chi_r, Point p ) 
   typedef DGtal::EigenDecomposition<3,double> LinearAlgebraTool;
   typedef typename TSpace::RealVector Vector;
 
-  Ball<Point> ball(p, this->r());
+  Ball<Point> ball(p, r());
   std::vector<Point> neighbors = ball.pointsInHalfBall(dirVector);
 
   MatrixNN vcm, evec, null;

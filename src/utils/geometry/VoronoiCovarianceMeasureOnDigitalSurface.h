@@ -387,7 +387,7 @@ VCMOnDigitalSurfaceAdjustableRadius( DGtal::ConstAlias< Surface > _surface,
 	}
 	if ( verbose ) DGtal::trace.endBlock();
 
-
+	if ( verbose ) DGtal::trace.endBlock();
 }
 
 //-----------------------------------------------------------------------------

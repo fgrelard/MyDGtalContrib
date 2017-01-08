@@ -6,11 +6,11 @@
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/topology/ImplicitDigitalSurface.h"
-#include "geometry/VoronoiCovarianceMeasureOnDigitalSurface.h"
+#include "geometry/VCMOnDigitalSurfaceAdjustableRadius.h"
 #include "geometry/VCMUtil.h"
 
 
-template <typename DTL2, typename BackgroundPredicate>
+template <typename BackgroundPredicate>
 class SaddleComputer {
 public:
 	typedef DGtal::ExactPredicateLpSeparableMetric<DGtal::Z3i::Space, 2> Metric;
@@ -20,13 +20,12 @@ public:
 	typedef DGtal::ImplicitDigitalSurface< KSpace, BackgroundPredicate > DigitalSurfaceContainer;
 
 	typedef KSpace::Surfel Surfel;
-	typedef VoronoiCovarianceMeasureOnDigitalSurface< DigitalSurfaceContainer, Metric, KernelFunction, DTL2> VCMOnSurface;
+	typedef VCMOnDigitalSurfaceAdjustableRadius< DigitalSurfaceContainer, Metric, KernelFunction> VCMOnSurface;
 	typedef DGtal::Z3i::Domain Domain;
 
 public:
 
 	SaddleComputer(const DGtal::Z3i::DigitalSet& setVolume,
-				   const DTL2& dt,
 				   const BackgroundPredicate& backgroundPredicate,
 				   double R,
 				   double r,
@@ -59,9 +58,8 @@ private:
 	Domain myDomain;
 };
 
-template <typename DTL2, typename BackgroundPredicate>
-SaddleComputer<DTL2, BackgroundPredicate>::SaddleComputer(const DGtal::Z3i::DigitalSet& setVolume,
-									const DTL2& dt,
+template <typename BackgroundPredicate>
+SaddleComputer<BackgroundPredicate>::SaddleComputer(const DGtal::Z3i::DigitalSet& setVolume,
 									const BackgroundPredicate& backgroundPredicate,
 									double R,
 									double r,
@@ -83,14 +81,14 @@ SaddleComputer<DTL2, BackgroundPredicate>::SaddleComputer(const DGtal::Z3i::Digi
 	Surfel2PointEmbedding embType = Pointels; // Could be Pointels|InnerSpel|OuterSpel;
 	KernelFunction chiSurface( 1.0, r );             // hat function with support of radius r
 
-
+	MedialAxis<DGtal::Z3i::DigitalSet> medialAxis(setVolume);
     myVCMSurface= new VCMOnSurface( *mySurface, embType, R, r,
-									chiSurface, dt, delta, l2, true);
+									chiSurface, medialAxis, delta, l2, true);
 }
 
-template <typename DTL2, typename BackgroundPredicate>
+template <typename BackgroundPredicate>
 template <typename VCM>
-DGtal::Z3i::DigitalSet SaddleComputer<DTL2, BackgroundPredicate>::computeBranchingPartsWithVCMFeature(const VCM& vcm, double threshold) {
+DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::computeBranchingPartsWithVCMFeature(const VCM& vcm, double threshold) {
 	typedef typename VCM::Point2EigenStructure::const_iterator P2EConstIterator;
 
 	DGtal::Z3i::DigitalSet aSet(myDomain);
@@ -106,8 +104,8 @@ DGtal::Z3i::DigitalSet SaddleComputer<DTL2, BackgroundPredicate>::computeBranchi
 	return aSet;
 }
 
-template <typename DTL2, typename BackgroundPredicate>
-std::vector<double> SaddleComputer<DTL2, BackgroundPredicate>::extractCurvatureOnPoints() {
+template <typename BackgroundPredicate>
+std::vector<double> SaddleComputer<BackgroundPredicate>::extractCurvatureOnPoints() {
 	typedef typename VCMOnSurface::Point2EigenStructure::const_iterator P2EConstIterator;
 
 	std::vector<double> curvatureValues;
@@ -122,8 +120,8 @@ std::vector<double> SaddleComputer<DTL2, BackgroundPredicate>::extractCurvatureO
 }
 
 
-template <typename DTL2, typename BackgroundPredicate>
-std::vector<std::pair<Z3i::Point, double> > SaddleComputer<DTL2, BackgroundPredicate>::mapPointToEigenvalue() {
+template <typename BackgroundPredicate>
+std::vector<std::pair<Z3i::Point, double> > SaddleComputer<BackgroundPredicate>::mapPointToEigenvalue() {
 	typedef typename VCMOnSurface::Point2EigenStructure::const_iterator P2EConstIterator;
 
 	std::vector<std::pair<Z3i::Point, double> > curvatureValues;
@@ -137,8 +135,8 @@ std::vector<std::pair<Z3i::Point, double> > SaddleComputer<DTL2, BackgroundPredi
 	return curvatureValues;
 }
 
-template <typename DTL2, typename BackgroundPredicate>
-DGtal::Z3i::DigitalSet SaddleComputer<DTL2, BackgroundPredicate>::extractSaddlePoints(const DGtal::Z3i::DigitalSet& setVolume){
+template <typename BackgroundPredicate>
+DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::extractSaddlePoints(const DGtal::Z3i::DigitalSet& setVolume){
 
 	auto myDomain = setVolume.domain();
 	std::vector<double> curvaturePoints = extractCurvatureOnPoints();
@@ -154,8 +152,8 @@ DGtal::Z3i::DigitalSet SaddleComputer<DTL2, BackgroundPredicate>::extractSaddleP
  * Reduce each set of saddle points computed from extractSaddlePoints to one point
  * Each point have the maximal curvature value within its connected component
  */
-template <typename DTL2, typename BackgroundPredicate>
-std::vector<DGtal::Z3i::Object26_6> SaddleComputer<DTL2, BackgroundPredicate>::saddleConnectedComponents(const DGtal::Z3i::DigitalSet& branchingPoints) {
+template <typename BackgroundPredicate>
+std::vector<DGtal::Z3i::Object26_6> SaddleComputer<BackgroundPredicate>::saddleConnectedComponents(const DGtal::Z3i::DigitalSet& branchingPoints) {
 	typedef functors::NotPointPredicate<Z3i::DigitalSet> NotPointPredicate;
 
 	auto myDomain = branchingPoints.domain();
@@ -172,9 +170,9 @@ std::vector<DGtal::Z3i::Object26_6> SaddleComputer<DTL2, BackgroundPredicate>::s
  * Reduce each set of saddle points computed from extractSaddlePoints to one point
  * Each point have the maximal curvature value within its connected component
  */
-template <typename DTL2, typename BackgroundPredicate>
+template <typename BackgroundPredicate>
 template <typename Matrix>
-DGtal::Z3i::DigitalSet SaddleComputer<DTL2, BackgroundPredicate>::saddlePointsToOnePoint(const std::vector<DGtal::Z3i::Object26_6>& objects) {
+DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::saddlePointsToOnePoint(const std::vector<DGtal::Z3i::Object26_6>& objects) {
 	typedef functors::NotPointPredicate<Z3i::DigitalSet> NotPointPredicate;
 
 	Z3i::DigitalSet maxCurvaturePoints(myDomain);
