@@ -19,7 +19,7 @@ namespace PointUtil {
 
 template <typename Domain, typename Container>
 Domain PointUtil::computeBoundingBox(const Container & points) {
-	typedef typename Container::Point Point;
+	typedef typename Container::value_type Point;
 	int maximum = std::numeric_limits<int>::max();
 	int min_x = maximum, min_y = maximum, min_z = maximum;
 	int max_x = -maximum, max_y = -maximum, max_z = -maximum;

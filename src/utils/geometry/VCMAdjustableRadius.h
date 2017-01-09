@@ -58,7 +58,7 @@ public:
   MatrixNN measure( const Point2ScalarFunction& chi_r, const Point& p) const;
 
   template <typename Point2ScalarFunction>
-  MatrixNN measure( const std::vector<Point>& neighbors, Point2ScalarFunction chi_r, Point p ) const;
+  MatrixNN measure( const DigitalSet& neighbors, Point2ScalarFunction chi_r, Point p ) const;
 
   template <typename Point2ScalarFunction>
   MatrixNN measureJunction( const Vector& dirVector, Point2ScalarFunction chi_r, Point p ) const;
@@ -140,10 +140,10 @@ VCMAdjustableRadius<TSpace,TSeparableMetric>::measure( const Point2ScalarFunctio
 {
 
   Ball<Point> ball(p, r());
-  std::vector<Point> neighbors = ball.intersection(this->myContainer);
+  DigitalSet neighbors = ball.intersection(this->myContainer);
   MatrixNN vcm;
   // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
-  for ( typename std::vector<Point>::const_iterator it_neighbors = neighbors.begin(),
+  for ( auto it_neighbors = neighbors.begin(),
           it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors )
 
   {
@@ -164,14 +164,14 @@ template <typename TSpace, typename TSeparableMetric>
 template <typename Point2ScalarFunction>
 typename VCMAdjustableRadius<TSpace,TSeparableMetric>::MatrixNN
 VCMAdjustableRadius<TSpace,TSeparableMetric>::
-measure( const std::vector<typename VCMAdjustableRadius<TSpace,TSeparableMetric>::Point>& neighbors,
+measure( const DigitalSet& neighbors,
          Point2ScalarFunction chi_r,
          typename VCMAdjustableRadius<TSpace,TSeparableMetric>::Point p ) const
 {
 
   MatrixNN vcm;
   // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
-  for ( typename std::vector<Point>::const_iterator it_neighbors = neighbors.begin(),
+  for ( auto it_neighbors = neighbors.begin(),
           it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors )
     {
       Point q = *it_neighbors;
@@ -202,13 +202,13 @@ measureJunction( const Vector& dirVector, Point2ScalarFunction chi_r, Point p ) 
   typedef typename TSpace::RealVector Vector;
 
   Ball<Point> ball(p, r());
-  std::vector<Point> neighbors = ball.pointsInHalfBall(dirVector);
+  DigitalSet neighbors = ball.pointsInHalfBall(dirVector);
 
   MatrixNN vcm, evec, null;
 
   Vector eval;
   std::map<Point, Vector> mapPoint2Normal;
-  for ( typename std::vector<Point>::const_iterator it_neighbors = neighbors.begin(),
+  for ( auto it_neighbors = neighbors.begin(),
           it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors )
     {
       Point q = *it_neighbors;

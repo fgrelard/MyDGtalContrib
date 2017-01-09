@@ -28,7 +28,7 @@ void testVCMAdaptable() {
     vcm.init(setVolume.begin(), setVolume.end());
     DGtal::functors::ReverseHatPointFunction<Z3i::Point, double> chi(1.0, 5.0);
     Ball<Z3i::Point> ball(*setVolume.begin(), 5);
-    std::vector<Z3i::Point> points = ball.pointsInBall();
+    Z3i::DigitalSet points = ball.pointSet();
     auto mat = vcm.measure(points, chi, *setVolume.begin());
     trace.info() << mat << endl;
     // const Color CURVE3D_COLOR( 100, 100, 140, 128 );

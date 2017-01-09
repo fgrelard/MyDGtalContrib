@@ -1,14 +1,7 @@
-add_subdirectory(path)
-
 SET(DGTAL_CONTRIB_TESTS
-  testCurve
-  testCurveProcessor
-  testCurveDecomposition
-  testMedialAxis
-  testDigitalPlaneProcessor
-  testVCMAdjustableRadius
-  testVCMOnDigitalSurfaceAdjustableRadius
-  testMorphomaths
+  testBall
+  testCone
+  testDigitalPlane
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

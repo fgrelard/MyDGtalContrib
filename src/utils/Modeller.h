@@ -12,6 +12,7 @@
 #include "shapes/Ball.h"
 #include "DGtal/geometry/volumes/KanungoNoise.h"
 #include "DGtal/kernel/sets/DigitalSetInserter.h"
+#include "shapes/Cone.h"
 
 template <typename Container>
 class Modeller {
@@ -21,36 +22,40 @@ class Modeller {
 public:
         typedef typename Container::Point Point;
         typedef typename Container::Space Space;
+        typedef typename Space::RealVector RealVector;
         typedef DGtal::HyperRectDomain<Space> Domain;
 
 public:
-        Container drawCircle(float radius, float cx, float cy, float z, float increment);
+        Modeller(double aIncrement = 0.01) : myIncrement(aIncrement) {}
 
-        Eigen::Matrix<double, Eigen::Dynamic, 4> drawDisk(double radius, double cx, double cy, double cz, long int &row, float increment);
+public:
+        Container drawCircle(float radius, const Point& center);
 
-        Container drawEllipse(float a, float b, float cx, float cy, float cz, float increment);
+        void drawDisk(Eigen::Matrix<double, Eigen::Dynamic, 4>& m, double radius, const Point& center, long int &row);
 
-        Container drawDisk(float radius, float cx, float cy, float cz, float increment);
+        Container drawEllipse(float a, float b, const Point& center);
 
-        Container drawEllipsoid(float a, float b, float c, float cx, float cy, float cz, float increment);
+        Container drawDisk(float radius, const Point& center);
 
-        Container drawCone(int length, float radius, float increment);
+        Container drawEllipsoid(float a, float b, float c, const Point& center);
 
-        Eigen::Matrix<double, Eigen::Dynamic, 4> drawCylinder(int length, int radius,  float rotationAngle, float increment);
+        Container drawCone(const Point& center, const RealVector& direction, double radius, double height);
 
-        Container drawCylinder(int length, float radius, float increment);
+        void drawCylinder(Eigen::Matrix<double, Eigen::Dynamic, 4>& m, int length, int radius,  float rotationAngle);
 
-        Container drawDeformedCylinder(int length, int radius, float increment);
+        Container drawCylinder(int length, float radius);
 
-        Container createHelixCurve(int range, int radiusWinding, int radiusSpiral, int pitch, float increment);
+        Container drawDeformedCylinder(int length, int radius);
 
-        Container createHelixCurve( int range, int radius, int pitch, float increment);
+        Container createHelixCurve(int range, int radiusWinding, int radiusSpiral, int pitch);
 
-        Container createStraightLine(int range, float increment = 0.01);
+        Container createHelixCurve( int range, int radius, int pitch);
 
-        void createSyntheticAirwayTree(Container & c, int branchNumber, int lengthTrachea, int z, float rotationAngle, Point firstPoint, float increment);
+        Container createStraightLine(int range);
 
-        Container createLogarithmicCurve(int range, float increment);
+        void createSyntheticAirwayTree(Container & c, int branchNumber, int lengthTrachea, int z, float rotationAngle, Point firstPoint);
+
+        Container createLogarithmicCurve(int range);
 
         Container createVolumeFromCurve(const Container & curve,  int ballRadius);
 
@@ -64,18 +69,21 @@ public:
 
         template <typename Board>
         void create2DNaiveTangentsForVisu(const Container & points, Board& board);
+
+private:
+        double myIncrement;
 };
 
 template <typename Container>
-Container Modeller<Container>::drawCircle(float radius, float cx, float cy, float z, float increment) {
+Container Modeller<Container>::drawCircle(float radius, const Point& center) {
         float x, y;
         double angle = 0.0;
         std::set<Point> set;
         while (angle <= 2 * M_PI){
                 x = radius * cos( angle );
                 y = radius * sin( angle );
-                set.insert(Point((int)x+cx, (int)y+cy, (int)z));
-                angle += increment;
+                set.insert(Point((int)x+center[0], (int)y+center[1], (int)center[2]));
+                angle += myIncrement;
         }
         Domain domain = PointUtil::computeBoundingBox<Domain>(set);
         Container aSet(domain);
@@ -84,10 +92,13 @@ Container Modeller<Container>::drawCircle(float radius, float cx, float cy, floa
 }
 
 template <typename Container>
-Container Modeller<Container>::drawEllipse(float a, float b, float cx, float cy, float cz, float increment) {
+Container Modeller<Container>::drawEllipse(float a, float b, const Point& center) {
         std::set<Point> set;
-        for (float x = cx -x - a, xend = cx + a + 1; x < xend; x+=increment) {
-                for (float y = cy - b, yend = cy + b +  1; y < yend; y+=increment) {
+        int cx = center[0];
+        int cy = center[1];
+        int cz = center[2];
+        for (float x = cx -x - a, xend = cx + a + 1; x < xend; x+=myIncrement) {
+                for (float y = cy - b, yend = cy + b +  1; y < yend; y+=myIncrement) {
                         if (Distance::euclideanDistance(x/a, y/b, cx/a, cy/b) <= 1) {
                                 set.insert(Point(x, y, cz));
                         }
@@ -100,12 +111,15 @@ Container Modeller<Container>::drawEllipse(float a, float b, float cx, float cy,
 }
 
 template <typename Container>
-Container Modeller<Container>::drawEllipsoid(float a, float b, float c, float cx, float cy, float cz, float increment) {
+Container Modeller<Container>::drawEllipsoid(float a, float b, float c, const Point& d) {
         std::set<Point> set;
+        int cx = d[0];
+        int cy = d[1];
+        int cz = d[2];
         Point center(cx/a, cy/b, cz/c);
-        for (float x = cx - a, xend = cx + a + 1; x < xend; x+=increment) {
-                for (float y = cy - b, yend = cy + b +  1; y < yend; y+=increment) {
-                        for (float z = cz - c, zend = cz + c +  1; z < zend; z+=increment) {
+        for (float x = cx - a, xend = cx + a + 1; x < xend; x+=myIncrement) {
+                for (float y = cy - b, yend = cy + b +  1; y < yend; y+=myIncrement) {
+                        for (float z = cz - c, zend = cz + c +  1; z < zend; z+=myIncrement) {
                                 Point current(x/a, y/b, z/c);
                                 if (Distance::euclideanDistance(center, current) <= 1) {
                                         set.insert(Point(x,y,z));
@@ -120,10 +134,13 @@ Container Modeller<Container>::drawEllipsoid(float a, float b, float c, float cx
 }
 
 template <typename Container>
-Eigen::Matrix<double, Eigen::Dynamic, 4> Modeller<Container>::drawDisk(double radius, double cx, double cy, double cz, long int &row, float increment) {
-        Eigen::Matrix<double, Eigen::Dynamic, 4> m;
-        for (float x = cx - radius, xend = cx + radius + 1; x < xend; x+=increment) {
-                for (float y = cy - radius, yend = cy + radius +  1; y < yend; y+=increment) {
+void Modeller<Container>::drawDisk(Eigen::Matrix<double, Eigen::Dynamic, 4>& m, double radius, const Point& center, long int &row) {
+
+        int cx = center[0];
+        int cy = center[1];
+        float cz = (float)center[2];
+        for (float x = cx - radius, xend = cx + radius + 1; x < xend; x+=myIncrement) {
+                for (float y = cy - radius, yend = cy + radius +  1; y < yend; y+=myIncrement) {
                         if (Distance::euclideanDistance(x, y, cx, cy) <= radius) {
                                 m(row, 0) = x;
                                 m(row, 1) = y;
@@ -134,14 +151,16 @@ Eigen::Matrix<double, Eigen::Dynamic, 4> Modeller<Container>::drawDisk(double ra
                         }
                 }
         }
-        return m;
 }
 
 template <typename Container>
-Container Modeller<Container>::drawDisk(float radius, float cx, float cy, float cz, float increment) {
+Container Modeller<Container>::drawDisk(float radius, const Point& center) {
         std::set<Point> set;
-        for (float x = cx - radius, xend = cx + radius + 1; x < xend; x+=increment) {
-                for (float y = cy - radius, yend = cy + radius +  1; y < yend; y+=increment) {
+         int cx = center[0];
+        int cy = center[1];
+        int cz = center[2];
+        for (float x = cx - radius, xend = cx + radius + 1; x < xend; x+=myIncrement) {
+                for (float y = cy - radius, yend = cy + radius +  1; y < yend; y+=myIncrement) {
                         if (Distance::euclideanDistance(x, y, cx, cy) <= radius) {
                                 set.insert(Point(x, y, cz));
                         }
@@ -154,24 +173,16 @@ Container Modeller<Container>::drawDisk(float radius, float cx, float cy, float 
 }
 
 template <typename Container>
-Container Modeller<Container>::drawCone(int length, float radius, float increment) {
-        std::set<Point> set;
-        for (int i = 0; i < length; i++) {
-                Container aSet = drawDisk(radius, 0, 0, i, increment);
-                set.insert(aSet.begin(), aSet.end());
-                radius -= increment;
-        }
-        Domain domain = PointUtil::computeBoundingBox<Domain>(set);
-        Container aSet(domain);
-        aSet.insert(set.begin(), set.end());
-        return aSet;
+Container Modeller<Container>::drawCone(const Point& center, const RealVector& direction, double radius, double height) {
+        Cone<Point, RealVector> cone(center, direction, radius, height);
+        return cone.pointSet();
 }
 
 template <typename Container>
-Container Modeller<Container>::drawCylinder(int length, float radius, float increment) {
+Container Modeller<Container>::drawCylinder(int length, float radius) {
         std::set<Point> set;
         for (int i = 0; i < length; i++) {
-                Container aSet = drawDisk(radius, 0, 0, i, increment);
+                Container aSet = drawDisk(radius, Point(0, 0, i));
                 set.insert(aSet.begin(), aSet.end());
         }
         Domain domain = PointUtil::computeBoundingBox<Domain>(set);
@@ -183,40 +194,37 @@ Container Modeller<Container>::drawCylinder(int length, float radius, float incr
 
 
 template <typename Container>
-Eigen::Matrix<double, Eigen::Dynamic, 4> Modeller<Container>::drawCylinder(int length, int radius, float rotationAngle, float increment) {
+void Modeller<Container>::drawCylinder(Eigen::Matrix<double, Eigen::Dynamic, 4> & m, int length, int radius, float rotationAngle) {
         int progress = 0;
         long int row = 0;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> mm;
+        int factor = (length * 20 / 100) < 1 ? 1 : (length * 20 / 100);
         while (progress < length) {
-                if (progress % (length/10) != 0) {
-                        Eigen::Matrix<double, Eigen::Dynamic, 4> m = drawDisk(radius, 0, 0, progress, row, increment);
-                        mm << m;
+                if (progress % (factor) != 0) {
+                        drawDisk(m, radius, Point(0, 0, progress), row);
                 } else {
                         if (radius > 0.6 * length / 6) {
                                 radius--;
                         }
-                        Eigen::Matrix<double, Eigen::Dynamic, 4> m = drawDisk(radius, 0, 0, progress, row, increment);
-                        mm << m;
+                        drawDisk(m, radius, Point(0, 0, progress), row);
                 }
                 progress++;
         }
         //Deletes last row
-        mm.conservativeResize(row, 4);
+        m.conservativeResize(row, 4);
         //Rotation with rotationAngle
         Eigen::Affine3d rot(Eigen::AngleAxisd(rotationAngle, Eigen::Vector3d::UnitX()));
         if (rotationAngle != 0.0) {
-                mm = mm * rot.matrix();
+                m = m * rot.matrix();
         }
-        return mm;
 }
 
 template <typename Container>
-Container Modeller<Container>::drawDeformedCylinder(int length, int radius, float increment) {
+Container Modeller<Container>::drawDeformedCylinder(int length, int radius) {
         int a = radius;
         int b = radius;
         std::set<Point> set;
         for (int i = 0; i < length; i++) {
-                Container aSet = drawEllipse(a, b, 0, 0, i, increment);
+                Container aSet = drawEllipse(a, b, Point(0, 0, i));
                 set.insert(aSet.begin(), aSet.end());
                 if (i % 3 == 0) {
                         a -= rand() % 3 - 1;
@@ -237,12 +245,12 @@ Container Modeller<Container>::drawDeformedCylinder(int length, int radius, floa
  * RadiusSpiral: radius of the volume
  */
 template <typename Container>
-Container Modeller<Container>::createHelixCurve(int range, int radiusWinding, int radiusSpiral, int pitch, float increment) {
+Container Modeller<Container>::createHelixCurve(int range, int radiusWinding, int radiusSpiral, int pitch) {
         std::set<Point> set;
-        for (float i=0.0f; i < range; i+=increment) {
+        for (float i=0.0f; i < range; i+=myIncrement) {
                 float centerx = radiusWinding * cos(i/pitch);
                 float centery = radiusWinding * sin(i/pitch);
-                Container aSet = drawCircle(radiusSpiral, centerx, centery, i, increment);
+                Container aSet = drawCircle(radiusSpiral, Point(centerx, centery, i));
                 set.insert(aSet.begin(), aSet.end());
         }
         Domain domain = PointUtil::computeBoundingBox<Domain>(set);
@@ -256,9 +264,9 @@ Container Modeller<Container>::createHelixCurve(int range, int radiusWinding, in
  * This function does not allow to set the spiral radius
  */
 template <typename Container>
-Container Modeller<Container>::createHelixCurve( int range, int radius, int pitch, float increment) {
+Container Modeller<Container>::createHelixCurve( int range, int radius, int pitch) {
         std::set<Point> set;
-        for (float i=0.0; i < range; i+=increment) {
+        for (float i=0.0; i < range; i+=myIncrement) {
                 int x = radius * cos(i);
                 int y = radius * sin(i);
                 int z = pitch * i;
@@ -272,9 +280,9 @@ Container Modeller<Container>::createHelixCurve( int range, int radius, int pitc
 }
 
 template <typename Container>
-Container Modeller<Container>::createStraightLine(int range, float increment) {
+Container Modeller<Container>::createStraightLine(int range) {
         std::set<Point> set;
-        for (float i = 0; i < range; i+=increment) {
+        for (float i = 0; i < range; i+=myIncrement) {
                 Point p (0, 0, i);
                 set.insert(p);
         }
@@ -286,13 +294,13 @@ Container Modeller<Container>::createStraightLine(int range, float increment) {
 
 
 template <typename Container>
-void Modeller<Container>::createSyntheticAirwayTree(Container& c, int branchNumber, int lengthTrachea, int z, float rotationAngle, Point firstPoint, float increment) {
-        if (branchNumber == 0) return c;
+void Modeller<Container>::createSyntheticAirwayTree(Container& c, int branchNumber, int lengthTrachea, int z, float rotationAngle, Point firstPoint) {
+        if (branchNumber == 0) return;
+        Eigen::Matrix<double, Eigen::Dynamic, 4>  matrix(1,4);
         int radius = lengthTrachea / 6;
-        Eigen::Matrix<double, Eigen::Dynamic, 4> matrix(1, 4);
         std::set<Point> set;
         //Creates a rotated cylinder
-        matrix = drawCylinder(lengthTrachea, radius, rotationAngle, increment);
+        drawCylinder(matrix, lengthTrachea, radius, rotationAngle);
         //Filling the vector with points from matrix
         for (int i = 0; i < matrix.innerSize(); i++) {
                 if (matrix(i, 0) != 0 || matrix(i, 1) != 0 || matrix(i, 2) != 0) {
@@ -306,15 +314,15 @@ void Modeller<Container>::createSyntheticAirwayTree(Container& c, int branchNumb
         z += lengthTrachea;
         //Determining initial starting point for new branches
         firstPoint += Point(0, lengthTrachea * sin(rotationAngle), lengthTrachea * cos(rotationAngle));
-        matrix.resize(0,0);
-        createSyntheticAirwayTree(branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle + 0.2 * M_PI, firstPoint, increment);
-        createSyntheticAirwayTree(branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle - 0.2 * M_PI, firstPoint, increment);
+        matrix.resize(0,4);
+        createSyntheticAirwayTree(c, branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle + 0.2 * M_PI, firstPoint);
+        createSyntheticAirwayTree(c, branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle - 0.2 * M_PI, firstPoint);
 }
 
 template <typename Container>
-Container Modeller<Container>::createLogarithmicCurve(int range, float increment) {
+Container Modeller<Container>::createLogarithmicCurve(int range) {
         std::set<Point> set;
-        for (float i = 1; i < range; i+=increment) {
+        for (float i = 1; i < range; i+=myIncrement) {
                 float x = i;
                 float y = i;
                 float z = 20*log(i);
@@ -329,37 +337,37 @@ Container Modeller<Container>::createLogarithmicCurve(int range, float increment
 
 template <typename Container>
 Container Modeller<Container>::createVolumeFromCurve(const Container & curve, int ballRadius) {
-        std::set<Ball<Point> > set;
+        std::vector<Ball<Point> > v;
         for (const Point& point : curve) {
-                set.insert(Ball<Point>(point, ballRadius));
+                v.push_back(Ball<Point>(point, ballRadius));
         }
         std::set<Point> setP;
-        for (const Ball<Point>& current : set) {
-                for (const Point& point : current.pointsInBall()) {
+        for (const Ball<Point>& current : v) {
+                for (const Point& point : current.pointSet()) {
                         setP.insert(point);
                 }
         }
-        Domain domain = PointUtil::computeBoundingBox<Domain>(set);
+        Domain domain = PointUtil::computeBoundingBox<Domain>(setP);
         Container aSet(domain);
-        aSet.insert(set.begin(), set.end());
+        aSet.insert(setP.begin(), setP.end());
         return aSet;
 }
 
 template <typename Container>
 Container Modeller<Container>::createHalfVolumeFromCurve(const Container & curve, int ballRadius) {
-        std::set<Ball<Point> > set;
+        std::vector<Ball<Point> > v;
         for (const Point& point : curve) {
-                set.insert(Ball<Point>(point, ballRadius));
+                v.push_back(Ball<Point>(point, ballRadius));
         }
         std::set<Point> setP;
-        for (const Ball<Point>& current : set) {
+        for (const Ball<Point>& current : v) {
                 for (const Point& point : current.pointsInHalfBall()) {
                         setP.insert(point);
                 }
         }
-        Domain domain = PointUtil::computeBoundingBox<Domain>(set);
+        Domain domain = PointUtil::computeBoundingBox<Domain>(setP);
         Container aSet(domain);
-        aSet.insert(set.begin(), set.end());
+        aSet.insert(setP.begin(), setP.end());
         return aSet;
 }
 
@@ -398,7 +406,7 @@ Container Modeller<Container>::createRotatedVolumeFromCurve(const Container& cur
              it != ite; ++it) {
                 Ball ball(*it, ballRadius);
                 Point current = *it;
-                std::vector<Point> pointsInBall = ball.pointsInBall();
+                auto pointsInBall = ball.pointSet();
                 // drawEllipsoid(pointsInBall, 7, 10, 7, current[0], current[1], current[2], 0.5);
                 set.insert(pointsInBall.begin(), pointsInBall.end());
         }

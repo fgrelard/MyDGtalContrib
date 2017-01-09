@@ -5,7 +5,6 @@
 #include <set>
 #include <limits>
 #include <algorithm>
-#include <iostream>
 #include "geometry/Distance.h"
 #include "shapes/Ball.h"
 
@@ -31,7 +30,7 @@ template <typename Point>
 Ellipse<Point>::Ellipse(const std::vector<Point>& points, const Point& center) {
 	myCenter = center;
 	computeParameters(points);
-	
+
 }
 
 template <typename Point>
@@ -53,7 +52,7 @@ void Ellipse<Point>::computeParameters(const std::vector<Point>& points) {
 					return true;
 				}
 				else return false;}));
-	
+
 	Point maxiToCenter = myCenter - maxi;
 	Point miniToCenter = myCenter - mini;
 
@@ -62,9 +61,9 @@ void Ellipse<Point>::computeParameters(const std::vector<Point>& points) {
 
 	myPointsForMajor = std::make_pair(maxi, symmetricMaxi);
 	myPointsForMinor = std::make_pair(mini, symmetricMini);
-	
+
 	myMinorAxis = minimum * 2;
-	myMajorAxis = maximum * 2;	
+	myMajorAxis = maximum * 2;
 }
 
 
@@ -79,7 +78,7 @@ bool Ellipse<Point>::computeFocalPoints(Point& focal, Point& otherFocal) {
 		int x = bigA[0] + directionVector[0] * i;
 		int y = bigA[1] + directionVector[1] * i;
 		int z = bigA[2] + directionVector[2] * i;
-		lineMajorAxis.insert({x, y, z});		
+		lineMajorAxis.insert({x, y, z});
 	}
 
 	Ball<Point> ball(myPointsForMinor.first, myMajorAxis/2);
@@ -105,7 +104,6 @@ bool Ellipse<Point>::distanceConsistentEllipse(const std::vector<Point> & points
 		for (auto it = points.begin(), itE = points.end(); it != itE; ++it) {
 			int sumCeil =  ceil(euclideanDistance(*it, focalOne) + euclideanDistance(*it, focalTwo));
 			int sumFloor = floor(euclideanDistance(*it, focalOne) + euclideanDistance(*it, focalTwo));
-			std::cout << sumCeil << " " << sumFloor << " "<< myMajorAxis << std::endl;
 			if (sumCeil != (int)myMajorAxis && sumFloor != (int)myMajorAxis) {
 				return false;
 			}

@@ -6,30 +6,34 @@
 #include "DGtal/base/BasicFunctors.h"
 #include "DGtal/kernel/BasicPointPredicates.h"
 #include "DGtal/kernel/domains/DomainPredicate.h"
+#include "DGtal/images/CImage.h"
 
 template <typename Image>
 class Morphomaths {
 
+	BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
+
 public:
 	Morphomaths() = delete;
-	Morphomaths(const Image& image) : myImage(image) {}
-	Morphomaths(const Morphomaths& other) : myImage(other.myImage) {}
+	Morphomaths(const Image& image, int aSize = 1) : myImage(image) , mySize(aSize) {}
+	Morphomaths(const Morphomaths& other) : myImage(other.myImage), mySize(other.mySize) {}
 
 public:
 	bool process(int x, int y, int nx, int ny);
 
 	Image constructOnePxBorderImage();
 
-	Image erosion(int size);
+	Image erosion();
 
-	Image dilation(int size);
+	Image dilation();
 
-	Image open(int size);
+	Image open();
 
-	Image close(int size);
+	Image close();
 
 protected:
 	Image myImage;
+	int mySize;
 
 };
 
@@ -64,22 +68,23 @@ Image Morphomaths<Image>::constructOnePxBorderImage() {
 
 	Image toReturn(Domain(domain.lowerBound() - Point::diagonal(), domain.upperBound() + Point::diagonal()));
 	for (auto it = toReturn.domain().begin(), ite = toReturn.domain().end(); it != ite; ++it) {
-		if (domain.isInside(*it))
-			toReturn.setValue(*it, image(*it));
+		Point p = *it;
+		if (domain.isInside(p))
+			toReturn.setValue(p, myImage(p));
 		else
-			toReturn.setValue(*it, 0);
+			toReturn.setValue(p, 0);
 	}
 
 	return toReturn;
 }
 
 template <typename Image>
-Image Morphomaths<Image>::erosion(int size) {
+Image Morphomaths<Image>::erosion() {
 	typedef typename Image::Domain Domain;
 	typedef typename Image::Point Point;
 
 	Domain domain = myImage.domain();
-	Image toReturn = constructOnePxBorderImage(myImage);
+	Image toReturn = constructOnePxBorderImage();
 	myImage = toReturn;
 	Point upper = domain.upperBound(), lower = domain.lowerBound();
 
@@ -88,7 +93,7 @@ Image Morphomaths<Image>::erosion(int size) {
 
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			bool shouldBeEroded = process(i, j, size, size);
+			bool shouldBeEroded = process(i, j, mySize, mySize);
 			if (shouldBeEroded) toReturn.setValue(Point(i,j), 0);
 		}
 	}
@@ -100,13 +105,13 @@ Image Morphomaths<Image>::erosion(int size) {
 }
 
 template <typename Image>
-Image Morphomaths<Image>::dilation(int size) {
+Image Morphomaths<Image>::dilation() {
 	typedef typename Image::Domain Domain;
 	typedef typename Image::Point Point;
 	typedef DGtal::functors::NotPointPredicate<Image> BackgroundPredicate;
 
 	Domain domain = myImage.domain();
-	Image toReturn = constructOnePxBorderImage(myImage);
+	Image toReturn = constructOnePxBorderImage();
 	myImage = toReturn;
 	BackgroundPredicate backgroundPredicate( myImage );
 
@@ -116,7 +121,7 @@ Image Morphomaths<Image>::dilation(int size) {
 	int height = upper[1] - lower[1] +  1;
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-			bool shouldBeDilated = process(i, j, size, size);
+			bool shouldBeDilated = process(i, j, mySize, mySize);
 			if (shouldBeDilated) toReturn.setValue(Point(i,j), 1);
 		}
 	}
@@ -128,16 +133,16 @@ Image Morphomaths<Image>::dilation(int size) {
 }
 
 template <typename Image>
-Image Morphomaths<Image>::open(int size) {
-	myImage = erosion(size);
-	Image dilat = dilation(size);
+Image Morphomaths<Image>::open() {
+	myImage = erosion();
+	Image dilat = dilation();
 	return dilat;
 }
 
 template <typename Image>
-Image Morphomaths<Image>::close(int size) {
-	myImage = dilation(size);
-	Image eros = erosion(size);
+Image Morphomaths<Image>::close() {
+	myImage = dilation();
+	Image eros = erosion();
 	return eros;
 }
 

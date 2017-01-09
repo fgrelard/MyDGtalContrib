@@ -1,5 +1,5 @@
-#ifndef DIGITALPLANE_H
-#define DIGITALPLANE_H
+#ifndef DIGITAL_PLANE_H
+#define DIGITAL_PLANE_H
 
 #include "DGtal/geometry/surfaces/ParallelStrip.h"
 #include "DGtal/kernel/domains/HyperRectDomain.h"

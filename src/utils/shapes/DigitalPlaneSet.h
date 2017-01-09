@@ -1,5 +1,5 @@
-#ifndef DIGITALPLANESET_H
-#define DIGITALPLANESET_H
+#ifndef DIGITAL_PLANE_SET_H
+#define DIGITAL_PLANE_SET_H
 
 #include "DigitalPlane.h"
 
