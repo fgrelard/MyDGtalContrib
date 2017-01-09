@@ -18,6 +18,7 @@ template <typename Container>
 class Statistics {
 
 public:
+	Statistics() = delete;
 	Statistics(const Container& aData) : myData(aData) {}
 
 	double mean();

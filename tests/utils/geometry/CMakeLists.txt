@@ -1,10 +1,14 @@
-add_subdirectory(clustering)
-add_subdirectory(geometry)
-add_subdirectory(shapes)
+add_subdirectory(path)
 
 SET(DGTAL_CONTRIB_TESTS
-  testStatistics
-  testModeller
+  testCurve
+  testCurveProcessor
+  testCurveDecomposition
+  testMedialAxis
+  testDigitalPlaneProcessor
+  testVCMAdjustableRadius
+  testVCMOnDigitalSurfaceAdjustableRadius
+  testMorphomaths
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

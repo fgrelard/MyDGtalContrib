@@ -1,56 +1,77 @@
 #ifndef MEDIAL_AXIS_H
 #define MEDIAL_AXIS_H
 
-#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
-#include "geometry/DistanceToPointFunctor.h"
-#include "DGtal/base/Common.h"
-#include "DGtal/helpers/StdDefs.h"
-#include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include <vector>
+#include "DGtal/base/Common.h"
+#include "DGtal/graph/DistanceBreadthFirstVisitor.h"
+#include "DGtal/kernel/sets/CDigitalSet.h"
+#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
+#include "DGtal/topology/DomainMetricAdjacency.h"
+#include "DGtal/topology/DigitalTopology.h"
+#include "geometry/DistanceToPointFunctor.h"
+#include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
 
-using namespace DGtal;
+template <typename Container>
+class MedialAxis {
 
-template <typename ImageFct, typename Point>
-void checkPointForMedialAxis(const ImageFct& imageFct, std::vector<Point>& vPoints, const Point& p);
+	BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet<Container> ));
 
-template <typename ImageFct, typename Point>
-void checkPointForMedialAxis(const ImageFct& imageFct, std::vector<Point>& vPoints, const Point& p) {
-	typedef ExactPredicateLpSeparableMetric<Z3i::Space,2> Distance;
-	typedef DistanceToPointFunctor<Distance>         DistanceToPoint;
-	typedef MetricAdjacency<Z3i::Space, 3>                Graph;
-	typedef DistanceBreadthFirstVisitor< Graph, DistanceToPoint, std::set<Point> >
-		DistanceVisitor;
-	typedef typename DistanceVisitor::Node MyNode;
-   
-	double d = imageFct(p);
-	Graph             graph;
-	DistanceToPoint   d2pfct( Distance(), p );
-	DistanceVisitor   visitor( graph, d2pfct, p );
-	MyNode node;
-	bool add = true;
-	visitor.expand(); //Go to the first neighbour
-	
-	while ( ! visitor.finished() )
-	{
-		node = visitor.current(); // all the vertices of the same layer have been processed.
-		
-		if (node.second > 1) break; // we want to analyse only the direct neighbourhood (4- or 6- connexity)
-		if (imageFct.domain().isInside(node.first) && node.second == 1) { //is inside domain
-			float distanceToBoundary = imageFct(node.first);
+protected:
+	typedef typename Container::value_type Point;
+	typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
+	typedef DGtal::MetricAdjacency<typename Container::Space, 1> Adj6;
+	typedef DGtal::MetricAdjacency<typename Container::Space, 3> Adj26;
+	typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
+	typedef DGtal::Object<DT26_6, Container> ObjectType;
+	typedef typename Container::Space::RealVector RealVector;
+
+public:
+	MedialAxis() = delete;
+	MedialAxis(const Container& aSet) : mySet(compute(aSet)) {}
+	MedialAxis(const MedialAxis& other) : mySet(other.mySet) {}
+
+private:
+	Container compute(const Container& aSet);
+
+public:
+	Container pointSet() const { return mySet; }
+private:
+	Container mySet;
+};
+
+template <typename Container>
+Container
+MedialAxis<Container>::compute(const Container& aSet) {
+	typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;
+	typedef DistanceToPointFunctor<L2Metric>         DistanceToPoint;
+	typedef DGtal::DistanceTransformation<Space, Container, L2Metric> DTL2;
+
+	Adj26 adj26;
+	Adj6 adj6;
+	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+	ObjectType obj(dt26_6, aSet);
+
+	L2Metric l2Metric;
+	DTL2 imageFct(&aSet.domain(), &aSet, &l2Metric);
+	Container medialAxis(aSet.domain());
+
+	for (const Point& p : aSet) {
+		bool add = true;
+		double d = imageFct(p);
+		std::vector<Point> neighbors;
+		std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
+		obj.writeNeighbors(inserter, p);
+		for (const Point& n : neighbors) {
+			float distanceToBoundary = imageFct(n);
 			float minEnclosingRadius = sqrt(1+pow(d, 2));
-			if (d <= 1 || distanceToBoundary >= minEnclosingRadius) {
+			if (d <= 1 || distanceToBoundary > d) {
 				add = false;
 			}
-			visitor.expand();
 		}
-		else
-			visitor.ignore();
+		if (add)
+			medialAxis.insert(p);
 	}
-	if (add) {
-		vPoints.push_back(p);
-	}
+	return medialAxis;
 }
 
 #endif
- 
-

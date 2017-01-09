@@ -1,10 +1,5 @@
-add_subdirectory(clustering)
-add_subdirectory(geometry)
-add_subdirectory(shapes)
-
 SET(DGTAL_CONTRIB_TESTS
-  testStatistics
-  testModeller
+  testLinkPoint
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})
