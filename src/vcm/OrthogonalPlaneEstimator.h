@@ -30,8 +30,9 @@ public:
 public:
         Plane planeAt(const Point& point,
                       const RealVector& dirVector = RealVector::zero,
-                      const Container& points = Container(Domain(Point(0,0,0), Point(0,0,0)));
+                      const Container& points = Container(Domain(Point(0,0,0), Point(0,0,0))));
 
+        void setRadius(double radius);
 public:
         OrthogonalPlaneEstimator& operator=(const OrthogonalPlaneEstimator& other);
 
@@ -84,11 +85,11 @@ planeAt(const Point& point, const RealVector& dirVector,const Container& points)
         RealVector eval;
         // Compute VCM and diagonalize it.
         if (dirVector != RealVector::zero)
-                vcm_r = myVCM.measureJunction( dirVector, myChi, point);
+                vcm_r = myVCM->measureJunction( dirVector, myChi, point);
         else if (!points.empty())
-                vcm_r = myVCM.measure(points, myChi, point);
+                vcm_r = myVCM->measure(points, myChi, point);
         else
-                vcm_r = myVCM.measure( myChi, point);
+                vcm_r = myVCM->measure( myChi, point);
         LinearAlgebraTool::getEigenDecomposition( vcm_r, evec, eval );
         // Display normal
         RealVector normal = evec.column(0);
@@ -96,5 +97,12 @@ planeAt(const Point& point, const RealVector& dirVector,const Container& points)
         return plane;
 }
 
+template <typename Container, typename KernelFunction>
+void
+OrthogonalPlaneEstimator<Container, KernelFunction>::
+setRadius(double radius) {
+        myVCM->setMySmallR(radius);
+        myChi = KernelFunction(1.0, radius);
+}
 
 #endif

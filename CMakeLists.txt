@@ -7,6 +7,7 @@ link_directories(${DGTAL_LIBRARY_DIRS})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(TEST_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/tests)
+set(EXAMPLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/examples)
 #set(CMAKE_BUILD_TYPE Release)
 
 FIND_PACKAGE(Boost 1.46.0 REQUIRED COMPONENTS)
@@ -35,7 +36,7 @@ if (BUILD_TESTS)
 endif(BUILD_TESTS)
 
 if (BUILD_EXAMPLES)
-  #add_subdirectory(examples)
+  add_subdirectory(examples)
 endif(BUILD_EXAMPLES)
 
 
