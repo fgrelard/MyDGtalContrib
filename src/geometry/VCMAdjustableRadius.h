@@ -80,7 +80,7 @@ protected:
    */
   VCMAdjustableRadius() : myContainer(Domain(Point::zero, Point::zero)) {}
 
-private:
+public:
 
   /**
    * Copy constructor.
@@ -198,7 +198,6 @@ VCMAdjustableRadius<TSpace,TSeparableMetric>::
 measureJunction( const Vector& dirVector, Point2ScalarFunction chi_r, Point p ) const
 {
 
-  typedef DGtal::EigenDecomposition<3,double> LinearAlgebraTool;
   typedef typename TSpace::RealVector Vector;
 
   Ball<Point> ball(p, r());
