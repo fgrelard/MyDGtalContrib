@@ -74,12 +74,30 @@ void testCurveHierarchicalDecomposition(int argc, char** argv) {
         trace.endBlock();
 }
 
-
+void testGraphDecomposition(int argc, char** argv) {
+                QApplication app(argc, argv);
+        Viewer3D<> viewer;
+        viewer.show();
+        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+        Image image = GenericReader<Image>::import("/home/fgrelard/test_img/PF/skeletonBronche2Connectivity.vol");
+        Z3i::DigitalSet setVolume(image.domain());
+        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
+        CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
+        auto branchingPoints = curveProcessor.branchingPoints();
+        CurveDecomposition<Z3i::DigitalSet> curveDecomposition(setVolume, branchingPoints);
+        auto curve = curveDecomposition.graphDecomposition();
+        trace.info() << curve.size() << std::endl;
+        viewer << CustomColors3D(Color::Red, Color::Red) << branchingPoints;
+        viewer << CustomColors3D(Color::Blue, Color::Blue) << setVolume;
+        viewer << Viewer3D<>::updateDisplay;
+        app.exec();
+}
 
 
 int main(int argc, char** argv) {
         srand(time(NULL));
         //testCurveTraversalAndGraph(argc, argv);
-        testCurveHierarchicalDecomposition(argc, argv);
+        //testCurveHierarchicalDecomposition(argc, argv);
+        testGraphDecomposition(argc, argv);
         return 0;
 }

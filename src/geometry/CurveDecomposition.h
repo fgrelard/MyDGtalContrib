@@ -178,7 +178,7 @@ CurveDecomposition<Container>::
 graphDecomposition() {
     CurveProcessor<Container> curveProcessor(myCurve);
     Container endPoints = curveProcessor.endPoints();
-    Point point = *endPoints.begin();
+    Point point = (*endPoints.begin());
     std::vector<Point> curveOrdered = curveTraversalForGraphDecomposition(point);
 
     Container endPointsWithoutB(endPoints.domain());

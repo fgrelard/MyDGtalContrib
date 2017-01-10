@@ -10,6 +10,7 @@
 #include "DGtal/graph/GraphVisitorRange.h"
 #include "DGtal/topology/DigitalTopology.h"
 #include "DGtal/topology/Object.h"
+#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 
 template <typename Container>
 class CurveProcessor {
@@ -18,8 +19,9 @@ class CurveProcessor {
 
 public:
 	typedef typename Container::value_type Point;
-	typedef DGtal::MetricAdjacency<typename Container::Space, 1> Adj6;
-	typedef DGtal::MetricAdjacency<typename Container::Space, 3> Adj26;
+	typedef typename Container::Space Space;
+	typedef DGtal::MetricAdjacency<Space, 1> Adj6;
+	typedef DGtal::MetricAdjacency<Space, 3> Adj26;
 	typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
 	typedef DGtal::Object<DT26_6, Container> ObjectType;
 	typedef typename Container::Space::RealVector RealVector;
@@ -114,23 +116,49 @@ Container CurveProcessor<Container>::endPoints() {
 template <typename Container>
 Container CurveProcessor<Container>::branchingPoints() {
 
-	Adj26 adj26;
-	Adj6 adj6;
-	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+    typedef DGtal::DepthFirstVisitor<ObjectType, std::set<Point> > Visitor;
+    typedef typename Visitor::Node MyNode;
+    typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;
 
-	Container set = myCurve;
+    Adj26 adj26;
+    Adj6 adj6;
+    DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+    L2Metric l2Metric;
 
-    ObjectType obj(dt26_6, set);
-	Container criticalPoints(set.domain());
-	for (const Point& s : set) {
-		std::vector<Point> neighbors;
-		std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
-		obj.writeNeighbors(inserter, s);
-		if (neighbors.size() > 2) {
-			criticalPoints.insert(s);
-		}
-	}
-	return criticalPoints;
+    ObjectType graph(dt26_6, myCurve);
+    Visitor visitor( graph, *endPoints().begin() );
+    MyNode node;
+
+	std::vector<Point> existingSkeletonOrdered;
+	Container branchingPoints(myCurve.domain());
+    std::pair<Point, double> previous;
+    while ( !visitor.finished() )
+    {
+        node = visitor.current();
+        if (node.second != 0 && ((int)node.second - previous.second) <= 0) {
+            std::vector<Point> neighbors;
+            std::back_insert_iterator<std::vector<Point>> inserter(neighbors);
+            graph.writeNeighbors(inserter, node.first);
+            double minDistance = std::numeric_limits<double>::max();
+            Point cand;
+            for (const Point& n : neighbors) {
+                if (find(existingSkeletonOrdered.begin(), existingSkeletonOrdered.end(), n) != existingSkeletonOrdered.end()) {
+                    double currentDistance = l2Metric(n, node.first);
+                    if (currentDistance < minDistance) {
+                        minDistance = currentDistance;
+                        cand = n;
+                    }
+                }
+            }
+			branchingPoints.insert(cand);
+            existingSkeletonOrdered.push_back(cand);
+
+        }
+        previous = node;
+        existingSkeletonOrdered.push_back(node.first);
+        visitor.expand();
+    }
+    return branchingPoints;
 }
 
 template <typename Container>

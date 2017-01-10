@@ -129,10 +129,11 @@ prune() {
         int previousNumber = -1;
         Container prunedSkeleton = *mySkeleton;
         while (hierarchicalGraph.size() != previousNumber) {
+                DGtal::trace.info() << hierarchicalGraph.size() << std::endl;
                 previousNumber = hierarchicalGraph.size();
                 for (GraphEdge* graphEdge : hierarchicalGraph) {
                         if (graphEdge->size() == 0) continue;
-                        double radius = graphEdge->size() * 0.4;
+                        double radius = graphEdge->size() * 0.4 + 1.0;
                         KernelFunction chi(1.0, radius);
                         myPlaneEstimatorCurve = new PlaneEstimator (*graphEdge, chi, 30, radius);
                         double sumAngle = 0;
