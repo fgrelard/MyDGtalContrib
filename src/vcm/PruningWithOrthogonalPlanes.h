@@ -43,7 +43,6 @@ public:
         double significanceMeasure(const Point& p);
 
         Container pruneEdgeTopologyPreserving(const Container& prunedSkeleton,
-                                              double significanceMeasure,
                                               const GraphEdge& graphEdge);
 
 private:
@@ -144,14 +143,15 @@ prune() {
                                       });
                         sumAngle /= graphEdge->size();
                         if (sumAngle > myThreshold) {
-                                prunedSkeleton = pruneEdgeTopologyPreserving(prunedSkeleton, sumAngle, *graphEdge);
-
+                                prunedSkeleton = pruneEdgeTopologyPreserving(prunedSkeleton, *graphEdge);
                         }
                 }
                 CurveProcessor<Container> curveProc(prunedSkeleton);
                 myBranchingPoints = curveProc.branchingPoints();
-                curveDecompo = CurveDecomposition<Container>(*mySkeleton, myBranchingPoints);
+                curveDecompo = CurveDecomposition<Container>(prunedSkeleton, myBranchingPoints);
                 hierarchicalGraph = curveDecompo.graphDecomposition();
+                DGtal::trace.info() << "Removed " << (previousNumber - hierarchicalGraph.size()) << " edges" << std::endl;
+
 
         }
         return prunedSkeleton;
@@ -180,7 +180,6 @@ template <typename Container>
 Container
 PruningWithOrthogonalPlanes<Container>::
 pruneEdgeTopologyPreserving(const Container& prunedSkeleton,
-                            double significanceMeasure,
                             const GraphEdge& graphEdge) {
         Container difference(prunedSkeleton.domain());
         for (const Point& p : prunedSkeleton) {
