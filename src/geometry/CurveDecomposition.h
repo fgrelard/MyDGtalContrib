@@ -126,6 +126,7 @@ constructGraph(const CurveOrdered& orderedCurve) {
         }
         previous = current;
     }
+    graph.push_back(toAdd);
     return graph;
 }
 
@@ -188,7 +189,7 @@ graphDecomposition() {
     }
 
     std::vector<GraphEdge> edgeGraph = constructGraph(curveOrdered);
-    std::vector<WeightedGraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPoints);
+    std::vector<WeightedGraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPointsWithoutB);
     return hierarchicalGraph;
 
 }
