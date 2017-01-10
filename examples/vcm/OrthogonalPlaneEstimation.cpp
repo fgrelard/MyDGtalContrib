@@ -89,10 +89,10 @@ int main( int  argc, char**  argv )
                 viewer.setFillTransparency(255);
 
                 Z3i::Point current= *it; //it->getPoint();
-                DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.planeAt(current);
+                DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
                 DigitalPlaneProcessor<Z3i::Space> planeProc(plane);
                 std::vector<Z3i::RealVector> points = planeProc.planeToQuadrangle();
-                double f = 10.0;
+                double f = 20.0;
 
                 viewer.setLineColor(Color::Blue);
                 viewer.setFillColor(Color::Blue);

@@ -9,7 +9,6 @@
 #include "geometry/path/BresenhamAlgorithm.h"
 #include "geometry/path/DijkstraAlgorithm.h"
 #include "geometry/path/AStarAlgorithm.h"
-#include "shapes/Curve.h"
 #include "shapes/Border.h"
 #include "DGtal/geometry/curves/StandardDSS6Computer.h"
 #include "DGtal/geometry/curves/SaturatedSegmentation.h"

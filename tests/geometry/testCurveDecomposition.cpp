@@ -1,4 +1,3 @@
-#include "shapes/Curve.h"
 #include "geometry/CurveDecomposition.h"
 #include "geometry/CurveProcessor.h"
 #include "DGtal/base/Common.h"
@@ -35,7 +34,7 @@ void testCurveTraversalAndGraph(int argc, char** argv) {
 
         for (const Edge<Z3i::DigitalSet>& edge : graph) {
                 int r = rand() % 256, g = rand() % 256, b = rand() % 256;
-                viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << edge.pointSet();
+                viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << edge;
         }
         viewer << Viewer3D<>::updateDisplay;
         app.exec();
@@ -67,7 +66,7 @@ void testCurveHierarchicalDecomposition(int argc, char** argv) {
                 int r = label * 20 % 256;
                 int g = label * 50 % 256;
                 int b = label * 80 % 256;
-                viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << edge->pointSet();
+                viewer << CustomColors3D(Color(r,g,b), Color(r,g,b)) << *edge;
         }
 
         viewer << Viewer3D<>::updateDisplay;

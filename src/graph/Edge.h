@@ -4,17 +4,16 @@
 
 #include <vector>
 #include <algorithm>
-#include "shapes/Curve.h"
 #include "geometry/Distance.h"
 #include "DGtal/topology/DomainMetricAdjacency.h"
 
 template <typename Container>
-class Edge : public Curve<Container> {
+class Edge : public Container {
 public:
     typedef typename Container::value_type Point;
 public:
-    Edge(const Container& aCurve) : Curve<Container>(aCurve) {}
-    Edge(const Edge& other) : Curve<Container>(other) {}
+    Edge(const Container& aCurve) : Container(aCurve) {}
+    Edge(const Edge& other) : Container(other) {}
 public:
     std::vector< Edge<Container>* > neighboringEdges(const std::vector< Edge<Container>* >& edges,
                                                      const Container& branchingPoints);
@@ -31,7 +30,7 @@ std::vector< Edge<Container>* > Edge<Container>::neighboringEdges(const std::vec
     std::vector< Edge<Container>* > neighbors;
     Point branchPoint;
     for (const Point& b : branchingPoints) {
-        if (std::find(this->pointSet().begin(), this->pointSet().end(), b) != this->pointSet().end() ) {
+        if (std::find(this->begin(), this->end(), b) != this->end() ) {
             branchPoint = b;
         }
     }
@@ -41,8 +40,8 @@ std::vector< Edge<Container>* > Edge<Container>::neighboringEdges(const std::vec
     MetricAdjacency::writeNeighbors(inserter, branchPoint);
 
     for (Edge<Container>* edge : edges) {
-        Container setEdge = edge->pointSet();
-        if (Distance::sameContainer(setEdge, this->pointSet())) continue;
+        Container setEdge = *edge;
+        if (Distance::sameContainer(setEdge, (Container)(*this))) continue;
         for (const Point& n : nb) {
             if (find(setEdge.begin(), setEdge.end(), n) != setEdge.end())
                 neighbors.push_back(edge);

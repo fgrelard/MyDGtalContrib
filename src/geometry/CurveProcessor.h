@@ -4,7 +4,6 @@
 #include <vector>
 #include <queue>
 
-#include "shapes/Curve.h"
 #include "DGtal/base/Common.h"
 #include "DGtal/topology/MetricAdjacency.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
@@ -26,7 +25,7 @@ public:
 	typedef typename Container::Space::RealVector RealVector;
 
 public:
-	CurveProcessor(const Container& container, bool isOrdered = false) : myCurve(container) {}
+	CurveProcessor(const Container& container) : myCurve(container) {}
 
 public:
 
@@ -36,14 +35,14 @@ public:
 
 	Container branchingPoints();
 
-	Curve< std::vector<Point> > convertToOrderedCurve();
+    std::vector<Point> convertToOrderedCurve();
 
-	Curve< std::vector<Point> > convertToOrderedCurve(const Point& startingPoint);
+	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
 
 
 
 private:
-    Curve<Container> myCurve;
+    Container myCurve;
 };
 
 
@@ -55,8 +54,8 @@ Container CurveProcessor<Container>::ensureConnexity() {
 	Adj26 adj26;
 	Adj6 adj6;
 	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
-	Container cleanSet(myCurve.pointSet().domain());
-	ObjectType obj(dt26_6, myCurve.pointSet());
+	Container cleanSet(myCurve.domain());
+	ObjectType obj(dt26_6, myCurve);
 	Container & S = obj.pointSet();
 	cleanSet = S;
 	for (auto it = S.begin(), ite = S.end(); it != ite; ++it) {
@@ -76,7 +75,7 @@ Container CurveProcessor<Container>::endPoints() {
 	Adj6 adj6;
 	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
 
-	Container set = myCurve.pointSet();
+	Container set = myCurve;
     ObjectType objectSet(dt26_6, set);
     Container endPoints(set.domain());
 	for (auto it = set.begin(), ite = set.end(); it != ite; ++it) {
@@ -119,7 +118,7 @@ Container CurveProcessor<Container>::branchingPoints() {
 	Adj6 adj6;
 	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
 
-	Container set = myCurve.pointSet();
+	Container set = myCurve;
 
     ObjectType obj(dt26_6, set);
 	Container criticalPoints(set.domain());
@@ -135,10 +134,10 @@ Container CurveProcessor<Container>::branchingPoints() {
 }
 
 template <typename Container>
-Curve< std::vector< typename CurveProcessor<Container>::Point > > CurveProcessor<Container>::convertToOrderedCurve() {
+std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Container>::convertToOrderedCurve() {
 	std::vector<Point> orientedEdge;
 
-	Container set = myCurve.pointSet();
+	Container set = myCurve;
 	if (set.size() == 0) return orientedEdge;
 
 	Container e = endPoints();
@@ -149,9 +148,9 @@ Curve< std::vector< typename CurveProcessor<Container>::Point > > CurveProcessor
 
 
 template <typename Container>
-Curve< std::vector< typename CurveProcessor<Container>::Point > > CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<Container>::Point& startingPoint) {
+std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<Container>::Point& startingPoint) {
 	std::vector<Point> orientedEdge;
-	Container edge = myCurve.pointSet();
+	Container edge = myCurve;
 	if (edge.size() == 0) return orientedEdge;
 
 	Adj26 adj26;

@@ -3,14 +3,13 @@
 
 #include "DGtal/base/Common.h"
 #include "DGtal/base/CBidirectionalRange.h"
-#include "shapes/Curve.h"
 
 template <typename Point>
 class LinkPointAlgorithm {
         BOOST_CONCEPT_ASSERT(( DGtal::concepts::CBidirectionalRange<Point> ));
 
 public:
-        typedef Curve<std::vector<Point> > Path;
+        typedef std::vector<Point> Path;
 public:
         LinkPointAlgorithm() = delete;
         LinkPointAlgorithm(const Point& aSource, const Point& aDestination) : mySource(aSource), myDestination(aDestination) {}

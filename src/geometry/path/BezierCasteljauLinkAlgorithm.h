@@ -141,10 +141,9 @@ BezierCasteljauLinkAlgorithm<Point>::linkPoints() {
     for (const auto & pair : orderedPoints) {
         BresenhamAlgorithm<Point> bresenhamAlgo(pair.first, pair.second);
         typename LinkPointAlgorithm<Point>::Path curve = bresenhamAlgo.linkPoints();
-        std::vector<Point> link = curve.pointSet();
         if (pair.first != this->mySource && pair.first != this->myDestination)
             linkPoints.push_back(pair.first);
-        linkPoints.insert(linkPoints.end(), link.begin(), link.end());
+        linkPoints.insert(linkPoints.end(), curve.begin(), curve.end());
         if (pair.second != this->myDestination && pair.second != this->mySource)
             linkPoints.push_back(pair.second);
     }

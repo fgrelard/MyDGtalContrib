@@ -1,4 +1,3 @@
-#include "shapes/Curve.h"
 #include "graph/Edge.h"
 #include "graph/WeightedEdge.h"
 #include "DGtal/base/Common.h"
@@ -8,18 +7,6 @@
 using namespace DGtal;
 using namespace std;
 
-void testCurve() {
-        trace.beginBlock("Test curve");
-        Z3i::DigitalSet aSet(Z3i::Domain(Z3i::Point(-100,-100,-100),
-                                         Z3i::Point(100,100,100)));
-        aSet.insert(Z3i::Point(0,0,0));
-        aSet.insert(Z3i::Point(1,1,1));
-        aSet.insert(Z3i::Point(1,1,2));
-        Curve<Z3i::DigitalSet> curve(aSet);
-        for (const Z3i::Point& p : curve.pointSet())
-                trace.info() << p << endl;
-        trace.endBlock();
-}
 
 void testEdge() {
         trace.beginBlock("Test edge");
@@ -29,7 +16,7 @@ void testEdge() {
         aSet.insert(Z3i::Point(1,1,1));
         aSet.insert(Z3i::Point(1,1,2));
         Edge<Z3i::DigitalSet> curve(aSet);
-        for (const Z3i::Point& p : curve.pointSet())
+        for (const Z3i::Point& p : curve)
                 trace.info() << p << endl;
         trace.endBlock();
 }
@@ -94,7 +81,6 @@ void testNeighborGraphEdge() {
 
 
 int main() {
-        testCurve();
         testEdge();
         testNeighborEdge();
         testNeighborGraphEdge();

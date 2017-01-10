@@ -29,7 +29,7 @@ std::vector< WeightedEdge<Container>* > WeightedEdge<Container>::neighboringEdge
     std::vector< WeightedEdge<Container>* > neighbors;
     Point branchPoint;
     for (const Point& b : branchingPoints) {
-        if (std::find(this->pointSet().begin(), this->pointSet().end(), b) != this->pointSet().end() ) {
+        if (std::find(this->begin(), this->end(), b) != this->end() ) {
             branchPoint = b;
         }
     }
@@ -39,8 +39,8 @@ std::vector< WeightedEdge<Container>* > WeightedEdge<Container>::neighboringEdge
     MetricAdjacency::writeNeighbors(inserter, branchPoint);
 
     for (WeightedEdge<Container>* edge : edges) {
-        Container setEdge = edge->pointSet();
-        if (Distance::sameContainer(setEdge, this->pointSet())) continue;
+        Container setEdge = *edge;
+        if (Distance::sameContainer(setEdge, (Container)(*this))) continue;
         for (const Point& n : nb) {
             if (find(setEdge.begin(), setEdge.end(), n) != setEdge.end())
                 neighbors.push_back(edge);

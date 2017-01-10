@@ -9,7 +9,6 @@
 #include "geometry/path/BresenhamAlgorithm.h"
 #include "geometry/path/DijkstraAlgorithm.h"
 #include "geometry/path/AStarAlgorithm.h"
-#include "shapes/Curve.h"
 #include "shapes/Border.h"
 #include "DGtal/geometry/curves/StandardDSS6Computer.h"
 #include "DGtal/geometry/curves/SaturatedSegmentation.h"
@@ -28,9 +27,9 @@ void testBezier(Viewer3D<>& viewer) {
 
     BezierLinkAlgorithm<Z3i::Point> bezierAlgo(first, destination, control1, control2);
 
-    Curve<vector<Z3i::Point> > points = bezierAlgo.linkPoints();
+    vector<Z3i::Point>  points = bezierAlgo.linkPoints();
     viewer << CustomColors3D(Color::Yellow, Color::Yellow) << first << destination << control1 << control2;
-    for (const Z3i::Point& p : points.pointSet()) {
+    for (const Z3i::Point& p : points) {
         viewer << CustomColors3D(Color::Red, Color::Red) << p;
     }
 
@@ -45,9 +44,9 @@ void testBezierDeCasteljau(Viewer3D<>& viewer) {
 
     BezierCasteljauLinkAlgorithm<Z3i::Point> bezierAlgo(first, destination, control1, control2);
 
-    Curve<vector<Z3i::Point> > points = bezierAlgo.linkPoints();
+    vector<Z3i::Point> points = bezierAlgo.linkPoints();
     viewer << CustomColors3D(Color::Yellow, Color::Yellow) << first << destination << control1 << control2;
-    for (const Z3i::Point& p : points.pointSet()) {
+    for (const Z3i::Point& p : points) {
         viewer << CustomColors3D(Color::Red, Color::Red) << p;
     }
 
@@ -61,8 +60,8 @@ void testLinking() {
 
     BresenhamAlgorithm<Z3i::Point> bresenhamAlgo(first, second);
 
-    Curve<vector<Z3i::Point> > points = bresenhamAlgo.linkPoints();
-    for (const Z3i::Point& p : points.pointSet()) {
+    vector<Z3i::Point> points = bresenhamAlgo.linkPoints();
+    for (const Z3i::Point& p : points) {
         trace.info() << p << endl;
     }
 }
@@ -82,12 +81,12 @@ void testDijkstra(Viewer3D<>& viewer) {
         Z3i::Point source(1, -9, 2);
         Z3i::Point destination(-9, -1, 8);
         DijkstraAlgorithm<Z3i::Point, Z3i::DigitalSet> dijAlgo(source, destination, setSurface);
-        Curve<vector<Z3i::Point> > path = dijAlgo.linkPoints();
+        vector<Z3i::Point> path = dijAlgo.linkPoints();
 
 
         const Color CURVE3D_COLOR( 100, 100, 140, 128 );
 
-        for (const Z3i::Point& p : path.pointSet()) {
+        for (const Z3i::Point& p : path) {
                 viewer << CustomColors3D(Color::Green, Color::Green) << p;
         }
         viewer << CustomColors3D(Color::Yellow, Color::Yellow) << source << destination;
@@ -111,10 +110,10 @@ void testAStar(Viewer3D<>& viewer) {
         Z3i::Point source(1, -9, 2);
         Z3i::Point destination(-9, -1, 8);
         AStarAlgorithm<Z3i::Point, Z3i::DigitalSet> aAlgo(source, destination, setSurface);
-        Curve<vector<Z3i::Point> > path = aAlgo.linkPoints();
+        vector<Z3i::Point> path = aAlgo.linkPoints();
 
         const Color CURVE3D_COLOR( 100, 100, 140, 128 );
-        for (const Z3i::Point& p : path.pointSet()) {
+        for (const Z3i::Point& p : path) {
                 viewer << CustomColors3D(Color::Green, Color::Green) << p;
         }
         viewer << CustomColors3D(Color::Yellow, Color::Yellow) << source << destination;

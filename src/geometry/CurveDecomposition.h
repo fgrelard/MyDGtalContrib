@@ -4,7 +4,6 @@
 #include <vector>
 #include <queue>
 #include "graph/WeightedEdge.h"
-#include "shapes/Curve.h"
 #include "geometry/PointUtil.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
 #include "DGtal/graph/GraphVisitorRange.h"
@@ -25,7 +24,7 @@ public:
     typedef DGtal::HyperRectDomain< Space > Domain;
     typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS >::Type DigitalSet;
 
-    typedef Curve<std::vector<Point> > CurveOrdered;
+    typedef std::vector<Point> CurveOrdered;
     typedef Edge<DigitalSet> GraphEdge;
     typedef WeightedEdge<DigitalSet> WeightedGraphEdge;
 
@@ -45,12 +44,12 @@ public:
                                                                 const Container& endPoints);
 
 private:
-    Curve<Container> myCurve;
+    Container myCurve;
     Container myBranchingPoints;
 };
 
 template <typename Container>
-Curve< std::vector< typename CurveDecomposition<Container>::Point> >
+std::vector< typename CurveDecomposition<Container>::Point>
 CurveDecomposition<Container>::curveTraversalForGraphDecomposition(const typename CurveDecomposition<Container>::Point& p) {
 
     typedef DGtal::DepthFirstVisitor<ObjectType, std::set<Point> > Visitor;
@@ -62,7 +61,7 @@ CurveDecomposition<Container>::curveTraversalForGraphDecomposition(const typenam
     DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
     L2Metric l2Metric;
     std::vector<Point> existingSkeletonOrdered;
-    ObjectType graph(dt26_6, myCurve.pointSet());
+    ObjectType graph(dt26_6, myCurve);
     Visitor visitor( graph, p );
     MyNode node;
 
@@ -98,7 +97,7 @@ CurveDecomposition<Container>::curveTraversalForGraphDecomposition(const typenam
 template <typename Container>
 std::vector< typename CurveDecomposition<Container>::GraphEdge >
 CurveDecomposition<Container>::
-constructGraph(const Curve<std::vector<typename CurveDecomposition<Container>::Point> >& orderedCurve) {
+constructGraph(const CurveOrdered& orderedCurve) {
 
     typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;
     L2Metric l2Metric;
@@ -107,11 +106,10 @@ constructGraph(const Curve<std::vector<typename CurveDecomposition<Container>::P
     int index = 0;
     Point previous;
 
-    Domain domain = PointUtil::computeBoundingBox<Domain>(orderedCurve.pointSet());
+    Domain domain = PointUtil::computeBoundingBox<Domain>(orderedCurve);
     DigitalSet toAdd(domain);
-    std::vector<Point> orderedCurveSet = orderedCurve.pointSet();
-    for (int i = 0, end = orderedCurveSet.size(); i < end; i++) {
-        Point current = orderedCurveSet[i];
+    for (int i = 0, end = orderedCurve.size(); i < end; i++) {
+        Point current = orderedCurve[i];
         if (l2Metric(previous,current) <= sqrt(3) || previous == Point())
             toAdd.insert(current);
         if (find(myBranchingPoints.begin(), myBranchingPoints.end(), current) != myBranchingPoints.end() ||
@@ -136,7 +134,7 @@ hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Containe
     std::queue<WeightedGraphEdge*> edgeQueue;
     std::vector<WeightedGraphEdge*> hierarchyGraph;
     for (const GraphEdge& graphEdge : edges) {
-        DigitalSet edge = graphEdge.pointSet();
+        DigitalSet edge = graphEdge;
         WeightedGraphEdge* levelEdge = new WeightedGraphEdge(edge, std::numeric_limits<int>::max());
 
         for (const Point& e : endPoints) {
@@ -151,7 +149,7 @@ hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Containe
 
     while (!edgeQueue.empty()) {
         WeightedGraphEdge* edgeCurrent  = edgeQueue.front();
-        DigitalSet edgeCurrentSet = edgeCurrent->pointSet();
+        DigitalSet edgeCurrentSet = *edgeCurrent;
         edgeQueue.pop();
         std::vector<WeightedGraphEdge*> neighborEdges = edgeCurrent->neighboringEdges(hierarchyGraph, myBranchingPoints);
         for (WeightedGraphEdge* neighCurrent : neighborEdges) {
