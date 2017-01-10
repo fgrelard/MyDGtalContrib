@@ -11,10 +11,6 @@ private:
 public:
         typedef typename Container::value_type Point;
         typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
-        typedef DGtal::MetricAdjacency<Space, 1> Adj6;
-        typedef DGtal::MetricAdjacency<Space, 3> Adj26;
-        typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
-        typedef DGtal::Object<DT26_6, Container> ObjectType;
         typedef typename Space::RealVector RealVector;
         typedef DGtal::HyperRectDomain< Space > Domain;
         typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;

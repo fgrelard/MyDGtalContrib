@@ -5,6 +5,7 @@
 #include <queue>
 #include "graph/WeightedEdge.h"
 #include "geometry/PointUtil.h"
+#include "geometry/CurveProcessor.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
 #include "DGtal/graph/GraphVisitorRange.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
@@ -34,6 +35,8 @@ public:
     CurveDecomposition(const Container& aCurve,
                        const Container& aBranchingPoints) : myCurve(aCurve),
                                                              myBranchingPoints(aBranchingPoints) {}
+    CurveDecomposition(const CurveDecomposition& other) : myCurve(other.myCurve), myBranchingPoints(other.myBranchingPoints) {}
+
 public:
 
     CurveOrdered curveTraversalForGraphDecomposition(const Point& start);
@@ -42,6 +45,8 @@ public:
 
     std::vector< WeightedGraphEdge* > hierarchicalDecomposition(const std::vector< GraphEdge >& edges,
                                                                 const Container& endPoints);
+
+    std::vector< WeightedGraphEdge* > graphDecomposition();
 
 private:
     Container myCurve;
@@ -167,7 +172,26 @@ hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Containe
 
 
 
+template <typename Container>
+std::vector<typename CurveDecomposition<Container>::WeightedGraphEdge* >
+CurveDecomposition<Container>::
+graphDecomposition() {
+    CurveProcessor<Container> curveProcessor(myCurve);
+    Container endPoints = curveProcessor.endPoints();
+    Point point = *endPoints.begin();
+    std::vector<Point> curveOrdered = curveTraversalForGraphDecomposition(point);
 
+    Container endPointsWithoutB;
+    for (const Point& p : endPoints) {
+        if (myBranchingPoints.find(p) == myBranchingPoints.end())
+            endPointsWithoutB.insert(p);
+    }
+
+    std::vector<GraphEdge> edgeGraph = constructGraph(curveOrdered);
+    std::vector<GraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPoints);
+    return hierarchicalGraph;
+
+}
 
 
 

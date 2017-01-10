@@ -10,10 +10,13 @@
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "geometry/DistanceToPointFunctor.h"
+#include "DGtal/kernel/CSpace.h"
 
 template <typename TSpace>
 class DigitalPlane
 {
+
+        BOOST_CONCEPT_ASSERT(( DGtal::concepts::CSpace< TSpace > ));
 public :
         typedef DGtal::ParallelStrip<TSpace> PlaneEquation;
         typedef typename TSpace::RealVector Point;
