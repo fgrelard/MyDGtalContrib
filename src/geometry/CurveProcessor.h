@@ -29,7 +29,7 @@ public:
 
 public:
 
-	Container ensureConnexity();
+	Container ensureConnectivity();
 
 	Container endPoints();
 
@@ -49,7 +49,7 @@ private:
 
 
 template <typename Container>
-Container CurveProcessor<Container>::ensureConnexity() {
+Container CurveProcessor<Container>::ensureConnectivity() {
 
 	Adj26 adj26;
 	Adj6 adj6;

@@ -13,10 +13,7 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include "geometry/MedialAxis.h"
-#include "vcm/OrthogonalPlaneEstimator.h"
-#include "shapes/DigitalPlane.h"
-#include "geometry/DigitalPlaneProcessor.h"
-#include "geometry/CurveProcessor.h"
+#include "vcm/PruningWithOrthogonalPlanes.h"
 
 using namespace std;
 using namespace DGtal;
@@ -33,10 +30,9 @@ int main( int  argc, char**  argv )
                 ("help,h", "display this message")
                 ("curve,c", po::value<std::string>(), "vol file (curve)")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+                ("thresholdPruning,t", po::value<double>()->default_value(25), "threshold for pruning (angle in degrees)")
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
-                ("radiusInside,R", po::value<double>()->default_value(10), "radius of the ball inside voronoi cell")
-                ("radiusNeighbour,r", po::value<double>()->default_value(10), "radius of the ball for the neighbourhood")
                 ;
 
         bool parseOK=true;
@@ -65,8 +61,8 @@ int main( int  argc, char**  argv )
         string inputFilename = vm["input"].as<std::string>();
         int thresholdMin = vm["thresholdMin"].as<int>();
         int thresholdMax = vm["thresholdMax"].as<int>();
-        double R = vm["radiusInside"].as<double>();
-        double r = vm["radiusNeighbour"].as<double>();
+        double threshold = vm["thresholdPruning"].as<double>();
+
 
         Image volume = VolReader<Image>::importVol(inputFilename);
         Z3i::Domain domainVolume = volume.domain();
@@ -80,45 +76,15 @@ int main( int  argc, char**  argv )
         SetFromImage<Z3i::DigitalSet>::append<Image> (setCurve, curve,
                                                       thresholdMin-1, thresholdMax);
 
-        CurveProcessor<Z3i::DigitalSet> curveProc(setCurve);
-        std::vector<Z3i::Point> orderedCurve = curveProc.convertToOrderedCurve();
-
 
         QApplication application(argc,argv);
         Viewer3D<> viewer;
         viewer.show();
 
-        double radiusVCM = r;
-        KernelFunction chi(1.0, radiusVCM);
-        OrthoPlaneEstimator orthogonalPlaneEstimator(setCurve, chi, R, r);
-        orthogonalPlaneEstimator.setRadius(radiusVCM);
-        int sliceNumber = 0;
-        int moduloFactor = 10;
-        for (auto it = orderedCurve.begin(), ite = orderedCurve.end();
-             it != ite; ++it) {
-                sliceNumber++;
-                if (sliceNumber % moduloFactor != 0) continue;
-                // Compute VCM and diagonalize it.
-                viewer.setFillColor(Color::Gray);
-                viewer.setFillTransparency(255);
+        PruningWithOrthogonalPlanes<Z3i::DigitalSet> pruning(setCurve, setVolume, threshold);
+        Z3i::DigitalSet skeletonPruned = pruning.prune();
 
-                Z3i::Point current= *it; //it->getPoint();
-                DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
-                DigitalPlaneProcessor<Z3i::Space> planeProc(plane);
-                std::vector<Z3i::RealVector> points = planeProc.planeToQuadrangle();
-                double f = 20.0;
-
-                viewer.setLineColor(Color::Blue);
-                viewer.setFillColor(Color::Blue);
-                viewer.setFillTransparency(150);
-                viewer.addQuad(current + points[0] * f,
-                               current + points[1] * f,
-                               current + points[2] * f,
-                               current + points[3] * f);
-
-
-        }
-
+        viewer << CustomColors3D(Color::Red, Color::Red) << skeletonPruned;
         for (auto it = setVolume.begin(), ite = setVolume.end(); it != ite; ++it) {
                 if (volume(*it) >= thresholdMin)
                         viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;

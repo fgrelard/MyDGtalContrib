@@ -181,14 +181,14 @@ graphDecomposition() {
     Point point = *endPoints.begin();
     std::vector<Point> curveOrdered = curveTraversalForGraphDecomposition(point);
 
-    Container endPointsWithoutB;
+    Container endPointsWithoutB(endPoints.domain());
     for (const Point& p : endPoints) {
         if (myBranchingPoints.find(p) == myBranchingPoints.end())
             endPointsWithoutB.insert(p);
     }
 
     std::vector<GraphEdge> edgeGraph = constructGraph(curveOrdered);
-    std::vector<GraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPoints);
+    std::vector<WeightedGraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPoints);
     return hierarchicalGraph;
 
 }

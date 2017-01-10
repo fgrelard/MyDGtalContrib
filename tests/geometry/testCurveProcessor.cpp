@@ -13,8 +13,8 @@
 using namespace DGtal;
 using namespace std;
 
-void testCurveConnexity(int argc, char** argv) {
-        trace.beginBlock("Test curve connexity");
+void testCurveConnectivity(int argc, char** argv) {
+        trace.beginBlock("Test curve connectivity");
         // QApplication app(argc, argv);
         // Viewer3D<> viewer;
         // viewer.show();
@@ -25,7 +25,7 @@ void testCurveConnexity(int argc, char** argv) {
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
 
-        Z3i::DigitalSet newCurve = curveProcessor.ensureConnexity();
+        Z3i::DigitalSet newCurve = curveProcessor.ensureConnectivity();
         trace.info() << newCurve.size() << " " << setVolume.size() << endl;
 
         // viewer << Viewer3D<>::updateDisplay;
@@ -99,7 +99,7 @@ void testCurveOrdered(int argc, char** argv) {
 
 
 int main(int argc, char** argv) {
-        testCurveConnexity(argc, argv);
+        testCurveConnectivity(argc, argv);
         testCurveEndPoints(argc, argv);
         testCurveOrdered(argc, argv);
         return 0;
