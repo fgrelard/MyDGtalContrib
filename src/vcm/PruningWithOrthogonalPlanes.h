@@ -126,19 +126,21 @@ prune() {
         DGtal::trace.beginBlock("Pruning skeleton");
         CurveDecomposition<Container> curveDecompo(*mySkeleton, myBranchingPoints);
         std::vector<GraphEdge*> hierarchicalGraph = curveDecompo.graphDecomposition();
-        int previousNumber = -1;
+        int previousNumber = hierarchicalGraph.size() + 1;
         Container prunedSkeleton = *mySkeleton;
-        while (hierarchicalGraph.size() != previousNumber) {
-                DGtal::trace.info() << hierarchicalGraph.size() << std::endl;
+        while (hierarchicalGraph.size() < previousNumber) {
                 previousNumber = hierarchicalGraph.size();
                 for (GraphEdge* graphEdge : hierarchicalGraph) {
                         if (graphEdge->size() == 0) continue;
                         double radius = graphEdge->size() * 0.4 + 1.0;
                         KernelFunction chi(1.0, radius);
-                        myPlaneEstimatorCurve = new PlaneEstimator (*graphEdge, chi, 30, radius);
+                        CurveProcessor<Container> curveProc(*graphEdge);
+                        double lengthCurve = (graphEdge->size() * 0.6) < 2 ? 2 : graphEdge->size() * 0.6;
+                        Container restrictEdge = curveProc.subCurve(*myDT, myBranchingPoints);
+                        myPlaneEstimatorCurve = new PlaneEstimator (restrictEdge, chi, 10, radius);
                         double sumAngle = 0;
-                        std::for_each(graphEdge->begin(),
-                                      graphEdge->end(),
+                        std::for_each(restrictEdge.begin(),
+                                      restrictEdge.end(),
                                       [&](const Point& p) {
                                               sumAngle += significanceMeasure(p);
                                       });
@@ -151,12 +153,13 @@ prune() {
                 myBranchingPoints = curveProc.branchingPoints();
                 curveDecompo = CurveDecomposition<Container>(prunedSkeleton, myBranchingPoints);
                 hierarchicalGraph = curveDecompo.graphDecomposition();
-                DGtal::trace.info() << "Removed " << (previousNumber - hierarchicalGraph.size()) << " edges" << std::endl;
+                int edgeRemoved = previousNumber - hierarchicalGraph.size();
+                DGtal::trace.info() << "Removed " << ((edgeRemoved < 0) ? 0 : edgeRemoved) << " branches" << std::endl;
 
 
         }
-        return prunedSkeleton;
         DGtal::trace.endBlock();
+        return prunedSkeleton;
 }
 
 template <typename Container>
@@ -168,7 +171,7 @@ significanceMeasure(const Point& p) {
 
         double radiusVol = (*myDT)(p) + 2;
         myPlaneEstimatorVol->setRadius(radiusVol);
-        Plane planeVol = myPlaneEstimatorCurve->convergentPlaneAt(p, *myVolume, radiusVol*10);
+        Plane planeVol = myPlaneEstimatorVol->convergentPlaneAt(p, *myVolume, radiusVol*10);
         RealVector normalCurve = planeCurve.getPlaneEquation().normal();
         RealVector normalVol = planeVol.getPlaneEquation().normal();
         double angle = normalVol.cosineSimilarity(normalCurve);

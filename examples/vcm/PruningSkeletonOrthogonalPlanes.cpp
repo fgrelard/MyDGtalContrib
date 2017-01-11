@@ -85,6 +85,7 @@ int main( int  argc, char**  argv )
         Z3i::DigitalSet skeletonPruned = pruning.prune();
 
         viewer << CustomColors3D(Color::Red, Color::Red) << skeletonPruned;
+        viewer << CustomColors3D(Color::Yellow, Color::Yellow) << setCurve;
         for (auto it = setVolume.begin(), ite = setVolume.end(); it != ite; ++it) {
                 if (volume(*it) >= thresholdMin)
                         viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;

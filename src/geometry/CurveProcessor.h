@@ -11,6 +11,7 @@
 #include "DGtal/topology/DigitalTopology.h"
 #include "DGtal/topology/Object.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
+#include "shapes/Ball.h"
 
 template <typename Container>
 class CurveProcessor {
@@ -36,6 +37,13 @@ public:
 	Container endPoints();
 
 	Container branchingPoints();
+
+	Container subCurve(const Point& extremity, double radius);
+	Container subCurve(const Container& constraintNotInSet, double radius);
+
+	template <typename DTL2>
+	Container subCurve(const DTL2& dt,
+					   const Container& constraintInSet);
 
     std::vector<Point> convertToOrderedCurve();
 
@@ -159,6 +167,53 @@ Container CurveProcessor<Container>::branchingPoints() {
         visitor.expand();
     }
     return branchingPoints;
+}
+
+template <typename Container>
+Container
+CurveProcessor<Container>::
+subCurve(const Point& extremity, double radius) {
+	Ball<Point> ball(extremity, radius);
+	Container subCurve = ball.intersection(myCurve);
+	if (subCurve.size() < 2)
+		return myCurve;
+	return subCurve;
+}
+
+template <typename Container>
+Container
+CurveProcessor<Container>::
+subCurve(const Container& constraintNotInSet, double radius) {
+	Container ep = endPoints();
+	Point e;
+	for (const Point& p : ep) {
+		if (constraintNotInSet.find(p) == constraintNotInSet.end())
+			e = p;
+	}
+	return subCurve(e, radius);
+}
+
+template <typename Container>
+template <typename DTL2>
+Container
+CurveProcessor<Container>::
+subCurve(const DTL2& dt, const Container& constraintInSet) {
+	Container ep = endPoints();
+	Point e;
+	for (const Point& p : ep) {
+		if (constraintInSet.find(p) != constraintInSet.end())
+			e = p;
+	}
+	double ballRadius =  (dt.domain().isInside(e)) ? dt(e) : 2;
+	ballRadius = (ballRadius < 2) ? 2 : ballRadius;
+	Ball<Point> ball(e, ballRadius);
+    Container restrictedEdge(myCurve.domain());
+	for (const Point& e : myCurve) {
+		if (!ball.contains(e))
+			restrictedEdge.insert(e);
+	}
+	if (restrictedEdge.size() < 2) restrictedEdge = myCurve;
+	return restrictedEdge;
 }
 
 template <typename Container>
