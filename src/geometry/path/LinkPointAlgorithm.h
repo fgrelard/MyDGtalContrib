@@ -11,7 +11,7 @@ class LinkPointAlgorithm {
 public:
         typedef std::vector<Point> Path;
 public:
-        LinkPointAlgorithm() = delete;
+        LinkPointAlgorithm() {}
         LinkPointAlgorithm(const Point& aSource, const Point& aDestination) : mySource(aSource), myDestination(aDestination) {}
         LinkPointAlgorithm(const LinkPointAlgorithm& other) : mySource(other.mySource), myDestination(other.myDestination) {}
 

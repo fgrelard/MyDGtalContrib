@@ -10,6 +10,9 @@
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include <QtGui/qapplication.h>
+#include <ctime>
+#include <vector>
+#include <cstdlib>
 
 using namespace DGtal;
 using namespace std;
@@ -19,7 +22,6 @@ void testCurveTraversalAndGraph(int argc, char** argv) {
         QApplication app(argc, argv);
         Viewer3D<> viewer;
         viewer.show();
-
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         Image image = GenericReader<Image>::import("/home/florent/test_img/Pruning/PF/skeletonBroncheConnexity.vol");
         Z3i::DigitalSet setVolume(image.domain());

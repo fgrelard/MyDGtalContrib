@@ -20,7 +20,7 @@ class AStarAlgorithm : public ShortestPathAlgorithm<Point, Container> {
 public:
         typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
-        AStarAlgorithm() = delete;
+        AStarAlgorithm(){};
 
         AStarAlgorithm(const Point& source,
                        const Point& destination,

@@ -9,6 +9,7 @@ SET(DGTAL_CONTRIB_TESTS
   testVCMAdjustableRadius
   testVCMOnDigitalSurfaceAdjustableRadius
   testMorphomaths
+  testSphericalShellIntersection
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

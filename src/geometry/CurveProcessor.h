@@ -45,6 +45,9 @@ public:
 	Container subCurve(const DTL2& dt,
 					   const Container& constraintInSet);
 
+	template <typename LinkPointAlgorithm>
+	Container ensureOneCC();
+
     std::vector<Point> convertToOrderedCurve();
 
 	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
@@ -214,6 +217,15 @@ subCurve(const DTL2& dt, const Container& constraintInSet) {
 	}
 	if (restrictedEdge.size() < 2) restrictedEdge = myCurve;
 	return restrictedEdge;
+}
+
+
+template <typename Container>
+template <typename LinkPointAlgorithm>
+Container
+CurveProcessor<Container>::
+ensureOneCC() {
+
 }
 
 template <typename Container>

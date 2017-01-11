@@ -13,7 +13,7 @@ class ShortestPathAlgorithm : public LinkPointAlgorithm<Point> {
 public:
         typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
-        ShortestPathAlgorithm() = delete;
+        ShortestPathAlgorithm() {}
 
         ShortestPathAlgorithm(const Point& source,
                               const Point& destination,

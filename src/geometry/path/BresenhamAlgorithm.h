@@ -11,7 +11,7 @@ class BresenhamAlgorithm : public LinkPointAlgorithm<Point> {
 public:
         typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
-        BresenhamAlgorithm() = delete;
+    BresenhamAlgorithm(){}
         BresenhamAlgorithm(const Point& source,
                            const Point& destination) : LinkPointAlgorithm<Point>(source, destination) {}
         BresenhamAlgorithm(const BresenhamAlgorithm& other) : LinkPointAlgorithm<Point>(other) {}

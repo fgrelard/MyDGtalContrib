@@ -18,7 +18,7 @@ class DijkstraAlgorithm : public ShortestPathAlgorithm<Point, Container> {
 public:
         typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
-        DijkstraAlgorithm() = delete;
+        DijkstraAlgorithm() {}
 
         DijkstraAlgorithm(const Point& source,
                           const Point& destination,

@@ -15,7 +15,7 @@ class BezierCasteljauLinkAlgorithm : public BezierLinkAlgorithm<Point> {
 public:
     typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
-    BezierCasteljauLinkAlgorithm() = delete;
+    BezierCasteljauLinkAlgorithm() {};
 
     BezierCasteljauLinkAlgorithm(const Point& source,
                                  const Point& destination,
