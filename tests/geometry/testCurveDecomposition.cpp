@@ -81,7 +81,7 @@ void testGraphDecomposition(int argc, char** argv) {
         Viewer3D<> viewer;
         viewer.show();
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        Image image = GenericReader<Image>::import("/home/fgrelard/test_img/PF/skeletonBronche2Connectivity.vol");
+        Image image = GenericReader<Image>::import("/home/florent/test_img/PF/skeletonBronche2Connectivity.vol");
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);

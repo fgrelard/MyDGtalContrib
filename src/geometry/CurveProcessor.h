@@ -1,6 +1,10 @@
 #ifndef CURVE_PROCESSOR_H
 #define CURVE_PROCESSOR_H
 
+//Forward declaration due to dependent inclusion
+template <typename Space>
+class ConnectedComponentMerger;
+
 #include <vector>
 #include <queue>
 
@@ -12,11 +16,15 @@
 #include "DGtal/topology/Object.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "shapes/Ball.h"
+#include "geometry/path/AStarAlgorithm.h"
+#include "ConnectedComponentMerger.h"
+
 
 template <typename Container>
 class CurveProcessor {
 
-	BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet< Container > ));
+    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet< Container > ));
+
 
 public:
 	typedef typename Container::value_type Point;
@@ -45,17 +53,19 @@ public:
 	Container subCurve(const DTL2& dt,
 					   const Container& constraintInSet);
 
-	template <typename LinkPointAlgorithm>
-	Container ensureOneCC();
+    Container ensureOneCC(const Container& setVolume,
+                          double lowerBound = std::numeric_limits<double>::min(),
+                          double upperBound = std::numeric_limits<double>::max());
 
     std::vector<Point> convertToOrderedCurve();
 
 	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
 
 
-
 private:
     Container myCurve;
+
+
 };
 
 
@@ -221,12 +231,45 @@ subCurve(const DTL2& dt, const Container& constraintInSet) {
 
 
 template <typename Container>
-template <typename LinkPointAlgorithm>
 Container
 CurveProcessor<Container>::
-ensureOneCC() {
+ensureOneCC(const Container& setVolume, double lowerBound, double upperBound) {
+    Adj26 adj26;
+    Adj6 adj6;
+    DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+
+    ObjectType graph(dt26_6, setVolume);
+
+    ObjectType objectImage(dt26_6, myCurve);
+
+    std::vector<ObjectType> skeletonCC;
+    std::back_insert_iterator< std::vector<ObjectType> > inserterCC( skeletonCC );
+    objectImage.writeComponents(inserterCC);
+    sort(skeletonCC.begin(), skeletonCC.end(), [&](const ObjectType& one,
+                                                   const ObjectType& two) {
+             return one.size() < two.size();
+         });
+    Container myOneCCCurve = myCurve;
+
+    bool shouldStop = false;
+    while (!shouldStop) {
+        DGtal::trace.info() << skeletonCC.size() << std::endl;
+        ConnectedComponentMerger<Space> vPair(skeletonCC, graph, lowerBound, upperBound);
+        if (!vPair.isUndefined()) {
+            Point first = vPair.first();
+            Point second = vPair.second();
+            AStarAlgorithm<Point, Container> aStar(first, second, setVolume);
+            std::vector<Point> link = aStar.linkPoints();
+            vPair.mergeObjects(skeletonCC, link);
+            myOneCCCurve.insert(link.begin(), link.end());
+        }
+        else
+            shouldStop = true;
+    }
+    return myOneCCCurve;
 
 }
+
 
 template <typename Container>
 std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Container>::convertToOrderedCurve() {
@@ -274,8 +317,6 @@ std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Containe
 	}
 	return orientedEdge;
 }
-
-
 
 
 

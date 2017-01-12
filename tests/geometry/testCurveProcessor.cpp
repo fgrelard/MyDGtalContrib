@@ -9,15 +9,13 @@
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include <QtGui/qapplication.h>
+#include <iterator>
 
 using namespace DGtal;
 using namespace std;
 
-void testCurveConnectivity(int argc, char** argv) {
+void testCurveConnectivity() {
         trace.beginBlock("Test curve connectivity");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
 
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
@@ -28,17 +26,12 @@ void testCurveConnectivity(int argc, char** argv) {
         Z3i::DigitalSet newCurve = curveProcessor.ensureConnectivity();
         trace.info() << newCurve.size() << " " << setVolume.size() << endl;
 
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
          trace.endBlock();
 }
 
 
-void testCurveEndPoints(int argc, char** argv) {
+void testCurveEndPoints() {
         trace.beginBlock("Test curve endpoints");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
 
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
@@ -49,17 +42,12 @@ void testCurveEndPoints(int argc, char** argv) {
         Z3i::DigitalSet newCurve = curveProcessor.endPoints();
         for (const Z3i::Point& p : newCurve)
                 trace.info() << p << endl;
-
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
          trace.endBlock();
 }
 
-void testCurveBranchingPoints(int argc, char** argv) {
+void testCurveBranchingPoints() {
         trace.beginBlock("Test curve branching points");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
+
 
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
@@ -71,16 +59,11 @@ void testCurveBranchingPoints(int argc, char** argv) {
         for (const Z3i::Point& p : newCurve)
                 trace.info() << p << endl;
 
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
          trace.endBlock();
 }
 
-void testCurveOrdered(int argc, char** argv) {
+void testCurveOrdered() {
         trace.beginBlock("Test curve ordered");
-        // QApplication app(argc, argv);
-        // Viewer3D<> viewer;
-        // viewer.show();
 
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         Image image = GenericReader<Image>::import("/home/florent/test_img/Bezier/skeletonTube250_2.vol");
@@ -92,15 +75,66 @@ void testCurveOrdered(int argc, char** argv) {
         for (const Z3i::Point& p : newCurve)
                 trace.info() << p << endl;
 
-        // viewer << Viewer3D<>::updateDisplay;
-        // app.exec();
          trace.endBlock();
+}
+
+void testCurveEnsureOneCC(Viewer3D<>& viewer) {
+           typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+        Image image = GenericReader<Image>::import("/home/florent/test_img/airway.vol");
+        Z3i::DigitalSet setVolume(image.domain());
+        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
+
+        Image curve = GenericReader<Image>::import("/home/florent/test_img/skeletonVCMAirway.vol");
+        Z3i::DigitalSet setCurve(curve.domain());
+        SetFromImage<Z3i::DigitalSet>::append<Image>(setCurve, curve, 0, 255);
+        CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
+        Z3i::DigitalSet curveCC = curveProcessor.ensureOneCC(setVolume);
+        Z3i::Object26_6 obj(Z3i::dt26_6, curveCC);
+        vector<Z3i::Object26_6> cc;
+        std::back_insert_iterator< vector<Z3i::Object26_6> > inserter(cc);
+        unsigned int nbCC = obj.writeComponents(inserter);
+        trace.info() << "Test " << ((nbCC == 1) ? "passed" : " failed") << endl;
+        viewer << CustomColors3D(Color::Red, Color::Red) << setCurve;
+        viewer << CustomColors3D(Color::Yellow, Color::Yellow) << curveCC;
+}
+
+void testCurveEnsureOneCCDistance(Viewer3D<>& viewer) {
+           typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+        Image image = GenericReader<Image>::import("/home/florent/test_img/cylinder.vol");
+        Z3i::DigitalSet setVolume(image.domain());
+        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
+
+
+        Z3i::DigitalSet setCurve(image.domain());
+        setCurve.insert(Z3i::Point(0,0,5));
+        setCurve.insert(Z3i::Point(0,1,5));
+        setCurve.insert(Z3i::Point(0,0,7));
+        setCurve.insert(Z3i::Point(0,1,9));
+        setCurve.insert(Z3i::Point(0,3,11));
+        setCurve.insert(Z3i::Point(2,5,13));
+        setCurve.insert(Z3i::Point(2,5,17));
+
+        CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
+        Z3i::DigitalSet curveCC = curveProcessor.ensureOneCC(setVolume, sqrt(3), 2 * sqrt(3));
+        Z3i::Object26_6 obj(Z3i::dt26_6, curveCC);
+        vector<Z3i::Object26_6> cc;
+        std::back_insert_iterator< vector<Z3i::Object26_6> > inserter(cc);
+        unsigned int nbCC = obj.writeComponents(inserter);
+        viewer << CustomColors3D(Color::Red, Color::Red) << setCurve;
+        viewer << CustomColors3D(Color::Yellow, Color::Yellow) << curveCC;
 }
 
 
 int main(int argc, char** argv) {
-        testCurveConnectivity(argc, argv);
-        testCurveEndPoints(argc, argv);
-        testCurveOrdered(argc, argv);
+        QApplication app(argc, argv);
+        Viewer3D<> viewer;
+        viewer.show();
+        testCurveConnectivity();
+        testCurveEndPoints();
+        testCurveOrdered();
+        //testCurveEnsureOneCC(viewer);
+        testCurveEnsureOneCCDistance(viewer);
+        viewer << Viewer3D<>::updateDisplay;
+        app.exec();
         return 0;
 }
