@@ -6,13 +6,16 @@
 #include "DGtal/kernel/SpaceND.h"
 #include "DGtal/images/ConstImageAdapter.h"
 #include "DGtal/kernel/BasicPointFunctors.h"
+#include "geometry/SetProcessor.h"
 
 template <typename TSpace>
 class DigitalPlaneProcessor {
         typedef DigitalPlane<TSpace> DigPlane;
+        typedef DGtal::ExactPredicateLpSeparableMetric<TSpace,2> L2Metric;
         typedef typename TSpace::RealVector RealVector;
         typedef typename TSpace::Point Point;
         typedef DGtal::HyperRectDomain<TSpace> Domain;
+        typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS+DGtal::HIGH_BEL_DS >::Type DigitalSet;
         typedef DGtal::ImageContainerBySTLVector<Domain, unsigned char> Image;
         typedef typename Image::Value Value;
 
@@ -22,6 +25,7 @@ class DigitalPlaneProcessor {
         typedef typename SubSpace::Point SubPoint;
 
         typedef DGtal::ConstImageAdapter<Image, SubDomain, DGtal::functors::Point2DEmbedderIn3D<Domain>, Value, DGtal::functors::Identity> ImageAdapter;
+
 public:
         DigitalPlaneProcessor() : myDigitalPlane(DigPlane()) {}
         DigitalPlaneProcessor(const DigPlane& aDigitalPlane) : myDigitalPlane(aDigitalPlane) {}
@@ -30,7 +34,7 @@ public:
 public:
         std::vector<RealVector> planeToQuadrangle();
         SubImage sliceFromPlane(const Image& image, int patch_width);
-
+        std::pair<Point, Point> twoClosestPointsTrackingWithNormal(const DigPlane& other, const DigitalSet& container);
 private:
         DigPlane myDigitalPlane;
 };
@@ -115,5 +119,41 @@ DigitalPlaneProcessor<TSpace>::sliceFromPlane(const typename DigitalPlaneProcess
                 outImage.setValue( p, extractedImage(p) );
         return outImage;
 }
+
+template <typename TSpace>
+std::pair<typename DigitalPlaneProcessor<TSpace>::Point,
+          typename DigitalPlaneProcessor<TSpace>::Point>
+DigitalPlaneProcessor<TSpace>::
+twoClosestPointsTrackingWithNormal(const DigPlane& otherPlane, const DigitalSet& container) {
+        Point reference = myDigitalPlane.getCenter();
+        RealVector normalRef = myDigitalPlane.getPlaneEquation().normal();
+        Point other = otherPlane.getCenter();
+        RealVector normalOther = other.getPlaneEquation().normal();
+
+        RealVector dirVectorReference = (other - reference).getNormalized();
+        RealVector dirVectorOther = (reference - other).getNormalized();
+        if (normalRef.dot(dirVectorReference) < 0)
+                normalRef = -normalRef;
+        if (normalOther.dot(dirVectorOther) < 0)
+                normalOther = -normalOther;
+
+        DigitalSet traversedCurrent = computeTraversedPoints(container, reference, normalRef);
+        DigitalSet traversedReference = computeTraversedPoints(container, other, normalOther);
+        double distanceCR = std::numeric_limits<double>::max();
+        Point closest1, closest2;
+        L2Metric l2Metric;
+        for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
+                SetProcessor<DigitalSet> setProcessor(traversedReference);
+                Point nearest = setProcessor.closestPointAt(*it);
+                double currentDistance = l2Metric(nearest, *it);
+                if (currentDistance < distanceCR && currentDistance > sqrt(3)) {
+                        distanceCR = currentDistance;
+                        closest1 = *it;
+                        closest2 = nearest;
+                }
+        }
+        return std::make_pair(closest1, closest2);
+}
+
 
 #endif

@@ -54,8 +54,10 @@ void testClosestPointAt() {
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
         Z3i::RealPoint realPoint(1.2, 2.8, 32.5);
+        Z3i::Point intPoint(1,3,33);
         Z3i::Point closest = setProcessor.closestPointAt(realPoint);
-        trace.info() << closest << endl;
+        Z3i::Point closest2 = SetProcessor<Z3i::DigitalSet>(setVolume).closestPointAt(intPoint);
+        trace.info() << closest << " " << closest2 << endl;
         const Color CURVE3D_COLOR( 100, 100, 140, 128 );
 }
 
