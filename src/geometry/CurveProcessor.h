@@ -253,7 +253,6 @@ ensureOneCC(const Container& setVolume, double lowerBound, double upperBound) {
 
     bool shouldStop = false;
     while (!shouldStop) {
-        DGtal::trace.info() << skeletonCC.size() << std::endl;
         ConnectedComponentMerger<Space> vPair(skeletonCC, graph, lowerBound, upperBound);
         if (!vPair.isUndefined()) {
             Point first = vPair.first();

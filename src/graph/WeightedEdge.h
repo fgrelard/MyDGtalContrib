@@ -40,7 +40,8 @@ std::vector< WeightedEdge<Container>* > WeightedEdge<Container>::neighboringEdge
 
     for (WeightedEdge<Container>* edge : edges) {
         Container setEdge = *edge;
-        if (Distance::sameContainer(setEdge, (Container)(*this))) continue;
+        SetProcessor<Container> setProcessor(setEdge);
+        if (setProcessor.sameContainer( (Container)(*this))) continue;
         for (const Point& n : nb) {
             if (find(setEdge.begin(), setEdge.end(), n) != setEdge.end())
                 neighbors.push_back(edge);

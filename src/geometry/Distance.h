@@ -63,20 +63,6 @@ namespace Distance {
 		return distanceMax;
 	}
 
-	template <typename Container>
-	inline bool sameContainer(const Container& first, const Container& second) {
-		if (first.size() != second.size()) return false;
-		int cpt = 0;
-		for (auto it = first.begin(), ite = first.end(); it != ite; ++it) {
-			for (auto itS = second.begin(), itSe = second.end(); itS != itSe; ++itS) {
-				if (*itS == *it) {
-					cpt++;
-					break;
-				}
-			}
-		}
-		return (cpt == first.size());
-	}
 
 	template <typename Point, typename Container>
 	inline double geodesicDistance(const Point& first, const Point& second, const Container& object) {

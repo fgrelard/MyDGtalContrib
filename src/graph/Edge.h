@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include "geometry/Distance.h"
+#include "geometry/SetProcessor.h"
 #include "DGtal/topology/DomainMetricAdjacency.h"
 
 template <typename Container>
@@ -41,7 +42,8 @@ std::vector< Edge<Container>* > Edge<Container>::neighboringEdges(const std::vec
 
     for (Edge<Container>* edge : edges) {
         Container setEdge = *edge;
-        if (Distance::sameContainer(setEdge, (Container)(*this))) continue;
+        SetProcessor<Container> setProcessor(setEdge);
+        if (setProcessor.sameContainer( (Container)(*this))) continue;
         for (const Point& n : nb) {
             if (find(setEdge.begin(), setEdge.end(), n) != setEdge.end())
                 neighbors.push_back(edge);

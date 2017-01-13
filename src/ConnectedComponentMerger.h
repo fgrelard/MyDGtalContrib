@@ -87,7 +87,6 @@ ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>
                         while ( !visitor.finished() )
                         {
                                 node = visitor.current();
-                                DGtal::trace.info() << node.second << std::endl;
                                 if (node.second > upperBound) break;
                                 if (node.second > lowerBound) {
                                         auto iteratorObj = find_if(objects.begin(), objects.end(), [&](const ObjectType& o) {
