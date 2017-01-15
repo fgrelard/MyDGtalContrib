@@ -2,11 +2,12 @@
 #define JUNCTION_PROCESSING_SKELETON_H
 
 #include <vector>
-#include "vcm/skeleton/PostProcessingSkeleton.h"
 #include "shapes/DigitalPlane.h"
 #include "geometry/TruePredicate.h"
 #include "geometry/SetProcessor.h"
-
+#include "geometry/CurveProcessor.h"
+#include "geometry/path/BezierLinkAlgorithm.h"
+#include "geometry/MultiPathThinner.h"
 
 template <typename Container, typename Predicate = TruePredicate<typename Container::Space> >
 class JunctionProcessingSkeleton {
@@ -21,6 +22,7 @@ public:
     typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
     typedef DGtal::Object<DT26_6, Container> ObjectType;
     typedef DigitalPlane<Space> Plane;
+    typedef typename LinkPointAlgorithm<Point>::Path Path;
 
 public:
     JunctionProcessingSkeleton(const Container& skeletonPoints,
@@ -34,9 +36,11 @@ public:
 
 private:
     Container shellPointsToJunctionAreas();
+    Container deletePointsInJunctionAreas();
     Container dilate(const Container& toDilate);
     std::vector<Container> groupsOfPointSameJunction();
     Point referencePointWithDifferenceNormal(const Container& points);
+    std::pair<Point, RealVector> convertPlaneToPointVector(const Plane& plane);
 
 private:
     Container* mySkeleton;
@@ -45,6 +49,33 @@ private:
     Container* myJunctionArea;
     std::vector<Plane>* myPlanes;
 };
+
+template <typename Container, typename Predicate>
+Container
+JunctionProcessingSkeleton<Container, Predicate>::
+postProcess() {
+    typedef std::pair<Point, RealVector> PointToDirection;
+
+    Container myNewSkeleton = *mySkeleton;
+    myNewSkeleton = deletePointsInJunctionAreas();
+    std::vector<Container> groups = groupsOfPointSameJunction();
+    for (const Container& pointsToLink : groups) {
+        std::vector<PointToDirection> pToNormal;
+        for (const Plane& plane : *myPlanes) {
+            if (pointsToLink.find(plane.getCenter()) != pointsToLink.end())
+                pToNormal.push_back(convertPlaneToPointVector(plane));
+        }
+        Point ref = referencePointWithDifferenceNormal(pointsToLink);
+        auto iterator = find_if(myPlanes->begin(), myPlanes->end(), [&](const Plane& plane) {
+                return (plane.getCenter() == ref);
+            });
+        PointToDirection refVector = convertPlaneToPointVector(*iterator);
+        MultiPathThinner<Container> multiPath(*myVolume, pToNormal, refVector);
+        Container link = multiPath.linkPointsThin();
+        myNewSkeleton.insert(link.begin(), link.end());
+    }
+    return myNewSkeleton;
+}
 
 
 template <typename Container, typename Predicate>
@@ -134,6 +165,19 @@ dilate(const Container& toDilate) {
     return toDilate;
 }
 
+template <typename Container, typename Predicate>
+Container
+JunctionProcessingSkeleton<Container, Predicate>::
+deletePointsInJunctionAreas() {
+    Container skeletonPoints = *mySkeleton;
+    for (auto it = myJunctionArea->begin(), ite = myJunctionArea->end(); it != ite; ++it) {
+        auto itToErase = mySkeleton->find(*it);
+        if (itToErase != mySkeleton->end())
+            skeletonPoints.erase(itToErase);
+    }
+    return skeletonPoints;
+}
+
 
 template <typename Container, typename Predicate>
 std::vector<Container>
@@ -143,7 +187,7 @@ groupsOfPointSameJunction() {
     std::vector< Container > groups;
     Predicate predicate(myPlanes);
 
-    std::vector<Container> ccJunction = SetProcessor<Container>(myJunctionArea).toConnectedComponents();
+    std::vector<Container> ccJunction = SetProcessor<Container>(*myJunctionArea).toConnectedComponents();
 
     Adj26 adj26;
     Adj6 adj6;
@@ -216,4 +260,13 @@ referencePointWithDifferenceNormal(const Container& points) {
     return cand;
 }
 
+template <typename Container, typename Predicate>
+std::pair<typename JunctionProcessingSkeleton<Container,Predicate>::Point,
+          typename JunctionProcessingSkeleton<Container,Predicate>::RealVector>
+JunctionProcessingSkeleton<Container, Predicate>::
+convertPlaneToPointVector(const Plane& plane) {
+    Point p = plane.getCenter();
+    RealVector n = plane.getPlaneEquation().normal();
+    return std::make_pair(p, n);
+}
 #endif

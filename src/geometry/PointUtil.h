@@ -9,6 +9,8 @@
 #include "geometry/SetProcessor.h"
 
 namespace PointUtil {
+
+
 	template <typename Domain, typename Container>
 	Domain computeBoundingBox(const Container& points);
 
@@ -105,6 +107,7 @@ twoClosestPointsTrackingWithNormal(const Container& container, const Point& refe
 	}
 	return std::make_pair(closest1, closest2);
 }
+
 
 
 #endif

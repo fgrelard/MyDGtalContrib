@@ -51,7 +51,7 @@ public:
 
 	template <typename DTL2>
 	Container subCurve(const DTL2& dt,
-					   const Container& constraintInSet);
+                       const Container& constraintInSet);
 
     Container ensureOneCC(const Container& setVolume,
                           double lowerBound = std::numeric_limits<double>::min(),
@@ -61,11 +61,10 @@ public:
 
 	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
 
+    Container intersectionNeighborhood(const Container& otherCurve);
 
 private:
     Container myCurve;
-
-
 };
 
 
@@ -317,6 +316,22 @@ std::vector< typename CurveProcessor<Container>::Point > CurveProcessor<Containe
 	return orientedEdge;
 }
 
-
+template <typename Container>
+Container
+CurveProcessor<Container>::
+intersectionNeighborhood(const Container& otherCurve) {
+    Container container(myCurve.domain());
+    for (const Point& p : myCurve) {
+        std::vector<Point> neighbors;
+        std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
+        Adj26::writeNeighbors(inserter, p);
+        for (const Point& o : otherCurve) {
+            auto iterator = find(neighbors.begin(), neighbors.end(), o);
+            if (iterator != neighbors.end())
+                container.insert(p);
+        }
+    }
+    return container;
+}
 
 #endif

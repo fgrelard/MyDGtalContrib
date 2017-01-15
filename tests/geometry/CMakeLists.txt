@@ -12,6 +12,7 @@ SET(DGTAL_CONTRIB_TESTS
   testSphericalShellIntersection
   testSetProcessor
   testPointUtil
+  testMultiPathThinner
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})
