@@ -28,7 +28,9 @@ void testPlaneQuadrangle() {
         typedef DistanceToPointFunctor<Z3i::L2Metric> Distance;
         typedef DistanceBreadthFirstVisitor<Graph, Distance, std::set<Z3i::Point>> Visitor;
 
-        Image image = GenericReader<Image>::import("/home/florent/test_img/cylinder.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/cylinder.vol";
+        Image image = GenericReader<Image>::import(path);
 
         Z3i::Point center(0,0,5);
         Z3i::RealVector normal(0.72, 0, 0.28);
@@ -40,13 +42,15 @@ void testPlaneQuadrangle() {
 }
 
 void testSlice() {
-        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+    typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
         typedef ImageSelector<Z2i::Domain, unsigned char>::Type Image2D;
         typedef Z3i::Object26_6 Graph;
         typedef DistanceToPointFunctor<Z3i::L2Metric> Distance;
         typedef DistanceBreadthFirstVisitor<Graph, Distance, std::set<Z3i::Point>> Visitor;
 
-        Image image = GenericReader<Image>::import("/home/florent/test_img/cylinder.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/cylinder.vol";
+        Image image = GenericReader<Image>::import(path);
 
         Z3i::Point center(0,0,5);
         Z3i::RealVector normal(0, 0, 1);
@@ -56,6 +60,8 @@ void testSlice() {
         Image2D slice = planeProcessor.sliceFromPlane(image, 50);
         PGMWriter<Image2D>::exportPGM("slice.pgm", slice);
 }
+
+
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);

@@ -22,7 +22,9 @@ using namespace std;
 
 void testMajorAxis() {
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/thskeleton_boudin.vol";
+        Image image = GenericReader<Image>::import(path);
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
@@ -34,8 +36,9 @@ void testMajorAxis() {
 void testLengthMajorAxis() {
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
-
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/thskeleton_boudin.vol";
+        Image image = GenericReader<Image>::import(path);
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
@@ -49,7 +52,9 @@ void testClosestPointAt() {
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
 
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/thskeleton_boudin.vol";
+        Image image = GenericReader<Image>::import(path);
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
@@ -66,7 +71,9 @@ void testSameContainer() {
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
 
 
-        Image image = GenericReader<Image>::import("/home/florent/test_img/thskeleton_boudin.vol");
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/thskeleton_boudin.vol";
+        Image image = GenericReader<Image>::import(path);
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
@@ -75,6 +82,8 @@ void testSameContainer() {
         bool isSame2 = setProcessor.sameContainer(setVolume);
         trace.info() << "Test " << ((isSame1 && !isSame2) ? " passed" : " failed") << endl;
 }
+
+
 
 int main(int argc, char** argv) {
         testMajorAxis();

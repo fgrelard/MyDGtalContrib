@@ -11,6 +11,7 @@ SET(DGTAL_CONTRIB_TESTS
   testMorphomaths
   testSphericalShellIntersection
   testSetProcessor
+  testPointUtil
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

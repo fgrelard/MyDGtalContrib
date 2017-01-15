@@ -43,8 +43,7 @@ public:
         Point closestPointAt(const RealPoint& point);
         bool sameContainer(const Container& otherContainer);
         std::vector<ObjectType> toConnectedComponents();
-        Point trackPoint(const Point& start, const RealVector& vector);
-        Container traversedLineTracking(const Point& start, const RealVector& vector);
+
 
 private:
         Container* myContainer;
@@ -120,31 +119,6 @@ std::vector<typename SetProcessor<Container>::ObjectType> SetProcessor<Container
         for (const auto& o : cc)
                 ccSet.push_back(o.pointSet());
         return ccSet;
-}
-
-template <typename Container>
-typename SetProcessor<Container>::Point
-SetProcessor<Container>::
-trackPoint(const Point& start, const RealVector& vector) {
-        Point point(start);
-        int scalar = 1;
-        while (myContainer->find(point) != myContainer->end()) {
-                point = start + vector*scalar;
-                scalar++;
-        }
-        return point;
-}
-
-template <typename Container>
-Container
-SetProcessor<Container>::
-traversedLineTracking(const Point& start, const RealVector& vector) {
-        Container container(myContainer->domain());
-        Point tracked = trackPoint(start, vector);
-        BresenhamAlgorithm<Point> bresenham(start, tracked);
-        std::vector<Point> path = bresenham.linkPoints();
-        container.insert(path.begin(), path.end());
-        return container;
 }
 
 #endif

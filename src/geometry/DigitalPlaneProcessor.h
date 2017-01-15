@@ -35,6 +35,7 @@ public:
         std::vector<RealVector> planeToQuadrangle();
         SubImage sliceFromPlane(const Image& image, int patch_width);
         std::pair<Point, Point> twoClosestPointsTrackingWithNormal(const DigPlane& other, const DigitalSet& container);
+
 private:
         DigPlane myDigitalPlane;
 };
@@ -137,13 +138,16 @@ twoClosestPointsTrackingWithNormal(const DigPlane& otherPlane, const DigitalSet&
         if (normalOther.dot(dirVectorOther) < 0)
                 normalOther = -normalOther;
 
-        DigitalSet traversedCurrent = computeTraversedPoints(container, reference, normalRef);
-        DigitalSet traversedReference = computeTraversedPoints(container, other, normalOther);
+        SetProcessor<DigitalSet> setProc(container);
+        DigitalSet traversedCurrent = setProc.traversedLineTracking( reference, normalRef);
+        DigitalSet traversedReference = setProc.traversedLineTracking( other, normalOther);
         double distanceCR = std::numeric_limits<double>::max();
         Point closest1, closest2;
         L2Metric l2Metric;
+
+        SetProcessor<DigitalSet> setProcessor(traversedReference);
         for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
-                SetProcessor<DigitalSet> setProcessor(traversedReference);
+
                 Point nearest = setProcessor.closestPointAt(*it);
                 double currentDistance = l2Metric(nearest, *it);
                 if (currentDistance < distanceCR && currentDistance > sqrt(3)) {
