@@ -4,11 +4,12 @@
 #include "geometry/VCMAdjustableRadius.h"
 #include "shapes/DigitalPlane.h"
 
-template <typename Container, typename KernelFunction>
+template <typename TContainer, typename KernelFunction>
 class OrthogonalPlaneEstimator {
 private:
-        static Container emptyContainer;
+        static TContainer emptyContainer;
 public:
+        typedef TContainer Container;
         typedef typename Container::value_type Point;
         typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
         typedef typename Space::RealVector RealVector;
@@ -43,6 +44,7 @@ public:
                                 const Container& points = emptyContainer);
 
         void setRadius(double radius);
+        double getRadius() const { return myVCM->r(); }
 
 public:
         OrthogonalPlaneEstimator& operator=(const OrthogonalPlaneEstimator& other);

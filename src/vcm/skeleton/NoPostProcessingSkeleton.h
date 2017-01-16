@@ -1,11 +1,20 @@
 #ifndef NO_POST_PROCESSING_SKELETON_H
 #define NO_POST_PROCESSING_SKELETON_H
 
+#include <vector>
+#include "shapes/DigitalPlane.h"
+
 template <typename Container>
 class NoPostProcessingSkeleton {
 public:
+        typedef typename Container::Space Space;
+        typedef DigitalPlane<Space> Plane;
+public:
         NoPostProcessingSkeleton() = delete;
-        NoPostProcessingSkeleton(const Container& skeletonPoints) {
+        NoPostProcessingSkeleton(const Container& skeletonPoints,
+                               const Container& a3ShellPoints,
+                               const Container& setVolume,
+                               const std::vector<Plane>& planesEndPoints) {
                 mySkeleton = new Container( skeletonPoints);
         }
         NoPostProcessingSkeleton(const NoPostProcessingSkeleton& other) {

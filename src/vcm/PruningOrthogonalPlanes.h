@@ -1,5 +1,5 @@
-#ifndef PRUNING_WITH_ORTHOGONAL_PLANES_H
-#define PRUNING_WITH_ORTHOGONAL_PLANES_H
+#ifndef PRUNING_ORTHOGONAL_PLANES_H
+#define PRUNING_ORTHOGONAL_PLANES_H
 
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "geometry/CurveDecomposition.h"
@@ -10,7 +10,7 @@
 
 
 template <typename Container>
-class PruningWithOrthogonalPlanes {
+class PruningOrthogonalPlanes {
 
         BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet< Container > ));
 public:
@@ -30,12 +30,12 @@ public:
         typedef DGtal::Object<DT26_6, Container> ObjectType;
 
 public:
-        PruningWithOrthogonalPlanes() = delete;
-        PruningWithOrthogonalPlanes(const Container& skeleton,
+        PruningOrthogonalPlanes() = delete;
+        PruningOrthogonalPlanes(const Container& skeleton,
                                     const Container& volume,
                                     double threshold);
-        ~PruningWithOrthogonalPlanes();
-        PruningWithOrthogonalPlanes(const PruningWithOrthogonalPlanes& other);
+        ~PruningOrthogonalPlanes();
+        PruningOrthogonalPlanes(const PruningOrthogonalPlanes& other);
 
 public:
         Container prune();
@@ -59,8 +59,8 @@ private:
 };
 
 template <typename Container>
-PruningWithOrthogonalPlanes<Container>::
-PruningWithOrthogonalPlanes(const Container& skeleton,
+PruningOrthogonalPlanes<Container>::
+PruningOrthogonalPlanes(const Container& skeleton,
                             const Container& volume, double threshold) : myBranchingPoints(Container(Domain(Point::zero,
                                                                                                             Point::zero))){
         mySkeleton = new Container ( skeleton );
@@ -81,8 +81,8 @@ PruningWithOrthogonalPlanes(const Container& skeleton,
 }
 
 template <typename Container>
-PruningWithOrthogonalPlanes<Container>::
-~PruningWithOrthogonalPlanes() {
+PruningOrthogonalPlanes<Container>::
+~PruningOrthogonalPlanes() {
         if (mySkeleton != 0) {
                 delete mySkeleton;
                 mySkeleton = 0;
@@ -107,8 +107,8 @@ PruningWithOrthogonalPlanes<Container>::
 }
 
 template <typename Container>
-PruningWithOrthogonalPlanes<Container>::
-PruningWithOrthogonalPlanes(const PruningWithOrthogonalPlanes& other) {
+PruningOrthogonalPlanes<Container>::
+PruningOrthogonalPlanes(const PruningOrthogonalPlanes& other) {
         mySkeleton = new Container ( *other.mySkeleton );
         myVolume = new Container ( *other.myVolume );
         myPlaneEstimatorCurve = new PlaneEstimator( *other.myPlaneEstimatorCurve );
@@ -121,7 +121,7 @@ PruningWithOrthogonalPlanes(const PruningWithOrthogonalPlanes& other) {
 
 template <typename Container>
 Container
-PruningWithOrthogonalPlanes<Container>::
+PruningOrthogonalPlanes<Container>::
 prune() {
         DGtal::trace.beginBlock("Pruning skeleton");
         CurveDecomposition<Container> curveDecompo(*mySkeleton, myBranchingPoints);
@@ -164,7 +164,7 @@ prune() {
 
 template <typename Container>
 double
-PruningWithOrthogonalPlanes<Container>::
+PruningOrthogonalPlanes<Container>::
 significanceMeasure(const Point& p) {
 
         Plane planeCurve = myPlaneEstimatorCurve->planeAt(p);
@@ -182,7 +182,7 @@ significanceMeasure(const Point& p) {
 
 template <typename Container>
 Container
-PruningWithOrthogonalPlanes<Container>::
+PruningOrthogonalPlanes<Container>::
 pruneEdgeTopologyPreserving(const Container& prunedSkeleton,
                             const GraphEdge& graphEdge) {
         Container difference(prunedSkeleton.domain());

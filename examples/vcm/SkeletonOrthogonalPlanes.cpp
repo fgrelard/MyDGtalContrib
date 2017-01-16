@@ -13,7 +13,11 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include "geometry/MedialAxis.h"
-#include "vcm/PruningOrthogonalPlanes.h"
+#include "vcm/skeleton/SkeletonizationOrthogonalPlanes.h"
+#include "vcm/OrthogonalPlaneEstimator.h"
+#include "geometry/AbovePlanePredicate.h"
+#include "vcm/skeleton/JunctionProcessingSkeleton.h"
+#include "vcm/skeleton/NoPostProcessingSkeleton.h"
 
 using namespace std;
 using namespace DGtal;
@@ -25,12 +29,14 @@ int main( int  argc, char**  argv )
         typedef ImageContainerBySTLVector<Z3i::Domain, unsigned char> Image;
         typedef functors::BallConstantPointFunction<Z3i::Point,double> KernelFunction;
         typedef OrthogonalPlaneEstimator<Z3i::DigitalSet, KernelFunction> OrthoPlaneEstimator;
+        typedef AbovePlanePredicate<Z3i::Space> Predicate;
+        //typedef JunctionProcessingSkeleton<Z3i::DigitalSet, Predicate> PostProcessing;
+        typedef NoPostProcessingSkeleton<Z3i::DigitalSet> PostProcessing;
+
         po::options_description general_opt("Allowed options are: ");
         general_opt.add_options()
                 ("help,h", "display this message")
-                ("curve,c", po::value<std::string>(), "vol file (curve)")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
-                ("thresholdPruning,t", po::value<double>()->default_value(25), "threshold for pruning (angle in degrees)")
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;
@@ -57,11 +63,9 @@ int main( int  argc, char**  argv )
                 return 0;
         }
 
-        string curveFilename = vm["curve"].as<std::string>();
         string inputFilename = vm["input"].as<std::string>();
         int thresholdMin = vm["thresholdMin"].as<int>();
         int thresholdMax = vm["thresholdMax"].as<int>();
-        double threshold = vm["thresholdPruning"].as<double>();
 
 
         Image volume = VolReader<Image>::importVol(inputFilename);
@@ -70,22 +74,16 @@ int main( int  argc, char**  argv )
         SetFromImage<Z3i::DigitalSet>::append<Image> (setVolume, volume,
                                                       thresholdMin-1, thresholdMax);
 
-        Image curve = VolReader<Image>::importVol(curveFilename);
-        Z3i::Domain domainCurve = curve.domain();
-        Z3i::DigitalSet setCurve(domainCurve);
-        SetFromImage<Z3i::DigitalSet>::append<Image> (setCurve, curve,
-                                                      thresholdMin-1, thresholdMax);
-
-
         QApplication application(argc,argv);
         Viewer3D<> viewer;
         viewer.show();
 
-        PruningOrthogonalPlanes<Z3i::DigitalSet> pruning(setCurve, setVolume, threshold);
-        Z3i::DigitalSet skeletonPruned = pruning.prune();
 
-        viewer << CustomColors3D(Color::Red, Color::Red) << skeletonPruned;
-        viewer << CustomColors3D(Color::Yellow, Color::Yellow) << setCurve;
+        SkeletonizationOrthogonalPlanes<Z3i::DigitalSet, PostProcessing> skeletonization(setVolume, true);
+        Z3i::DigitalSet skeleton = skeletonization.skeletonize();
+
+        viewer << CustomColors3D(Color::Red, Color::Red) << skeleton;
+        viewer << CustomColors3D(Color(210,210,210,20), Color(210,210,210,20)) << setVolume;
         for (auto it = setVolume.begin(), ite = setVolume.end(); it != ite; ++it) {
                 if (volume(*it) >= thresholdMin)
                         viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;

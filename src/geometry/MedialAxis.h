@@ -6,7 +6,8 @@
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "DGtal/kernel/sets/CDigitalSet.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
-#include "DGtal/topology/DomainMetricAdjacency.h"
+#include "DGtal/topology/MetricAdjacency.h"
+#include "DGtal/topology/Object.h"
 #include "DGtal/topology/DigitalTopology.h"
 #include "geometry/DistanceToPointFunctor.h"
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
@@ -43,7 +44,6 @@ template <typename Container>
 Container
 MedialAxis<Container>::compute(const Container& aSet) {
 	typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;
-	typedef DistanceToPointFunctor<L2Metric>         DistanceToPoint;
 	typedef DGtal::DistanceTransformation<Space, Container, L2Metric> DTL2;
 
 	Adj26 adj26;

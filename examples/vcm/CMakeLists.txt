@@ -2,6 +2,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
   OrthogonalPlaneEstimation
   OrthogonalPlaneEstimationWithCurve
   PruningSkeletonOrthogonalPlanes
+  SkeletonOrthogonalPlanes
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

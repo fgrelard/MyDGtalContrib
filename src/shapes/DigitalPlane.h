@@ -33,7 +33,7 @@ public:
 
         DigitalPlane() : myPoint(), myPlaneEquation(0, {0,0,1}, 0) {}
         DigitalPlane(const Point& aPoint, const Vector& aNormal, int aConnexity = 26);
-        DigitalPlane(const DigitalPlane& other) : myPoint(other.myPoint), myPlaneEquation(other.myPlaneEquation) {  }
+        DigitalPlane(const DigitalPlane& other) : myPoint(other.myPoint), myPlaneEquation(other.myPlaneEquation), myConnexity(other.myConnexity) {  }
 
 public:
         DigitalSet intersectionWithSet(const DigitalSet& pointsV) const;
@@ -44,14 +44,16 @@ public:
 
         PlaneEquation getPlaneEquation() const { return myPlaneEquation; }
         Point getCenter() const { return myPoint; }
+        int getConnexity() const { return myConnexity; }
 
 private:
         Point myPoint;
         PlaneEquation myPlaneEquation;
+        int myConnexity;
 };
 
 template <typename TSpace>
-DigitalPlane<TSpace>::DigitalPlane(const Point& aPoint, const Vector& aNormal, int aConnexity) : myPoint(aPoint) {
+DigitalPlane<TSpace>::DigitalPlane(const Point& aPoint, const Vector& aNormal, int aConnexity) : myPoint(aPoint), myConnexity(aConnexity) {
         typedef typename Vector::Scalar Scalar;
         Scalar omega = 0, d = 0;
 

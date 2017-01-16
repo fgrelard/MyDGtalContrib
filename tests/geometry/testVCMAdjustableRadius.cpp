@@ -26,6 +26,7 @@ void testVCMAdaptable() {
 
     VCMAdjustableRadius<Z3i::Space, Z3i::L2Metric> vcm(10, ceil( 10 ), Z3i::l2Metric, true );
     vcm.init(setVolume.begin(), setVolume.end());
+    vcm.setMySmallR(11);
     DGtal::functors::ReverseHatPointFunction<Z3i::Point, double> chi(1.0, 5.0);
     Ball<Z3i::Point> ball(*setVolume.begin(), 5);
     Z3i::DigitalSet points = ball.pointSet();

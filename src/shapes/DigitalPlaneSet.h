@@ -8,7 +8,11 @@ class DigitalPlaneSet {
 public:
         typedef DigitalPlane<TSpace> Plane;
         typedef typename Plane::DigitalSet DigitalSet;
+        typedef typename Plane::Domain Domain;
+        typedef typename Plane::Point Point;
 public:
+        DigitalPlaneSet() : myDigitalSet(Domain(Point::zero, Point::zero)) {}
+
         DigitalPlaneSet(const Plane& digitalPlane,
                         const DigitalSet& aDigitalSet) : myDigitalPlane(digitalPlane),
                                                        myDigitalSet(aDigitalSet) {}

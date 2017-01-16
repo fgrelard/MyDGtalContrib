@@ -5,7 +5,6 @@
 #include <algorithm>
 
 #include "DGtal/base/Common.h"
-#include "DGtal/helpers/StdDefs.h"
 #include "DGtal/images/ImageSelector.h"
 #include "DGtal/images/imagesSetsUtils/ImageFromSet.h"
 #include <Eigen/Dense>
@@ -25,9 +24,9 @@ public:
 	double stddev();
 
 	template <typename Image>
-	typename Container::Space::RealVector centerOfMass(const Image& image);
+	typename Container::Space::RealPoint centerOfMass(const Image& image);
 
-	typename Container::Space::RealVector extractCenterOfMass();
+	typename Container::Space::RealPoint extractCenterOfMass();
 
 	typename Container::Space::RealVector computeNormalFromLinearRegression();
 
@@ -71,39 +70,41 @@ double Statistics<Container>::stddev() {
 
 template <typename Container>
 template <typename Image>
-typename Container::Space::RealVector Statistics<Container>::centerOfMass(const Image& image) {
-    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
-	double m000 = 0;
-	std::vector<double> masses(Container::Space::RealVector::dimension, 0.0);
+typename Container::Space::RealPoint Statistics<Container>::centerOfMass(const Image& image) {
 
-	for (auto it = myData.domain().begin(), ite = myData.domain().end(); it != ite; ++it) {
+    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
+
+	double m000 = 0.0;
+	std::vector<double> masses(Container::Space::dimension, 0.0);
+
+	for (auto it = image.domain().begin(), ite = image.domain().end(); it != ite; ++it) {
 	    typename Container::Space::Point current = *it;
 		m000 += image(current);
-		for (typename Container::Space::RealVector::Dimension i = 0; i < Container::Space::RealVector::dimension; i++) {
+		for (typename Container::Space::Dimension i = 0; i < Container::Space::dimension; i++) {
 			masses[i] += current[i] * image(current);
 		}
 	}
-	if (m000 != 0) {
-		typename Container::Space::RealVector v;
-		for (typename Container::Space::RealVector::Dimension i = 0; i < Container::Space::RealVector::dimension; i++)
+
+	if (m000 != 0.0) {
+		typename Container::Space::RealPoint v;
+		for (typename Container::Space::Dimension i = 0; i < Container::Space::dimension; i++)
 			v[i] = masses[i] * 1.0 / m000;
 		return v;
 	}
-
-	return typename Container::Space::RealVector();
+	return Container::Space::RealPoint::zero;
 }
 
 template <typename Container>
-typename Container::Space::RealVector Statistics<Container>::extractCenterOfMass() {
+typename Container::Space::RealPoint Statistics<Container>::extractCenterOfMass() {
 	BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet< Container > ));
 
 	if (myData.size() != 0) {
 		typedef typename DGtal::ImageSelector<typename Container::Domain, unsigned char>::Type Image;
 		Image image = DGtal::ImageFromSet<Image>::create(myData, 150);
-		typename Container::RealVector centerOfMass = Statistics::centerOfMass(image);
-		return centerOfMass;
+		typename Container::Space::RealPoint g = centerOfMass(image);
+		return g;
 	}
-	return typename Container::RealVector();
+	return Container::Space::RealPoint::zero;
 }
 
 
@@ -278,33 +279,38 @@ double Statistics<Container>::otsuThreshold() {
 
 template <typename Container>
 double Statistics<Container>::unimodalThresholding() {
-	using namespace DGtal;
-	Statistic<double> stats;
+
+	typedef DGtal::SpaceND<2, DGtal::int32_t> Space;
+	typedef typename Space::RealPoint RealPoint;
+	typedef typename Space::RealVector RealVector;
+	typedef typename Space::Point Point;
+
+	DGtal::Statistic<double> stats;
 	stats.addValues( myData.begin(), myData.end() );
 	stats.terminate(); // stats are computed.
 
-	Histogram<double>* hist = new Histogram<double>();
-	hist->init( Histogram<double>::SquareRoot, stats );
+	DGtal::Histogram<double>* hist = new DGtal::Histogram<double>();
+	hist->init( DGtal::Histogram<double>::SquareRoot, stats );
 	hist->addValues( myData.begin(), myData.end() );
 	hist->terminate();
 	double myWidth = ( stats.max() - stats.min() ) / hist->size() ;
-	Z2i::RealPoint maxPeak(0,0);
+    RealPoint maxPeak(0,0);
 	for (int i = 1; i < hist->size(); i++) {
 //		cout << i*myWidth+stats.min() << " " << hist->pdf(i) << endl;
 		if (hist->pdf(i) > maxPeak[1])
-			maxPeak = Z2i::RealPoint(i*myWidth, hist->pdf(i));
+			maxPeak = RealPoint(i*myWidth, hist->pdf(i));
 	}
-	Z2i::RealPoint tail(stats.max(), hist->pdf(hist->size()-1));
-	Z2i::RealVector directionLine = (tail - maxPeak).getNormalized();
+    RealPoint tail(stats.max(), hist->pdf(hist->size()-1));
+	RealVector directionLine = (tail - maxPeak).getNormalized();
 	double maxDistanceOrthogonal = 0.0;
 	double threshold = 0.0;
 
 	//Start from maxPeak (origin)
 	int begin = maxPeak[0] / myWidth;
 	for (int i = begin+1; i < hist->size(); i++) {
-		Z2i::RealPoint currentPoint(i * myWidth, hist->pdf(i));
-		Z2i::RealVector v = currentPoint - maxPeak;
-		Z2i::RealPoint orthogonalProjection = ((v.dot(directionLine)) / (directionLine.dot(directionLine))) * directionLine;
+	    RealPoint currentPoint(i * myWidth, hist->pdf(i));
+	    RealVector v = currentPoint - maxPeak;
+	    RealPoint orthogonalProjection = ((v.dot(directionLine)) / (directionLine.dot(directionLine))) * directionLine;
 
 		//Need to change basis (go back to true origin)
 		orthogonalProjection += maxPeak;

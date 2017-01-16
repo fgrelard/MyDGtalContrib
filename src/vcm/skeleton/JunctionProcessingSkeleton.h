@@ -60,6 +60,7 @@ postProcess() {
     myNewSkeleton = deletePointsInJunctionAreas();
     std::vector<Container> groups = groupsOfPointSameJunction();
     for (const Container& pointsToLink : groups) {
+        if (pointsToLink.size() == 0) continue;
         std::vector<PointToDirection> pToNormal;
         for (const Plane& plane : *myPlanes) {
             if (pointsToLink.find(plane.getCenter()) != pointsToLink.end())
@@ -87,7 +88,7 @@ JunctionProcessingSkeleton(const Container& skeletonPoints,
         mySkeleton = new Container(skeletonPoints);
         my3ShellPoints = new Container(a3ShellPoints);
         myVolume = new Container(setVolume);
-        Container firstJunctionArea = new Container( shellPointsToJunctionAreas() );
+        Container firstJunctionArea( shellPointsToJunctionAreas() );
 
         delete my3ShellPoints;
         my3ShellPoints = 0;
@@ -129,7 +130,7 @@ Container
 JunctionProcessingSkeleton<Container, Predicate>::
 shellPointsToJunctionAreas() {
         L2Metric l2Metric;
-        Container shellAreas(myVolume.domain());
+        Container shellAreas(myVolume->domain());
         for (const Point& p : *myVolume) {
                 Point closestPoint = *min_element(mySkeleton->begin(), mySkeleton->end(), [&](const Point& one, const Point& two) {
                                 return l2Metric(one, p) < l2Metric(two, p);
@@ -158,11 +159,11 @@ dilate(const Container& toDilate) {
             obj.writeNeighbors(inserter, s);
             for (const Point& n : neighbors) {
                     if (toDilate.find(n) != toDilate.end())
-                             toDilate.insert(s);
+                             dilatedJunction.insert(s);
             }
 
     }
-    return toDilate;
+    return dilatedJunction;
 }
 
 template <typename Container, typename Predicate>
@@ -171,8 +172,8 @@ JunctionProcessingSkeleton<Container, Predicate>::
 deletePointsInJunctionAreas() {
     Container skeletonPoints = *mySkeleton;
     for (auto it = myJunctionArea->begin(), ite = myJunctionArea->end(); it != ite; ++it) {
-        auto itToErase = mySkeleton->find(*it);
-        if (itToErase != mySkeleton->end())
+        auto itToErase = skeletonPoints.find(*it);
+        if (itToErase != skeletonPoints.end())
             skeletonPoints.erase(itToErase);
     }
     return skeletonPoints;
@@ -183,9 +184,9 @@ template <typename Container, typename Predicate>
 std::vector<Container>
 JunctionProcessingSkeleton<Container, Predicate>::
 groupsOfPointSameJunction() {
-
+    L2Metric l2Metric;
     std::vector< Container > groups;
-    Predicate predicate(myPlanes);
+    Predicate predicate(*myPlanes);
 
     std::vector<Container> ccJunction = SetProcessor<Container>(*myJunctionArea).toConnectedComponents();
 
@@ -198,7 +199,7 @@ groupsOfPointSameJunction() {
     for (const Plane& plane : *myPlanes) {
         Point currentPoint = plane.getCenter();
         double currentDistance = std::numeric_limits<double>::max();
-        int indexJunction;
+        int indexJunction = -1;
         int i = -1;
         for (const Container& junction : ccJunction) {
             i++;
@@ -206,7 +207,7 @@ groupsOfPointSameJunction() {
 
             bool add = false;
             for (const Point& p : junction) {
-                add |= predicate(p);
+                add |= predicate(currentPoint, p);
             }
 
             double distance = l2Metric(currentPoint, closest);
@@ -216,7 +217,7 @@ groupsOfPointSameJunction() {
             }
         }
         if (indexJunction >= 0)
-            labelMap[currentPoint] = i;
+            labelMap[currentPoint] = indexJunction;
     }
 
     Container emptyContainer(myVolume->domain());
@@ -234,7 +235,7 @@ referencePointWithDifferenceNormal(const Container& points) {
     int referenceNumber = std::numeric_limits<int>::min();
     Point cand = *(points.begin());
     for (const Point& p : points) {
-        auto itPlane = find_if(myPlanes->begin(), myPlanes.end(),
+        auto itPlane = find_if(myPlanes->begin(), myPlanes->end(),
                                [&](const Plane& plane) {
                                    return (plane.getCenter() == p);
                                });
@@ -243,7 +244,7 @@ referencePointWithDifferenceNormal(const Container& points) {
         int cpt = 0;
         for (const Point& p2 : points) {
             if (p == p2) continue;
-            auto itPlane2 = find_if(myPlanes->begin(), myPlanes.end(),
+            auto itPlane2 = find_if(myPlanes->begin(), myPlanes->end(),
                                    [&](const Plane& plane) {
                                        return (plane.getCenter() == p2);
                                    });

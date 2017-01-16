@@ -42,7 +42,7 @@ public:
         double lengthMajorAxis();
         Point closestPointAt(const RealPoint& point);
         bool sameContainer(const Container& otherContainer);
-        std::vector<ObjectType> toConnectedComponents();
+        std::vector<Container> toConnectedComponents();
 
 
 private:
@@ -106,7 +106,7 @@ SetProcessor<Container>::sameContainer(const Container & container) {
 }
 
 template <typename Container>
-std::vector<typename SetProcessor<Container>::ObjectType> SetProcessor<Container>::toConnectedComponents() {
+std::vector<Container> SetProcessor<Container>::toConnectedComponents() {
 
         Adj26 adj26;
         Adj6 adj6;
