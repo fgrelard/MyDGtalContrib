@@ -11,9 +11,14 @@
 #include "geometry/CurveProcessor.h"
 #include "geometry/SphericalShellIntersection.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
+#include "geometry/SSIJunctionDetection.h"
+#include "vcm/skeleton/JunctionProcessingSkeleton.h"
+#include "geometry/AbovePlanePredicate.h"
 #include "Statistics.h"
 
-template <typename Container, typename PostProcessing >
+template <typename Container,
+          typename JunctionDetection = SSIJunctionDetection<Container>,
+          typename PostProcessing = JunctionProcessingSkeleton<Container, AbovePlanePredicate<typename Container::Space> > >
 class SkeletonizationOrthogonalPlanes {
 public:
         typedef typename Container::Space Space;
@@ -34,8 +39,8 @@ public:
 public:
         SkeletonizationOrthogonalPlanes() = delete;
         SkeletonizationOrthogonalPlanes(const Container& setVolume,
-                                        double R = 10,
-                                        bool detectJunctions = true);
+                                        const JunctionDetection& junctionDetection,
+                                        double R = 10);
         SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other);
         ~SkeletonizationOrthogonalPlanes();
 
@@ -56,13 +61,14 @@ private:
         Container restrictPlaneSet(const PlaneSet& planeSet, double radius);
         Plane orientPlane(const Plane& undirectedPlane,
                           const Container& endPoints);
-        bool is3ShellPoint(const PlaneSet& p, double radius);
+        bool isInJunction(const PlaneSet& p, double radius);
 
 private:
         Container* myVolume;
         PlaneEstimator* myPlaneEstimator;
+        JunctionDetection* myJunctionDetection;
         double myBigR;
-        bool myJunctionDetection;
+
 
 //Internals
 private:
@@ -74,18 +80,18 @@ private:
 };
 
 
-template <typename Container, typename PostProcessing>
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 SkeletonizationOrthogonalPlanes(const Container& setVolume,
-                                double R,
-                                bool detectJunctions) {
+                                const JunctionDetection& junctionDetection,
+                                double R) {
         L2Metric l2Metric;
         myVolume = new Container(setVolume);
+        myJunctionDetection = new JunctionDetection(junctionDetection);
         double r = 5;
         myBigR = R;
         KernelFunction chi(1.0, r);
         myPlaneEstimator = new PlaneEstimator(*myVolume, chi, myBigR, r);
-        myJunctionDetection = detectJunctions;
 
         mySkeleton = new Container(myVolume->domain());
         myMarkedVertices = new Container(setVolume.domain());
@@ -94,13 +100,13 @@ SkeletonizationOrthogonalPlanes(const Container& setVolume,
         myMedialAxis = new Container(ma.pointSet());
 }
 
-template <typename Container, typename PostProcessing>
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other) {
         myVolume = new Container(*other.myVolume);
         myPlaneEstimator = new PlaneEstimator(*other.myPlaneEstimator);
         myBigR = other.myBigR;
-        myJunctionDetection = other.myJunctionDetection;
+        myJunctionDetection = new JunctionDetection(*other.myJunctionDetection);
 
         mySkeleton = new Container(*other.mySkeleton);
         myMarkedVertices = new Container(*other.myMarkedVertices);
@@ -109,8 +115,8 @@ SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other) {
         myPlanes = other.myPlanes;
 }
 
-template <typename Container, typename PostProcessing>
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 ~SkeletonizationOrthogonalPlanes() {
         if (myVolume) {
                 delete myVolume;
@@ -119,6 +125,10 @@ SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
         if (myPlaneEstimator) {
                 delete myPlaneEstimator;
                 myPlaneEstimator = 0;
+        }
+        if (myJunctionDetection) {
+                delete myJunctionDetection;
+                myJunctionDetection = 0;
         }
         if (mySkeleton) {
                 delete mySkeleton;
@@ -138,9 +148,9 @@ SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
         }
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 Container
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 skeletonize() {
         PlaneSet previous;
         L2Metric l2Metric;
@@ -179,7 +189,7 @@ skeletonize() {
                         if (previous.isDefined() && l2Metric(plane.getCenter(), previous.digitalPlane().getCenter()) <= 2 * sqrt(3)) {
                                  markPointsBetweenPlanes(planeSetG, previous, radius);
                         }
-                        if (myJunctionDetection && is3ShellPoint(planeSetG, radius))
+                        if (isInJunction(planeSetG, radius))
                                 a3ShellPoints.insert(g);
 
                         else if (CurveProcessor<Container>(*mySkeleton).isPointThin(g)) {
@@ -200,8 +210,6 @@ skeletonize() {
         delete mySkeleton;
         mySkeleton = new Container (filteredSkeleton);
 
-
-
         myPlanes = orientEndPoints();
         PostProcessing algo(*mySkeleton, a3ShellPoints, *myVolume, myPlanes);
         Container postProcessedSkeleton = algo.postProcess();
@@ -213,9 +221,9 @@ skeletonize() {
         return *mySkeleton;
 }
 
-template <typename Container, typename PostProcessing>
-typename SkeletonizationOrthogonalPlanes<Container, PostProcessing>::Point
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+typename SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::Point
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 trackNextPoint(const PlaneSet& planeSet) {
         const Point center =  planeSet.digitalPlane().getCenter();
         const RealVector direction = planeSet.digitalPlane().getPlaneEquation().normal();
@@ -254,23 +262,23 @@ trackNextPoint(const PlaneSet& planeSet) {
         return current;
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 void
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 markPoints(const Point& point) {
         myMarkedVertices->insert(point);
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 void
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 markPoints(const Container& points) {
         myMarkedVertices->insert(points.begin(), points.end());
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 void
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 markPointsBetweenPlanes(const PlaneSet& current,
                         const PlaneSet& previous,
                         double distanceMax) {
@@ -299,9 +307,9 @@ markPointsBetweenPlanes(const PlaneSet& current,
         myMarkedVertices->insert(difference.begin(), difference.end());
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 Container
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 filterIsolatedPoints(int minSize) {
         Container filteredSkeleton(mySkeleton->domain());
         SetProcessor<Container> setProc(*mySkeleton);
@@ -314,9 +322,9 @@ filterIsolatedPoints(int minSize) {
         return filteredSkeleton;
 }
 
-template <typename Container, typename PostProcessing>
-std::vector<typename SkeletonizationOrthogonalPlanes<Container, PostProcessing>::Plane>
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+std::vector<typename SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::Plane>
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 orientEndPoints() {
         std::vector<Plane> planeEndPoints;
         SetProcessor<Container> setProc(*mySkeleton);
@@ -344,9 +352,9 @@ orientEndPoints() {
         return planeEndPoints;
 }
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 Container
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 restrictPlaneSet(const PlaneSet& planeSet, double radius) {
         L2Metric l2Metric;
         Container set = planeSet.pointSet();
@@ -359,9 +367,9 @@ restrictPlaneSet(const PlaneSet& planeSet, double radius) {
         return toMark;
 }
 
-template <typename Container, typename PostProcessing>
-typename SkeletonizationOrthogonalPlanes<Container, PostProcessing>::Plane
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
+template <typename Container, typename JunctionDetection, typename PostProcessing>
+typename SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::Plane
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
 orientPlane(const Plane& undirectedPlane, const Container& endPoints) {
 
         L2Metric l2Metric;
@@ -382,10 +390,10 @@ orientPlane(const Plane& undirectedPlane, const Container& endPoints) {
 }
 
 
-template <typename Container, typename PostProcessing>
+template <typename Container, typename JunctionDetection, typename PostProcessing>
 bool
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
-is3ShellPoint(const PlaneSet& planeSet, double radius) {
+SkeletonizationOrthogonalPlanes<Container, JunctionDetection, PostProcessing>::
+isInJunction(const PlaneSet& planeSet, double radius) {
 
         Point center = planeSet.digitalPlane().getCenter();
         RealVector normal = planeSet.digitalPlane().getPlaneEquation().normal();
@@ -397,8 +405,7 @@ is3ShellPoint(const PlaneSet& planeSet, double radius) {
         double radiusShell = std::max(4.0, std::max(radiusCurrentMinus, radiusCurrentMinus));
         radiusShell *= 1.2;
         double noise = radiusShell / 2.0;
-        SphericalShellIntersection<Container> ssi(*myVolume, center, radiusShell);
-        if (ssi.degree(noise) >= 3) {
+        if (myJunctionDetection->isInJunction(center, radiusShell, noise)) {
                 return true;
         }
         return false;

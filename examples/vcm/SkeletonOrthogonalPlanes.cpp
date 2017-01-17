@@ -30,6 +30,7 @@ int main( int  argc, char**  argv )
         typedef OrthogonalPlaneEstimator<Z3i::DigitalSet, KernelFunction> OrthoPlaneEstimator;
         typedef AbovePlanePredicate<Z3i::Space> Predicate;
         typedef JunctionProcessingSkeleton<Z3i::DigitalSet, Predicate> PostProcessing;
+        typedef SSIJunctionDetection<Z3i::DigitalSet> JunctionDetection;
 //typedef NoPostProcessingSkeleton<Z3i::DigitalSet> PostProcessing;
 
         po::options_description general_opt("Allowed options are: ");
@@ -80,8 +81,8 @@ int main( int  argc, char**  argv )
         Viewer3D<> viewer;
         viewer.show();
 
-
-        SkeletonizationOrthogonalPlanes<Z3i::DigitalSet, PostProcessing> skeletonization(setVolume, R, true);
+        JunctionDetection jd(setVolume);
+        SkeletonizationOrthogonalPlanes<Z3i::DigitalSet> skeletonization(setVolume, jd, R);
         Z3i::DigitalSet skeleton = skeletonization.skeletonize();
 
         viewer << CustomColors3D(Color::Red, Color::Red) << skeleton;

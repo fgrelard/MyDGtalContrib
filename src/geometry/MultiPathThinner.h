@@ -47,6 +47,7 @@ private:
         Container ensureThinness(const std::vector<Path>& points);
         Point firstIntersectingPoint(const Path& first, const Path& second);
         void orderPaths(std::vector<Path>& otherPaths);
+        bool isInVolume(const Path& path);
 private:
         Container* myContainer;
         PointToTangent myReference;
@@ -83,11 +84,7 @@ MultiPathThinner<Container>::multiPaths() {
                 RealVector n = pToT.second;
                 std::pair<Point, Point> controlPoints = PointUtil::twoClosestPointsTrackingWithNormal(*myContainer, p, n, myReference.first, myReference.second);
                 Path path = BezierLinkAlgorithm<Point>(p, myReference.first, controlPoints.first, controlPoints.second).linkPoints();
-                bool add = true;
-                for (const Point & p : path) {
-                        add &= (myContainer->find(p) != myContainer->end());
-                }
-                if (add)
+                if (isInVolume(path))
                         paths.push_back(path);
         }
         return paths;
@@ -197,7 +194,8 @@ ensureThinness(const std::vector<Path>& paths) {
                         std::pair<Point, Point> controlPoints = PointUtil::twoClosestPointsTrackingWithNormal(*myContainer, newPoint, dir, myReference.first, myReference.second);
                         BezierLinkAlgorithm<Point> bezierAlgo(newPoint, myReference.first, controlPoints.first, controlPoints.second);
                         Path path = bezierAlgo.linkPoints();
-                        linkThin.push_back(path);
+                        if (isInVolume(path))
+                                linkThin.push_back(path);
                 }
                 else {
                         resultingThin.insert(first.begin(), first.end());
@@ -210,6 +208,17 @@ ensureThinness(const std::vector<Path>& paths) {
                 resultingThin.insert(linkThin[0].begin(), linkThin[0].end());
         }
         return resultingThin;
+}
+
+template <typename Container>
+bool
+MultiPathThinner<Container>::
+isInVolume(const Path& path) {
+        bool add = true;
+        for (const Point & p : path) {
+                add &= (myContainer->find(p) != myContainer->end());
+        }
+        return add;
 }
 
 #endif

@@ -6,7 +6,7 @@
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "geometry/MedialAxis.h"
-#include "geometry/VCMOnDigitalSurfaceAdjustableRadius.h"
+#include "vcm/VCMOnDigitalSurfaceAdjustableRadius.h"
 #include "ReverseHatPointFunction.h"
 #include "DGtal/topology/ImplicitDigitalSurface.h"
 #include "DGtal/topology/SurfelAdjacency.h"

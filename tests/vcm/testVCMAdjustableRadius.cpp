@@ -6,7 +6,7 @@
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "geometry/MedialAxis.h"
-#include "geometry/VCMAdjustableRadius.h"
+#include "vcm/VCMAdjustableRadius.h"
 #include "ReverseHatPointFunction.h"
 
 using namespace DGtal;

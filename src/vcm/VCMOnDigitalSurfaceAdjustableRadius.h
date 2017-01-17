@@ -10,7 +10,7 @@
 #include "DGtal/topology/CDigitalSurfaceContainer.h"
 #include "DGtal/topology/DigitalSurface.h"
 #include "DGtal/geometry/volumes/distance/CSeparableMetric.h"
-#include "geometry/VCMAdjustableRadius.h"
+#include "vcm/VCMAdjustableRadius.h"
 #include "geometry/MedialAxis.h"
 #include "DGtal/math/ScalarFunctors.h"
 #include "DGtal/geometry/surfaces/estimation/LocalEstimatorFromSurfelFunctorAdapter.h"

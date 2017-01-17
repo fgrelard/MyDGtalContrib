@@ -6,8 +6,6 @@ SET(DGTAL_CONTRIB_TESTS
   testCurveDecomposition
   testMedialAxis
   testDigitalPlaneProcessor
-  testVCMAdjustableRadius
-  testVCMOnDigitalSurfaceAdjustableRadius
   testMorphomaths
   testSphericalShellIntersection
   testSetProcessor

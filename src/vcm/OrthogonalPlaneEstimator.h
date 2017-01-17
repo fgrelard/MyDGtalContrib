@@ -1,7 +1,7 @@
 #ifndef ORTHOGONAL_PLANE_ESTIMATOR_H
 #define ORTHOGONAL_PLANE_ESTIMATOR_H
 
-#include "geometry/VCMAdjustableRadius.h"
+#include "vcm/VCMAdjustableRadius.h"
 #include "shapes/DigitalPlane.h"
 
 template <typename TContainer, typename KernelFunction>
