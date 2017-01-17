@@ -57,6 +57,8 @@ public:
                           double lowerBound = std::numeric_limits<double>::min(),
                           double upperBound = std::numeric_limits<double>::max());
 
+    bool isPointThin(const Point& point);
+
     std::vector<Point> convertToOrderedCurve();
 
 	std::vector<Point> convertToOrderedCurve(const Point& startingPoint);
@@ -266,6 +268,23 @@ ensureOneCC(const Container& setVolume, double lowerBound, double upperBound) {
     }
     return myOneCCCurve;
 
+}
+
+template <typename Container>
+bool
+CurveProcessor<Container>::
+isPointThin(const Point& point) {
+    Adj26 adj26;
+    Adj6 adj6;
+    DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+    ObjectType obj(dt26_6, myCurve);
+    std::vector<Point> neighbors;
+    std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
+    obj.writeNeighbors(inserter, point);
+    if (neighbors.size() < 2) {
+        return true;
+    }
+    return false;
 }
 
 

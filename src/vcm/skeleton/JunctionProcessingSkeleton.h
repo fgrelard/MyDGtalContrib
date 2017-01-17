@@ -34,9 +34,9 @@ public:
 public:
     Container postProcess();
 
-private:
+public:
     Container shellPointsToJunctionAreas();
-    Container deletePointsInJunctionAreas();
+    void deletePointsInJunctionAreas();
     Container dilate(const Container& toDilate);
     std::vector<Container> groupsOfPointSameJunction();
     Point referencePointWithDifferenceNormal(const Container& points);
@@ -56,24 +56,31 @@ JunctionProcessingSkeleton<Container, Predicate>::
 postProcess() {
     typedef std::pair<Point, RealVector> PointToDirection;
 
+    deletePointsInJunctionAreas();
     Container myNewSkeleton = *mySkeleton;
-    myNewSkeleton = deletePointsInJunctionAreas();
+
     std::vector<Container> groups = groupsOfPointSameJunction();
     for (const Container& pointsToLink : groups) {
         if (pointsToLink.size() == 0) continue;
-        std::vector<PointToDirection> pToNormal;
-        for (const Plane& plane : *myPlanes) {
-            if (pointsToLink.find(plane.getCenter()) != pointsToLink.end())
-                pToNormal.push_back(convertPlaneToPointVector(plane));
-        }
         Point ref = referencePointWithDifferenceNormal(pointsToLink);
         auto iterator = find_if(myPlanes->begin(), myPlanes->end(), [&](const Plane& plane) {
                 return (plane.getCenter() == ref);
             });
         PointToDirection refVector = convertPlaneToPointVector(*iterator);
+        std::vector<PointToDirection> pToNormal;
+        for (const Plane& plane : *myPlanes) {
+            if (plane.getCenter() == ref) continue;
+            if (pointsToLink.find(plane.getCenter()) != pointsToLink.end())
+                pToNormal.push_back(convertPlaneToPointVector(plane));
+        }
         MultiPathThinner<Container> multiPath(*myVolume, pToNormal, refVector);
         Container link = multiPath.linkPointsThin();
-        myNewSkeleton.insert(link.begin(), link.end());
+        bool add = true;
+        // for (const Point& p : link) {
+        //     add &= (myVolume->find(p) != myVolume->end());
+        // }
+        if (add)
+            myNewSkeleton.insert(link.begin(), link.end());
     }
     return myNewSkeleton;
 }
@@ -86,6 +93,7 @@ JunctionProcessingSkeleton(const Container& skeletonPoints,
                            const Container& setVolume,
                            const std::vector<Plane>& planesEndPoints) {
         mySkeleton = new Container(skeletonPoints);
+        mySkeleton->insert(a3ShellPoints.begin(), a3ShellPoints.end());
         my3ShellPoints = new Container(a3ShellPoints);
         myVolume = new Container(setVolume);
         Container firstJunctionArea( shellPointsToJunctionAreas() );
@@ -132,9 +140,9 @@ shellPointsToJunctionAreas() {
         L2Metric l2Metric;
         Container shellAreas(myVolume->domain());
         for (const Point& p : *myVolume) {
-                Point closestPoint = *min_element(mySkeleton->begin(), mySkeleton->end(), [&](const Point& one, const Point& two) {
-                                return l2Metric(one, p) < l2Metric(two, p);
-                        });
+            Point closestPoint = *std::min_element(mySkeleton->begin(), mySkeleton->end(), [&](const Point& one, const Point& two) {
+                    return l2Metric(one, p) < l2Metric(two, p);
+                });
                 if (my3ShellPoints->find(closestPoint) != my3ShellPoints->end())
                         shellAreas.insert(p);
         }
@@ -167,7 +175,7 @@ dilate(const Container& toDilate) {
 }
 
 template <typename Container, typename Predicate>
-Container
+void
 JunctionProcessingSkeleton<Container, Predicate>::
 deletePointsInJunctionAreas() {
     Container skeletonPoints = *mySkeleton;
@@ -176,7 +184,8 @@ deletePointsInJunctionAreas() {
         if (itToErase != skeletonPoints.end())
             skeletonPoints.erase(itToErase);
     }
-    return skeletonPoints;
+    delete mySkeleton;
+    mySkeleton = new Container( skeletonPoints);
 }
 
 
@@ -249,7 +258,7 @@ referencePointWithDifferenceNormal(const Container& points) {
                                        return (plane.getCenter() == p2);
                                    });
             if (itPlane2 == myPlanes->end()) continue;
-            RealVector n2 = itPlane->getPlaneEquation().normal();
+            RealVector n2 = itPlane2->getPlaneEquation().normal();
             if (n.dot(n2) < 0)
                 cpt++;
         }

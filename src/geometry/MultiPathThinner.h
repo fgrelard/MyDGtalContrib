@@ -83,7 +83,12 @@ MultiPathThinner<Container>::multiPaths() {
                 RealVector n = pToT.second;
                 std::pair<Point, Point> controlPoints = PointUtil::twoClosestPointsTrackingWithNormal(*myContainer, p, n, myReference.first, myReference.second);
                 Path path = BezierLinkAlgorithm<Point>(p, myReference.first, controlPoints.first, controlPoints.second).linkPoints();
-                paths.push_back(path);
+                bool add = true;
+                for (const Point & p : path) {
+                        add &= (myContainer->find(p) != myContainer->end());
+                }
+                if (add)
+                        paths.push_back(path);
         }
         return paths;
 }

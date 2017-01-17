@@ -21,6 +21,7 @@ public:
 
         DigitalSet pointSet() const { return myDigitalSet; }
         Plane digitalPlane() const { return myDigitalPlane; }
+        bool isDefined() { return myDigitalSet.size() != 0; }
 private:
         Plane myDigitalPlane;
         DigitalSet myDigitalSet;

@@ -20,7 +20,7 @@ public:
                                            [&](const Plane& plane) {
                                                    return (plane.getCenter() == reference);
                                            });
-                if (iterator == myPlanes.end()) return false;
+                if (iterator == myPlanes.end()) return true;
 
                 Plane plane = *iterator;
                 return plane.isPointAbove(pointToTest);

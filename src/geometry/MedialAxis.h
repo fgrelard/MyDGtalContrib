@@ -2,15 +2,15 @@
 #define MEDIAL_AXIS_H
 
 #include <vector>
-#include "DGtal/base/Common.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "DGtal/kernel/sets/CDigitalSet.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/topology/MetricAdjacency.h"
 #include "DGtal/topology/Object.h"
 #include "DGtal/topology/DigitalTopology.h"
-#include "geometry/DistanceToPointFunctor.h"
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
+#include "geometry/DistanceToPointFunctor.h"
+
 
 template <typename Container>
 class MedialAxis {

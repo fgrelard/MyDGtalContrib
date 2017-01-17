@@ -100,7 +100,7 @@ template <typename Container>
 Container
 SphericalShellIntersection<Container>::
 shell() {
-        typedef DGtal::DistanceBreadthFirstVisitor<ObjectType, DistanceFunctor, std::set<Point> > Visitor;
+        typedef DGtal::BreadthFirstVisitor<ObjectType, std::set<Point> > Visitor;
         typedef typename Visitor::Node Node;
 
         Adj26 adj26;
@@ -109,7 +109,7 @@ shell() {
         ObjectType obj(dt26_6, *myContainer);
         L2Metric l2Metric;
         DistanceFunctor functor(l2Metric, myCenter);
-        Visitor visitor(obj, functor, myCenter);
+        Visitor visitor(obj, myCenter);
         Container shell(myContainer->domain());
         int radius = (int) myRadiusInner;
         while (!visitor.finished()) {

@@ -50,12 +50,14 @@ Point
 PointUtil::
 trackPoint(const Container& container, const Point& start, const RealVector& vector) {
 	Point point(start);
+	Point previous(start);
 	int scalar = 1;
 	while (container.find(point) != container.end()) {
+		previous = point;
 		point = start + vector*scalar;
 		scalar++;
 	}
-	return point;
+	return previous;
 }
 
 template <typename Container, typename Point, typename RealVector>
@@ -93,10 +95,8 @@ twoClosestPointsTrackingWithNormal(const Container& container, const Point& refe
 	double distanceCR = std::numeric_limits<double>::max();
 	Point closest1, closest2;
 	DGtal::ExactPredicateLpSeparableMetric<typename Container::Space,2> l2Metric;
-
 	SetProcessor<Container> setProcessor(traversedReference);
 	for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
-
 		Point nearest = setProcessor.closestPointAt(*it);
 		double currentDistance = l2Metric(nearest, *it);
 		if (currentDistance < distanceCR && currentDistance > sqrt(3)) {

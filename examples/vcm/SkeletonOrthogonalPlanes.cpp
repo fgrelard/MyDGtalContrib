@@ -1,5 +1,4 @@
 #include <iostream>
-#include <QtGui/qapplication.h>
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/io/viewers/Viewer3D.h"
@@ -11,13 +10,13 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
-
-#include "geometry/MedialAxis.h"
 #include "vcm/skeleton/SkeletonizationOrthogonalPlanes.h"
+#include "vcm/skeleton/NoPostProcessingSkeleton.h"
+#include "geometry/MedialAxis.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "geometry/AbovePlanePredicate.h"
 #include "vcm/skeleton/JunctionProcessingSkeleton.h"
-#include "vcm/skeleton/NoPostProcessingSkeleton.h"
+
 
 using namespace std;
 using namespace DGtal;
@@ -30,13 +29,15 @@ int main( int  argc, char**  argv )
         typedef functors::BallConstantPointFunction<Z3i::Point,double> KernelFunction;
         typedef OrthogonalPlaneEstimator<Z3i::DigitalSet, KernelFunction> OrthoPlaneEstimator;
         typedef AbovePlanePredicate<Z3i::Space> Predicate;
-        //typedef JunctionProcessingSkeleton<Z3i::DigitalSet, Predicate> PostProcessing;
-        typedef NoPostProcessingSkeleton<Z3i::DigitalSet> PostProcessing;
+        typedef JunctionProcessingSkeleton<Z3i::DigitalSet, Predicate> PostProcessing;
+//typedef NoPostProcessingSkeleton<Z3i::DigitalSet> PostProcessing;
 
         po::options_description general_opt("Allowed options are: ");
         general_opt.add_options()
                 ("help,h", "display this message")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+                ("output,o", po::value<std::string>(), "output skeleton filename")
+                 ("radiusInside,R", po::value<double>()->default_value(10), "minimum threshold for binarization")
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;
@@ -64,9 +65,10 @@ int main( int  argc, char**  argv )
         }
 
         string inputFilename = vm["input"].as<std::string>();
+        string outFilename  = vm["output"].as<std::string>();
         int thresholdMin = vm["thresholdMin"].as<int>();
         int thresholdMax = vm["thresholdMax"].as<int>();
-
+        double R = vm["radiusInside"].as<double>();
 
         Image volume = VolReader<Image>::importVol(inputFilename);
         Z3i::Domain domainVolume = volume.domain();
@@ -79,7 +81,7 @@ int main( int  argc, char**  argv )
         viewer.show();
 
 
-        SkeletonizationOrthogonalPlanes<Z3i::DigitalSet, PostProcessing> skeletonization(setVolume, true);
+        SkeletonizationOrthogonalPlanes<Z3i::DigitalSet, PostProcessing> skeletonization(setVolume, R, true);
         Z3i::DigitalSet skeleton = skeletonization.skeletonize();
 
         viewer << CustomColors3D(Color::Red, Color::Red) << skeleton;
@@ -88,8 +90,14 @@ int main( int  argc, char**  argv )
                 if (volume(*it) >= thresholdMin)
                         viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;
         }
-
         viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
+
+
+        Image outImage(volume.domain());
+
+        DGtal::imageFromRangeAndValue(skeleton.begin(), skeleton.end(), outImage, 10);
+        VolWriter<Image>::exportVol(outFilename, outImage);
+
         viewer << Viewer3D<>::updateDisplay;
         application.exec();
         return 0;

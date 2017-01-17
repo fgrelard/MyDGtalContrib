@@ -43,6 +43,7 @@ public:
         Point closestPointAt(const RealPoint& point);
         bool sameContainer(const Container& otherContainer);
         std::vector<Container> toConnectedComponents();
+        Container intersectionNeighborhoodAt(const Point& p, const Container& other);
 
 
 private:
@@ -84,6 +85,7 @@ SetProcessor<Container>::lengthMajorAxis() {
 template <typename Container>
 typename SetProcessor<Container>::Point
 SetProcessor<Container>::closestPointAt(const RealPoint& point) {
+        if (myContainer->size() == 0) return point;
         return (*std::min_element(myContainer->begin(), myContainer->end(), [&](const Point& p1, const Point& p2) {
                         return (Distance::euclideanDistance((RealPoint)p1, point) < Distance::euclideanDistance((RealPoint)p2, point));
                         }));
@@ -119,6 +121,28 @@ std::vector<Container> SetProcessor<Container>::toConnectedComponents() {
         for (const auto& o : cc)
                 ccSet.push_back(o.pointSet());
         return ccSet;
+}
+
+template <typename Container>
+Container
+SetProcessor<Container>::
+intersectionNeighborhoodAt(const Point& point, const Container& other) {
+        Container intersection(myContainer->domain());
+
+        Adj26 adj26;
+        Adj6 adj6;
+        DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+        ObjectType  obj(dt26_6, *myContainer);
+
+        std::vector<Point> neighbors;
+        std::back_insert_iterator< std::vector<Point> > inserter(neighbors);
+        obj.writeNeighbors(inserter, point);
+        for (const Point& n : neighbors) {
+                if (other.find(n) != other.end())
+                        intersection.insert(n);
+        }
+        return intersection;
+
 }
 
 #endif

@@ -2,9 +2,9 @@
 #define SKELETONIZATION_ORTHOGONAL_PLANES_H
 
 
-#include "geometry/DistanceToPointFunctor.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
+#include "geometry/DistanceToPointFunctor.h"
 #include "geometry/MedialAxis.h"
 #include "shapes/DigitalPlaneSet.h"
 #include "geometry/SetProcessor.h"
@@ -34,6 +34,7 @@ public:
 public:
         SkeletonizationOrthogonalPlanes() = delete;
         SkeletonizationOrthogonalPlanes(const Container& setVolume,
+                                        double R = 10,
                                         bool detectJunctions = true);
         SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other);
         ~SkeletonizationOrthogonalPlanes();
@@ -55,13 +56,12 @@ private:
         Container restrictPlaneSet(const PlaneSet& planeSet, double radius);
         Plane orientPlane(const Plane& undirectedPlane,
                           const Container& endPoints);
-
-        bool isPointThin(const Point& p);
         bool is3ShellPoint(const PlaneSet& p, double radius);
 
 private:
         Container* myVolume;
         PlaneEstimator* myPlaneEstimator;
+        double myBigR;
         bool myJunctionDetection;
 
 //Internals
@@ -77,15 +77,16 @@ private:
 template <typename Container, typename PostProcessing>
 SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
 SkeletonizationOrthogonalPlanes(const Container& setVolume,
+                                double R,
                                 bool detectJunctions) {
         L2Metric l2Metric;
         myVolume = new Container(setVolume);
-
         double r = 5;
-        double R = 30;
+        myBigR = R;
         KernelFunction chi(1.0, r);
-        myPlaneEstimator = new PlaneEstimator(*myVolume, chi, R, r);
+        myPlaneEstimator = new PlaneEstimator(*myVolume, chi, myBigR, r);
         myJunctionDetection = detectJunctions;
+
         mySkeleton = new Container(myVolume->domain());
         myMarkedVertices = new Container(setVolume.domain());
         myDT = new DTL2(myVolume->domain(), *myVolume, l2Metric);
@@ -98,7 +99,9 @@ SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
 SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other) {
         myVolume = new Container(*other.myVolume);
         myPlaneEstimator = new PlaneEstimator(*other.myPlaneEstimator);
+        myBigR = other.myBigR;
         myJunctionDetection = other.myJunctionDetection;
+
         mySkeleton = new Container(*other.mySkeleton);
         myMarkedVertices = new Container(*other.myMarkedVertices);
         myDT = new DTL2(*other.myDT);
@@ -144,47 +147,47 @@ skeletonize() {
         size_t nbPoints = myVolume->size();
         SetProcessor<Container> procMA(*myMedialAxis);
         Container a3ShellPoints(myVolume->domain());
-        Point p = *(max_element(myDT->domain().begin(), myDT->domain().end(), [&](const Point& one,
+        Point p = *(max_element(myVolume->begin(), myVolume->end(), [&](const Point& one,
                                                                 const Point& two) {
                                         return ((*myDT)(one) < (*myDT)(two));
                                 }));
-        double distanceMax = (*myDT)(p) * 2.0;
-        DGtal::trace.info() << p << std::endl;
+        double distanceMax = (*myDT)(p) + 2.0;
         while (myMarkedVertices->size() < nbPoints) {
                 DGtal::trace.progressBar( myMarkedVertices->size(),
                                           nbPoints);
                 Point closestPoint = procMA.closestPointAt(p);
                 double radius = (*myDT)(closestPoint) + 2.0;
                 myPlaneEstimator->setRadius(radius);
-
                 Plane plane = myPlaneEstimator->convergentPlaneAt(p, *myVolume, distanceMax);
+                radius = myPlaneEstimator->getRadius();
                 Container planePoints = plane.intersectionWithSetOneCC(*myVolume);
                 PlaneSet planeSet(plane, planePoints);
-                PlaneSet planeSetG = planeSet;
-
+                PlaneSet planeSetG = previous;
                 markPoints(p);
                 markPoints(restrictPlaneSet(planeSet, radius));
 
                 RealPoint centerOfMass = Statistics<Container>(planePoints).extractCenterOfMass();
-                if (centerOfMass != RealPoint::zero &&
-                    l2Metric(centerOfMass, p) <= sqrt(3)) {
-                        if (l2Metric(plane.getCenter(), previous.digitalPlane().getCenter()) <= 2 * sqrt(3)) {
-                                //markPointsBetweenPlanes(planeSetG, previous, radius);
-                        }
+
+
+                if (centerOfMass != RealPoint::zero && l2Metric(centerOfMass, p) <= sqrt(3)) {
                         Point g = SetProcessor<Container>(planePoints).closestPointAt(centerOfMass);
                         RealVector normal = plane.getPlaneEquation().normal();
                         int connexity = plane.getConnexity();
                         Plane planeG(g, normal, connexity);
                         planeSetG = PlaneSet(planeG, planePoints);
 
-                        myPlanes.push_back(planeG);
-
+                        if (previous.isDefined() && l2Metric(plane.getCenter(), previous.digitalPlane().getCenter()) <= 2 * sqrt(3)) {
+                                 markPointsBetweenPlanes(planeSetG, previous, radius);
+                        }
                         if (myJunctionDetection && is3ShellPoint(planeSetG, radius))
                                 a3ShellPoints.insert(g);
 
-                        if (isPointThin(g))
+                        else if (CurveProcessor<Container>(*mySkeleton).isPointThin(g)) {
                                 mySkeleton->insert(g);
-                        previous = planeSetG;
+                                myPlanes.push_back(planeG);
+                                previous = planeSetG;
+                        }
+
                 }
                 p = trackNextPoint(planeSetG);
         }
@@ -197,10 +200,13 @@ skeletonize() {
         delete mySkeleton;
         mySkeleton = new Container (filteredSkeleton);
 
-        std::vector<Plane> planesEnd = orientEndPoints();
-        myPlanes = planesEnd;
+
+
+        myPlanes = orientEndPoints();
         PostProcessing algo(*mySkeleton, a3ShellPoints, *myVolume, myPlanes);
         Container postProcessedSkeleton = algo.postProcess();
+
+        //postProcessedSkeleton = CurveProcessor<Container>(postProcessedSkeleton).ensureOneCC(*myVolume);
 
         delete mySkeleton;
         mySkeleton = new Container(postProcessedSkeleton);
@@ -211,18 +217,19 @@ template <typename Container, typename PostProcessing>
 typename SkeletonizationOrthogonalPlanes<Container, PostProcessing>::Point
 SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
 trackNextPoint(const PlaneSet& planeSet) {
-        Point center =  planeSet.digitalPlane().getCenter();
-        RealVector direction = planeSet.digitalPlane().getPlaneEquation().normal();
-        Container set = planeSet.pointSet();
+        const Point center =  planeSet.digitalPlane().getCenter();
+        const RealVector direction = planeSet.digitalPlane().getPlaneEquation().normal();
+        const Container set = planeSet.pointSet();
 
         Point current = center;
-        double scalar = 1;
+        double scalar = 1.0;
         while (current == center ||
                set.find(current) != set.end()) {
                 current = center + direction * scalar;
                 scalar += 0.5;
         }
-        if (myMarkedVertices->find(current) != myMarkedVertices->end()) {
+        if (myVolume->find(current) == myVolume->end() ||
+            myMarkedVertices->find(current) != myMarkedVertices->end()) {
                 scalar = 1.0;
                 current = center;
                 while (current == center ||
@@ -230,15 +237,18 @@ trackNextPoint(const PlaneSet& planeSet) {
                         current = center - direction * scalar;
                         scalar += 0.5;
                 }
-                if (myMarkedVertices->find(current) != myMarkedVertices->end()) {
-                        current = *(max_element(
-                                            myVolume->begin(), myVolume->end(),
-                                            [&](const Point& one,
-                                                const Point& two) {
-                                                    return ((*myDT)(one) < (*myDT)(two) &&
-                                                            myMarkedVertices->find(one) == myMarkedVertices->end() &&
-                                                            myMarkedVertices->find(two) == myMarkedVertices->end());
-                                            }));
+                if (myVolume->find(current) == myVolume->end() ||
+                    myMarkedVertices->find(current) != myMarkedVertices->end()) {
+                        double distance = 0;
+                        for (const Point& v : *myVolume) {
+                                if (myMarkedVertices->find(v) == myMarkedVertices->end()) {
+                                        double currentD = (*myDT)(v);
+                                        if (currentD > distance) {
+                                                distance = currentD;
+                                                current = v;
+                                        }
+                                }
+                        }
                 }
         }
         return current;
@@ -278,6 +288,8 @@ markPointsBetweenPlanes(const PlaneSet& current,
                 dirCurrent = -dirCurrent;
         }
 
+        currentPlane = Plane(pCurrent, dirCurrent, currentPlane.getConnexity());
+
         for (const Point& p : *myVolume) {
                 if (l2Metric(p, pCurrent) > distanceMax) continue;
                 if (currentPlane.isPointAbove(p) &&
@@ -313,13 +325,18 @@ orientEndPoints() {
         for (const Container& cc : components) {
                 if (cc.size() < 2) continue;
                 CurveProcessor<Container> curveProc(cc);
+                Container branching = curveProc.branchingPoints();
                 Container localEnd = curveProc.endPoints();
+                SetProcessor<Container> setProc(cc);
                 for (const Point& p : localEnd) {
+                        // if (setProc.intersectionNeighborhoodAt(p, branching).size() > 0) continue;
                         Plane plane = *(std::min_element(
                                                   myPlanes.begin(),
                                                   myPlanes.end(), [&](const Plane& plane, const Plane& otherPlane) {
                                                           return l2Metric(plane.getCenter(), p) < l2Metric(otherPlane.getCenter(), p);
                                                   }));
+                        RealVector normal = plane.getPlaneEquation().normal();
+                        plane = Plane(p, normal, plane.getConnexity());
                         plane = orientPlane(plane, localEnd);
                         planeEndPoints.push_back(plane);
                 }
@@ -355,27 +372,15 @@ orientPlane(const Plane& undirectedPlane, const Container& endPoints) {
                         }));
         RealVector dir = (center - candidate).getNormalized();
         normal = (normal.dot(dir) < 0) ? -normal : normal;
+
+        for (typename RealVector::Dimension i = 0;
+             i < RealVector::dimension; ++i) {
+                normal[i] = (std::fabs(normal[i] - 0.0) < std::numeric_limits<double>::epsilon()) ? 0.0 : normal[i];
+        }
         Plane plane(center, normal, undirectedPlane.getConnexity());
         return plane;
 }
 
-template <typename Container, typename PostProcessing>
-bool
-SkeletonizationOrthogonalPlanes<Container, PostProcessing>::
-isPointThin(const Point& p) {
-        Adj26 adj26;
-        Adj6 adj6;
-        DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
-        ObjectType obj(dt26_6, *mySkeleton);
-        std::vector<Point> neighbors;
-        std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
-        obj.writeNeighbors(inserter, p);
-        if (neighbors.size() < 2) {
-                return true;
-        }
-        return false;
-
-}
 
 template <typename Container, typename PostProcessing>
 bool

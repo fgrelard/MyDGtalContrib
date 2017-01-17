@@ -434,7 +434,7 @@ bool VCMUtil::trackNextPoint(WeightedPointCount* &currentPoint, const Container&
 	auto newPoint = setVolumeWeighted.begin();
 	if (pointInWeightedSet != setVolumeWeighted.end()) {
 		while ( current == centerOfMass &&
-			   (newPoint != setVolumeWeighted.end()  && ((*newPoint)->myProcessed)) &&
+				(newPoint != setVolumeWeighted.end()  && ((*newPoint)->myProcessed)) &&
 			    connectedComponent3D.find(current) != connectedComponent3D.end()
 			) {
 			current = centerOfMass + normal * scalar;

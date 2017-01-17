@@ -283,7 +283,6 @@ double Statistics<Container>::unimodalThresholding() {
 	typedef DGtal::SpaceND<2, DGtal::int32_t> Space;
 	typedef typename Space::RealPoint RealPoint;
 	typedef typename Space::RealVector RealVector;
-	typedef typename Space::Point Point;
 
 	DGtal::Statistic<double> stats;
 	stats.addValues( myData.begin(), myData.end() );

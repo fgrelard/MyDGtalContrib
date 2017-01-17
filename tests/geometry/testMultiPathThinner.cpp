@@ -53,12 +53,43 @@ void testMultiThin(Viewer3D<>& viewer) {
 
 }
 
+void testMultiThin2(Viewer3D<>& viewer) {
+        using namespace Z3i;
+        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+
+        std::string home = getenv("HOME");
+        std::string path = home + "/test_img/junction_simple4PI040.vol";
+        Image image = GenericReader<Image>::import(path);
+        Z3i::DigitalSet setVolume(image.domain());
+        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
+        Point ref= Point(0, 1, 25);
+        Point toLink1 = Point(0, -5, 20);
+        Point toLink2 = Point(0, -6, 29);
+        pair<Point, RealVector> pairToLink = std::make_pair(ref, RealVector(0, -0.980754, -0.195248));
+        pair<Point, RealVector> pairReference = std::make_pair(toLink1, RealVector(-0, 0.820306, 0.571926));
+        pair<Point, RealVector> pairToLink2 = std::make_pair(toLink2, RealVector(-0, 0.825085, -0.565009));
+
+        std::vector<std::pair<Point, RealVector> > vectors;
+        vectors.push_back(pairToLink);
+        vectors.push_back(pairToLink2);
+
+        MultiPathThinner<Z3i::DigitalSet> multi(setVolume, vectors, pairReference);
+        Z3i::DigitalSet link = multi.linkPointsThin();
+        trace.info() << link.size() << endl;
+        viewer << CustomColors3D(Color::Red, Color::Red) << ref << toLink1 << toLink2;
+
+        viewer << CustomColors3D(Color::Yellow, Color::Yellow) << link;
+        viewer << Viewer3D<>::updateDisplay;
+
+}
+
+
 
 int main(int argc, char** argv) {
         QApplication app(argc, argv);
         Viewer3D<> viewer;
         viewer.show();
-        testMultiThin(viewer);
+        testMultiThin2(viewer);
         app.exec();
         return 0;
 }
