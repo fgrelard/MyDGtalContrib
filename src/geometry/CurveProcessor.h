@@ -33,7 +33,8 @@ public:
 	typedef DGtal::MetricAdjacency<Space, 3> Adj26;
 	typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
 	typedef DGtal::Object<DT26_6, Container> ObjectType;
-	typedef typename Container::Space::RealVector RealVector;
+    typedef typename Container::Space::RealVector RealVector;
+    typedef typename ConnectedComponentMerger<Space>::Domain Domain;
 
 public:
 	CurveProcessor(const Container& container) : myCurve(container) {}
@@ -53,9 +54,9 @@ public:
 	Container subCurve(const DTL2& dt,
                        const Container& constraintInSet);
 
-    Container ensureOneCC(const Container& setVolume,
-                          double lowerBound = std::numeric_limits<double>::min(),
-                          double upperBound = std::numeric_limits<double>::max());
+    Container fillHoles(double lowerBound = std::numeric_limits<double>::min(),
+                        double upperBound = std::numeric_limits<double>::max(),
+                        const Container& setVolume = Container(Domain(Point::zero, Point::zero)));
 
     bool isPointThin(const Point& point);
 
@@ -234,7 +235,7 @@ subCurve(const DTL2& dt, const Container& constraintInSet) {
 template <typename Container>
 Container
 CurveProcessor<Container>::
-ensureOneCC(const Container& setVolume, double lowerBound, double upperBound) {
+fillHoles(double lowerBound, double upperBound, const Container& setVolume) {
     Adj26 adj26;
     Adj6 adj6;
     DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
@@ -258,8 +259,13 @@ ensureOneCC(const Container& setVolume, double lowerBound, double upperBound) {
         if (!vPair.isUndefined()) {
             Point first = vPair.first();
             Point second = vPair.second();
-            AStarAlgorithm<Point, Container> aStar(first, second, setVolume);
-            std::vector<Point> link = aStar.linkPoints();
+            LinkPointAlgorithm<Point>* linkAlgo;
+            if (setVolume.size() > 0)
+                linkAlgo = new AStarAlgorithm<Point, Container>(first, second, setVolume);
+            else
+                linkAlgo = new BresenhamAlgorithm<Point>(first, second);
+            std::vector<Point> link = linkAlgo->linkPoints();
+            delete linkAlgo;
             vPair.mergeObjects(skeletonCC, link);
             myOneCCCurve.insert(link.begin(), link.end());
         }

@@ -51,6 +51,7 @@ namespace Distance {
 
 		L2Metric l2Metric;
 		double distanceMax = std::numeric_limits<double>::max();
+		if (first.size() == 0 || second.size() == 0) return distanceMax;
 		for (auto it = first.begin(), ite = first.end(); it != ite; ++it) {
 		    Point firstP = *it;
 			Point closestPointInTheoretical =  *min_element(second.begin(), second.end(), [&](const Point& one, const Point& two) {

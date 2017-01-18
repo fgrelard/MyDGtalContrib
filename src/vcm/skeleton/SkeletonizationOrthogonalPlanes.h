@@ -162,6 +162,8 @@ skeletonize() {
                                         return ((*myDT)(one) < (*myDT)(two));
                                 }));
         double distanceMax = (*myDT)(p) + 2.0;
+
+        DGtal::trace.beginBlock("Computing skeleton");
         while (myMarkedVertices->size() < nbPoints) {
                 DGtal::trace.progressBar( myMarkedVertices->size(),
                                           nbPoints);
@@ -201,23 +203,31 @@ skeletonize() {
                 }
                 p = trackNextPoint(planeSetG);
         }
-        Container fillHoles = CurveProcessor<Container>(*mySkeleton).ensureOneCC(*myVolume, sqrt(3), 2 * sqrt(3));
+        DGtal::trace.endBlock();
+
+        DGtal::trace.beginBlock("PostProcessing");
+        Container fillHoles = CurveProcessor<Container>(*mySkeleton).fillHoles(sqrt(3), 2 * sqrt(3));
+
         delete mySkeleton;
         mySkeleton = new Container( fillHoles );
-
 
         Container filteredSkeleton = filterIsolatedPoints();
         delete mySkeleton;
         mySkeleton = new Container (filteredSkeleton);
 
         myPlanes = orientEndPoints();
+
         PostProcessing algo(*mySkeleton, a3ShellPoints, *myVolume, myPlanes);
+
         Container postProcessedSkeleton = algo.postProcess();
 
-        //postProcessedSkeleton = CurveProcessor<Container>(postProcessedSkeleton).ensureOneCC(*myVolume);
+        double min = std::numeric_limits<double>::min();
+        double max = std::numeric_limits<double>::max();
+        postProcessedSkeleton = CurveProcessor<Container>(postProcessedSkeleton).fillHoles(min, max, *myVolume);
 
         delete mySkeleton;
         mySkeleton = new Container(postProcessedSkeleton);
+        DGtal::trace.endBlock();
         return *mySkeleton;
 }
 

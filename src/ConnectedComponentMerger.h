@@ -31,7 +31,17 @@ public:
                                  const ObjectType& surroundingSetGraph,
                                  double lowerBound = std::numeric_limits<double>::min(),
                                  double upperBound = std::numeric_limits<double>::max()) {
-                findObjectToMerge(cc, surroundingSetGraph, lowerBound, upperBound);
+                if (surroundingSetGraph.size() > 0)
+                        findObjectToMerge(cc, surroundingSetGraph, lowerBound, upperBound);
+                else
+                        findObjectToMerge(cc, lowerBound, upperBound);
+
+        }
+
+        ConnectedComponentMerger(const std::vector<ObjectType>& cc,
+                                 double lowerBound = std::numeric_limits<double>::min(),
+                                 double upperBound = std::numeric_limits<double>::max()) {
+                findObjectToMerge(cc, lowerBound, upperBound);
         }
 
 public:
@@ -42,6 +52,10 @@ public:
         bool isUndefined() const { return (myFirstIndex == -1 && mySecondIndex == -1); }
 
 public:
+        void findObjectToMerge(const std::vector<ObjectType>& cc,
+                               double lowerBound,
+                               double upperBound);
+
         void findObjectToMerge(const std::vector<ObjectType>& cc,
                                const ObjectType& surroundingSetGraph,
                                double lowerBound,
@@ -60,6 +74,38 @@ private:
 template <typename Space>
 void
 ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>& objects,
+                                                   double lowerBound,
+                                                   double upperBound) {
+        typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
+        L2Metric l2Metric;
+        double distance = std::numeric_limits<double>::max();
+        for (size_t i = 0; i < objects.size(); i++) {
+                Container currentCC = objects[i].pointSet();
+                CurveProcessor<Container> curveProc(currentCC);
+                Container endPointCurrent = curveProc.endPoints();
+                for (size_t j = i+1; j < objects.size(); j++) {
+                        Container otherCC = objects[j].pointSet();
+                        for (const Scalar& e : endPointCurrent) {
+                                Scalar closest = SetProcessor<Container>(otherCC).closestPointAt(e);
+                                double currentDistance = l2Metric(closest, e);
+                                if (currentDistance > lowerBound &&
+                                    currentDistance <= upperBound &&
+                                    currentDistance < distance) {
+                                        myFirstPoint = e;
+                                        mySecondPoint = closest;
+                                        distance = currentDistance;
+                                        myFirstIndex = i;
+                                        mySecondIndex = j;
+                                }
+                        }
+
+                }
+        }
+}
+
+template <typename Space>
+void
+ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>& objects,
                                                    const ObjectType& graph, double lowerBound, double upperBound) {
         typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
 
@@ -71,12 +117,12 @@ ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>
         Adj26 adj26;
         Adj6 adj6;
         DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
-
         double distance = std::numeric_limits<double>::max();
         for (size_t i = 0; i < objects.size(); i++) {
                 Container currentCC = objects[i].pointSet();
                 CurveProcessor<Container> curveProc(currentCC);
                 Container endPointCurrent = curveProc.endPoints();
+
                 for (const Scalar&  e : endPointCurrent) {
                         L2Metric l2Metric;
                         DistanceFunctor functor(l2Metric, e);

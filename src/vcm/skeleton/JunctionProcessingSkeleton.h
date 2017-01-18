@@ -75,12 +75,7 @@ postProcess() {
         }
         MultiPathThinner<Container> multiPath(*myVolume, pToNormal, refVector);
         Container link = multiPath.linkPointsThin();
-        bool add = true;
-        // for (const Point& p : link) {
-        //     add &= (myVolume->find(p) != myVolume->end());
-        // }
-        if (add)
-            myNewSkeleton.insert(link.begin(), link.end());
+        myNewSkeleton.insert(link.begin(), link.end());
     }
     return myNewSkeleton;
 }

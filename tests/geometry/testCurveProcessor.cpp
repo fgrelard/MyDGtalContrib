@@ -88,7 +88,9 @@ void testCurveEnsureOneCC(Viewer3D<>& viewer) {
         Z3i::DigitalSet setCurve(curve.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setCurve, curve, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
-        Z3i::DigitalSet curveCC = curveProcessor.ensureOneCC(setVolume);
+        double min = std::numeric_limits<double>::min();
+        double max = std::numeric_limits<double>::max();
+        Z3i::DigitalSet curveCC = curveProcessor.fillHoles(min, max, setVolume);
         Z3i::Object26_6 obj(Z3i::dt26_6, curveCC);
         vector<Z3i::Object26_6> cc;
         std::back_insert_iterator< vector<Z3i::Object26_6> > inserter(cc);
@@ -115,7 +117,7 @@ void testCurveEnsureOneCCDistance(Viewer3D<>& viewer) {
         setCurve.insert(Z3i::Point(2,5,17));
 
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
-        Z3i::DigitalSet curveCC = curveProcessor.ensureOneCC(setVolume, sqrt(3), 2 * sqrt(3));
+        Z3i::DigitalSet curveCC = curveProcessor.fillHoles( sqrt(3), 2 * sqrt(3));
         Z3i::Object26_6 obj(Z3i::dt26_6, curveCC);
         vector<Z3i::Object26_6> cc;
         std::back_insert_iterator< vector<Z3i::Object26_6> > inserter(cc);
