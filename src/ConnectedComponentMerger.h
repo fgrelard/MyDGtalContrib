@@ -4,6 +4,10 @@
 template <typename Container>
 class CurveProcessor;
 
+template <typename Container>
+class SetProcessor;
+
+
 #include <vector>
 #include "DGtal/kernel/sets/CDigitalSet.h"
 #include "DGtal/topology/MetricAdjacency.h"
@@ -12,6 +16,7 @@ class CurveProcessor;
 #include "DGtal/topology/DigitalTopology.h"
 #include "DGtal/topology/Object.h"
 #include "geometry/CurveProcessor.h"
+#include "geometry/SetProcessor.h"
 
 template <typename Space>
 class ConnectedComponentMerger {

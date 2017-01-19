@@ -45,10 +45,7 @@ public:
 
 	Container endPoints();
 
-	Container branchingPoints();
-
-	Container subCurve(const Point& extremity, double radius);
-	Container subCurve(const Container& constraintNotInSet, double radius);
+    Container branchingPoints();
 
 	template <typename DTL2>
 	Container subCurve(const DTL2& dt,
@@ -191,29 +188,7 @@ Container CurveProcessor<Container>::branchingPoints() {
     return branchingPoints;
 }
 
-template <typename Container>
-Container
-CurveProcessor<Container>::
-subCurve(const Point& extremity, double radius) {
-	Ball<Point> ball(extremity, radius);
-	Container subCurve = ball.intersection(myCurve);
-	if (subCurve.size() < 2)
-		return myCurve;
-	return subCurve;
-}
 
-template <typename Container>
-Container
-CurveProcessor<Container>::
-subCurve(const Container& constraintNotInSet, double radius) {
-	Container ep = endPoints();
-	Point e;
-	for (const Point& p : ep) {
-		if (constraintNotInSet.find(p) == constraintNotInSet.end())
-			e = p;
-	}
-	return subCurve(e, radius);
-}
 
 template <typename Container>
 template <typename DTL2>

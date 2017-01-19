@@ -46,6 +46,9 @@ public:
         Point getCenter() const { return myPoint; }
         int getConnexity() const { return myConnexity; }
 
+public:
+        inline bool operator==(const DigitalPlane& other) const;
+
 private:
         Point myPoint;
         PlaneEquation myPlaneEquation;
@@ -156,6 +159,15 @@ bool DigitalPlane<TSpace>::isPointAbove(const Point& aPoint) const {
                         return true;
                 return false;
         }
+}
+
+template <typename TSpace>
+bool
+DigitalPlane<TSpace>::
+operator==(const DigitalPlane& other) const {
+        return (other.myPoint == myPoint &&
+                other.myPlaneEquation.normal() == myPlaneEquation.normal() &&
+                other.myConnexity == myConnexity);
 }
 
 #endif

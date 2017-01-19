@@ -1,12 +1,14 @@
 #ifndef POINT_UTIL_H
 #define POINT_UTIL_H
 
+
 #include <vector>
 #include <set>
 #include <limits>
 #include "DGtal/base/Common.h"
 #include "DGtal/graph/DepthFirstVisitor.h"
-#include "geometry/SetProcessor.h"
+#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
+#include "geometry/path/BresenhamAlgorithm.h"
 
 namespace PointUtil {
 
@@ -95,9 +97,10 @@ twoClosestPointsTrackingWithNormal(const Container& container, const Point& refe
 	double distanceCR = std::numeric_limits<double>::max();
 	Point closest1, closest2;
 	DGtal::ExactPredicateLpSeparableMetric<typename Container::Space,2> l2Metric;
-	SetProcessor<Container> setProcessor(traversedReference);
 	for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
-		Point nearest = setProcessor.closestPointAt(*it);
+		Point nearest = *min_element(traversedReference.begin(), traversedReference.end(), [&](const Point& one, const Point& two) {
+				return l2Metric(one, *it) < l2Metric(two, *it);
+			});
 		double currentDistance = l2Metric(nearest, *it);
 		if (currentDistance < distanceCR && currentDistance > sqrt(3)) {
 			distanceCR = currentDistance;
