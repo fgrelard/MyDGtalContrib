@@ -70,9 +70,11 @@ OrthogonalPlaneEstimator(const Container& container, const KernelFunction& chi, 
 
 template <typename Container, typename KernelFunction>
 OrthogonalPlaneEstimator<Container, KernelFunction>::
-OrthogonalPlaneEstimator(const OrthogonalPlaneEstimator& other) {
-        myVCM = new VCM(*other.myVCM);
-        myChi = other.myChi;
+OrthogonalPlaneEstimator(const OrthogonalPlaneEstimator& other) : myChi(other.myChi) {
+        L2Metric l2Metric;
+        myVCM = new VCM(other.myVCM->R(), other.myVCM->r(), l2Metric, false);
+        Container set = other.myVCM->pointSet();
+        myVCM->init(set.begin(), set.end());
         myConnexity = other.myConnexity;
 }
 
@@ -89,7 +91,9 @@ template <typename Container, typename KernelFunction>
 OrthogonalPlaneEstimator<Container, KernelFunction>&
 OrthogonalPlaneEstimator<Container, KernelFunction>::
 operator=(const OrthogonalPlaneEstimator& other) {
-        myVCM = new VCM( *other.myVCM );
+        L2Metric l2Metric;
+        myVCM = new VCM(other.myVCM->R(), other.myVCM->r(), l2Metric, false);
+        Container set =myVCM->pointSet();
         myChi = other.myChi;
         myConnexity = other.myConnexity;
         return *this;

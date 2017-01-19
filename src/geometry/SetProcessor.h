@@ -44,6 +44,7 @@ public:
         bool sameContainer(const Container& otherContainer);
         std::vector<Container> toConnectedComponents();
         Container intersectionNeighborhoodAt(const Point& p, const Container& other);
+        Container intersection(const Container& other);
 
 
 private:
@@ -95,16 +96,7 @@ template <typename Container>
 bool
 SetProcessor<Container>::sameContainer(const Container & container) {
         if (myContainer->size() != container.size()) return false;
-        int cpt = 0;
-        for (auto it = myContainer->begin(), ite = myContainer->end(); it != ite; ++it) {
-                for (auto itS = container.begin(), itSe = container.end(); itS != itSe; ++itS) {
-                        if (*itS == *it) {
-                                cpt++;
-                                break;
-                        }
-                }
-        }
-        return (cpt == myContainer->size());
+        return (intersection(container).size() == myContainer->size());
 }
 
 template <typename Container>
@@ -143,6 +135,19 @@ intersectionNeighborhoodAt(const Point& point, const Container& other) {
         }
         return intersection;
 
+}
+
+template <typename Container>
+Container
+SetProcessor<Container>::
+intersection(const Container& other) {
+        Container intersection(myContainer->domain());
+        for (const Point& p : *myContainer) {
+                if (other.find(p) != other.end()) {
+                        intersection.insert(p);
+                }
+        }
+        return intersection;
 }
 
 #endif

@@ -46,6 +46,7 @@ public:
     std::vector< WeightedGraphEdge* > hierarchicalDecomposition(const std::vector< GraphEdge >& edges,
                                                                 const Container& endPoints);
 
+    std::vector< GraphEdge > branchDecomposition();
     std::vector< WeightedGraphEdge* > graphDecomposition();
 
 private:
@@ -171,24 +172,36 @@ hierarchicalDecomposition(const std::vector<typename CurveDecomposition<Containe
 
 }
 
+template <typename Container>
+std::vector<typename CurveDecomposition<Container>::GraphEdge >
+CurveDecomposition<Container>::
+branchDecomposition() {
+    CurveProcessor<Container> curveProcessor(myCurve);
+    Container endPoints = curveProcessor.endPoints();
+    Point point = (*endPoints.begin());
+    std::vector<Point> curveOrdered = curveTraversalForGraphDecomposition(point);
+
+
+    std::vector<GraphEdge> edgeGraph = constructGraph(curveOrdered);
+    return edgeGraph;
+
+}
+
 
 
 template <typename Container>
 std::vector<typename CurveDecomposition<Container>::WeightedGraphEdge* >
 CurveDecomposition<Container>::
 graphDecomposition() {
+    std::vector<GraphEdge> edgeGraph = branchDecomposition();
     CurveProcessor<Container> curveProcessor(myCurve);
     Container endPoints = curveProcessor.endPoints();
-    Point point = (*endPoints.begin());
-    std::vector<Point> curveOrdered = curveTraversalForGraphDecomposition(point);
-
     Container endPointsWithoutB(endPoints.domain());
     for (const Point& p : endPoints) {
         if (myBranchingPoints.find(p) == myBranchingPoints.end())
             endPointsWithoutB.insert(p);
     }
 
-    std::vector<GraphEdge> edgeGraph = constructGraph(curveOrdered);
     std::vector<WeightedGraphEdge*> hierarchicalGraph = hierarchicalDecomposition(edgeGraph, endPointsWithoutB);
     return hierarchicalGraph;
 

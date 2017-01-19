@@ -54,9 +54,13 @@ public:
 	Container subCurve(const DTL2& dt,
                        const Container& constraintInSet);
 
+
     Container fillHoles(double lowerBound = std::numeric_limits<double>::min(),
                         double upperBound = std::numeric_limits<double>::max(),
                         const Container& setVolume = Container(Domain(Point::zero, Point::zero)));
+
+
+    Container fillHolesNotInSet(const Container& set, const Container& setVolume);
 
     bool isPointThin(const Point& point);
 
@@ -81,11 +85,14 @@ Container CurveProcessor<Container>::ensureConnectivity() {
 	DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
 	Container cleanSet(myCurve.domain());
 	ObjectType obj(dt26_6, myCurve);
-	Container & S = obj.pointSet();
+    Container & S = obj.pointSet();
+
+    Container endSet = endPoints();
 	cleanSet = S;
 	for (auto it = S.begin(), ite = S.end(); it != ite; ++it) {
 		ObjectType obj(dt26_6, cleanSet);
-		if (obj.isSimple(*it)) {
+        if (obj.isSimple(*it) &&
+            endSet.find(*it) == endSet.end()) {
 		    cleanSet.erase(*it);
 		}
 	}
@@ -275,6 +282,67 @@ fillHoles(double lowerBound, double upperBound, const Container& setVolume) {
     return myOneCCCurve;
 
 }
+
+
+template <typename Container>
+Container
+CurveProcessor<Container>::
+fillHolesNotInSet(const Container& set, const Container& setVolume) {
+    typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> L2Metric;
+
+    Adj26 adj26;
+    Adj6 adj6;
+    DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+    L2Metric l2Metric;
+    ObjectType graph(dt26_6, setVolume);
+
+    ObjectType objectImage(dt26_6, myCurve);
+
+    std::vector<ObjectType> skeletonCC;
+    std::back_insert_iterator< std::vector<ObjectType> > inserterCC( skeletonCC );
+    objectImage.writeComponents(inserterCC);
+    sort(skeletonCC.begin(), skeletonCC.end(), [&](const ObjectType& one,
+                                                   const ObjectType& two) {
+             return one.size() < two.size();
+         });
+    Container myOneCCCurve = myCurve;
+
+    bool shouldStop = false;
+    while (!shouldStop) {
+        ConnectedComponentMerger<Space> vPair(skeletonCC);
+        if (!vPair.isUndefined()) {
+            Point first = vPair.first();
+            Point second = vPair.second();
+
+            RealVector dirFirst = (second - first).getNormalized();
+            RealVector dirSecond = (first - second).getNormalized();
+            double radius = l2Metric(first, second) + 1;
+            Ball<Point> ballFirst(first, radius);
+            Ball<Point> ballSecond(second, radius);
+
+            Container traversedFirst = ballFirst.pointsInHalfBall(dirFirst);
+            Container traversedSecond = ballSecond.pointsInHalfBall(dirSecond);
+            bool add = true;
+            for (const Point& p : set) {
+                if (traversedFirst.find(p) != traversedFirst.end() ||
+                    traversedSecond.find(p) != traversedSecond.end())
+                    add = false;
+            }
+            std::vector<Point> link;
+            if (add) {
+                AStarAlgorithm<Point, Container> linkAlgo(first, second, setVolume);
+                link = linkAlgo.linkPoints();
+            }
+            vPair.mergeObjects(skeletonCC, link);
+            myOneCCCurve.insert(link.begin(), link.end());
+        }
+        else
+            shouldStop = true;
+    }
+    return myOneCCCurve;
+
+}
+
 
 template <typename Container>
 bool

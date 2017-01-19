@@ -63,6 +63,7 @@ private:
                           const Container& endPoints);
         bool isInJunction(const PlaneSet& p, double radius);
 
+
 private:
         Container* myVolume;
         PlaneEstimator* myPlaneEstimator;
@@ -189,7 +190,7 @@ skeletonize() {
                         planeSetG = PlaneSet(planeG, planePoints);
 
                         if (previous.isDefined() && l2Metric(plane.getCenter(), previous.digitalPlane().getCenter()) <= 2 * sqrt(3)) {
-                                 markPointsBetweenPlanes(planeSetG, previous, radius);
+                                markPointsBetweenPlanes(planeSetG, previous, radius);
                         }
                         if (isInJunction(planeSetG, radius))
                                 a3ShellPoints.insert(g);
@@ -207,7 +208,7 @@ skeletonize() {
 
         DGtal::trace.beginBlock("PostProcessing");
         Container fillHoles = CurveProcessor<Container>(*mySkeleton).fillHoles(sqrt(3), 2 * sqrt(3));
-
+        fillHoles = CurveProcessor<Container>(fillHoles).fillHolesNotInSet(a3ShellPoints, *myVolume);
         delete mySkeleton;
         mySkeleton = new Container( fillHoles );
 
@@ -218,7 +219,6 @@ skeletonize() {
         myPlanes = orientEndPoints();
 
         PostProcessing algo(*mySkeleton, a3ShellPoints, *myVolume, myPlanes);
-
         Container postProcessedSkeleton = algo.postProcess();
 
         double min = std::numeric_limits<double>::min();
@@ -343,11 +343,13 @@ orientEndPoints() {
         for (const Container& cc : components) {
                 if (cc.size() < 2) continue;
                 CurveProcessor<Container> curveProc(cc);
-                Container branching = curveProc.branchingPoints();
-                Container localEnd = curveProc.endPoints();
+                Container ccConnectivity = curveProc.ensureConnectivity();
+                CurveProcessor<Container> connProc(ccConnectivity);
+                Container branching = connProc.branchingPoints();
+                Container localEnd = connProc.endPoints();
                 SetProcessor<Container> setProc(cc);
                 for (const Point& p : localEnd) {
-                        // if (setProc.intersectionNeighborhoodAt(p, branching).size() > 0) continue;
+                        if (setProc.intersectionNeighborhoodAt(p, branching).size() > 0) continue;
                         Plane plane = *(std::min_element(
                                                   myPlanes.begin(),
                                                   myPlanes.end(), [&](const Plane& plane, const Plane& otherPlane) {

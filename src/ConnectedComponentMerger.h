@@ -133,7 +133,7 @@ ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>
                         while ( !visitor.finished() )
                         {
                                 node = visitor.current();
-                                if (node.second > upperBound) break;
+                                if (node.second > upperBound || node.second > distance) break;
                                 if (node.second > lowerBound) {
                                         auto iteratorObj = find_if(objects.begin(), objects.end(), [&](const ObjectType& o) {
                                                         Container set = o.pointSet();

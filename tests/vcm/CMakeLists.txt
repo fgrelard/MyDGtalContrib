@@ -3,6 +3,7 @@ add_subdirectory(skeleton)
 SET(DGTAL_CONTRIB_TESTS
   testVCMAdjustableRadius
   testVCMOnDigitalSurfaceAdjustableRadius
+  testCuttingPlanes
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

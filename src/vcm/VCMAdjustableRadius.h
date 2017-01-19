@@ -53,6 +53,7 @@ public:
 
   void setMySmallR(double r) {this->mySmallRAdjustable = r;}
   Scalar r() const { return mySmallRAdjustable; }
+  DigitalSet pointSet() const { return myContainer; }
 
   template <typename Point2ScalarFunction>
   MatrixNN measure( const Point2ScalarFunction& chi_r, const Point& p) const;
