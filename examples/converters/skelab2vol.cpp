@@ -8,53 +8,61 @@
 #include "DGtal/io/readers/VolReader.h"
 #include "DGtal/images/ImageSelector.h"
 #include "DGtal/io/writers/ITKWriter.h"
-#include "surface/SurfaceUtils.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
+#include "DGtal/images/imagesSetsUtils/ImageFromSet.h"
+#include "DGtal/io/writers/GenericWriter.h"
+#include "geometry/PointUtil.h"
 
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
 
-template<typename TPoint>
-inline
-bool
-export2NOFF(std::ostream & out,
-			const Z3i::DigitalSet& setSkeleton
-			) throw(DGtal::IOException){
-	DGtal::IOException dgtalio;
-	Z3i::Object26_6 obj(Z3i::dt26_6, setSkeleton);
-	try
-    {
-		out << "ID Cx Cy Cz RADIUS #NEIGHBORS NEIGHBORS_LIST"<< std::endl;
-		out << setSkeleton.size()<< std::endl;
-		int i = 0;
-		for (const TPoint& current : setSkeleton) {
-			out << i << " " << current[0] << " " << current[1] << " " << current[2] << " " << 1;
-			vector<TPoint> neighbors;
-			back_insert_iterator<vector<TPoint>> inserter(neighbors);
-			obj.writeNeighbors(inserter, current);
-			out << " " << neighbors.size();
-			for (const TPoint& n : neighbors) {
-				auto iterator = setSkeleton.find(n);
-				if (iterator != setSkeleton.end()) {
-					int index = std::distance(setSkeleton.begin(), iterator);
-					out << " " << index;
-				}
+
+Z3i::DigitalSet readSkelab(string filename)
+{
+
+	FILE *f = fopen(filename.c_str(),"r");
+	vector<Z3i::Point> points;
+	if (f)
+	{
+
+		fscanf(f, "ID Cx Cy Cz RADIUS #NEIGHBORS NEIGHBORS_LIST\n");
+
+		int count;
+		fscanf(f,"%d\n",&count);
+		trace.info() << count << endl;
+		for (int i = 0; i < count; ++i)
+		{
+
+			int        id;        // unique ID
+			float      radius;    // maximal ball radius
+			int        valence;   // number of adjcent points
+			double a,b,c;
+			fscanf(f, "%d %lf %lf %lf %f %d ", &id, &a, &b, &c, &radius, &valence);
+//                    std::cout << id << ") " << coord[0] << ", "<< coord[1] << ", "<< coord[2] << endl;
+			Z3i::Point coord((int)a, (int)b, (int)c);
+			points.push_back(coord);
+			for (int j = 0; j < valence; ++j)
+			{
+				int neigh;
+
+				fscanf(f, "%d ", &neigh);
+
 			}
-			out << std::endl;
-			i++;
 		}
+		fclose(f);
 
-    }catch( ... )
-    {
-		trace.error() << "OFF writer IO error on export " << std::endl;
-		throw dgtalio;
-    }
-
-	return true;
+		Z3i::Domain boundingBox = PointUtil::computeBoundingBox<Z3i::Domain>(points);
+		trace.info() << boundingBox << endl;
+		Z3i::DigitalSet aSet(boundingBox);
+		aSet.insert(points.begin(), points.end());
+		return aSet;
+	}
+	return Z3i::DigitalSet(Z3i::Domain(Z3i::Point(0,0,0), Z3i::Point(0,0,0)));
 }
+
 
 int main(int argc, char** argv) {
 
@@ -95,16 +103,13 @@ int main(int argc, char** argv) {
 	typedef ExactPredicateLpSeparableMetric<Space, 2> Metric; // L2-metric
 
 	QApplication application(argc,argv);
-    Viewer3D<> viewer;
 	Z3i::Point translationVector(0, 0, 0);
-	Image image = VolReader<Image>::importVol(inputFilename);
-	Z3i::DigitalSet set3d (image.domain());
-	SetFromImage<Z3i::DigitalSet>::append<Image>(set3d, image, 0,255);
-
 	Metric l2;
 
-	ofstream fichier(outputFilename);
-	export2NOFF<Z3i::Point>(fichier, set3d);
-
+	trace.info() << "read file" << endl;
+	Z3i::DigitalSet aSet = readSkelab(inputFilename);
+	trace.info() << aSet.size() << endl;
+	Image image = ImageFromSet<Image>::create(aSet, 1);
+	GenericWriter<Image>::exportFile(outputFilename, image);
 	return 0;
 }

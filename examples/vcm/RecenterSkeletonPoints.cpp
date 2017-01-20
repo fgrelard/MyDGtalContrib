@@ -29,6 +29,7 @@ int main( int  argc, char**  argv )
                 ("help,h", "display this message")
                 ("curve,c", po::value<std::string>(), "vol file (curve)")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+                ("output,o", po::value<std::string>(), "vol file (corresponding volume")
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;
@@ -57,6 +58,7 @@ int main( int  argc, char**  argv )
 
         string curveFilename = vm["curve"].as<std::string>();
         string inputFilename = vm["input"].as<std::string>();
+        string outFilename  = vm["output"].as<std::string>();
         int thresholdMin = vm["thresholdMin"].as<int>();
         int thresholdMax = vm["thresholdMax"].as<int>();
 
@@ -90,6 +92,12 @@ int main( int  argc, char**  argv )
         }
 
         viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
+
+        Image outImage(volume.domain());
+
+        DGtal::imageFromRangeAndValue(skeletonRecentered.begin(), skeletonRecentered.end(), outImage, 10);
+        VolWriter<Image>::exportVol(outFilename, outImage);
+
         viewer << Viewer3D<>::updateDisplay;
         application.exec();
         return 0;

@@ -122,7 +122,7 @@ int main( int argc, char** argv )
 	  }
 	  if(imageResult.domain().isInside(p)){
 		  imageResult.setValue(p, foregroundVal);
-		  vector<Z3i::Point> pointsInBall = ball.pointsInBall();
+          Z3i::DigitalSet pointsInBall = ball.pointSet();
 		  for (auto it = pointsInBall.begin(), ite = pointsInBall.end(); it != ite; ++it) {
 			  if(imageResult.domain().isInside(*it))
 				  imageResult.setValue(*it, foregroundVal);

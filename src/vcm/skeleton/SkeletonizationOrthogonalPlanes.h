@@ -1,6 +1,14 @@
 #ifndef SKELETONIZATION_ORTHOGONAL_PLANES_H
 #define SKELETONIZATION_ORTHOGONAL_PLANES_H
 
+/**
+ * @file SkeletonizationOrthogonalPlanes.h
+ * @author Florent Grelard (florent.grelard@labri.fr)
+ * LaBRI, Bordeaux University
+ *
+ * @date 2017/01/20
+ *
+ */
 
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
@@ -11,10 +19,34 @@
 #include "geometry/CurveProcessor.h"
 #include "geometry/SphericalShellIntersection.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
-#include "geometry/SSIJunctionDetection.h"
-#include "vcm/skeleton/JunctionProcessingSkeleton.h"
-#include "geometry/AbovePlanePredicate.h"
+#include "geometry/junction/SSIJunctionDetection.h"
+#include "vcm/skeleton/post/JunctionProcessingSkeleton.h"
+#include "geometry/predicate/AbovePlanePredicate.h"
 #include "Statistics.h"
+
+/**
+   * Description of template class 'SkeletonizationOrthogonalPlanes' <p>
+   * \brief Aim: This class aims at computing the skeleton of a
+   * given tubular volume through Orthogonal plane estimation.
+   * The skeleton points are given as the centers of mass of the
+   * intersection between the orthogonal planes and the volume.
+   * A tracking procedure ensures reasonable computation times.
+   *
+   * You may obtain the skeleton by \ref skeletonize.
+   *
+   *
+   * @tparam Container type of Digital Set (model of CDigitalSet).
+   *
+   * @tparam JunctionDetection type allowing to detect junctions at
+   * tracked points. For instance, SSIJunctionDetection and
+   * NoJunctionDetection are models of this type.
+   *
+   * @tparam PostProcessing type allowing to post process the skeleton
+   * Typically, necessary for junctions. For instance,
+   * JunctionProcessingSkeleton or NoPostProcessingSkeleton are
+   * models of this type
+   *
+   */
 
 template <typename Container,
           typename JunctionDetection = SSIJunctionDetection<Container>,
@@ -38,15 +70,30 @@ public:
 
 public:
         SkeletonizationOrthogonalPlanes() = delete;
+
+        /**
+         * Constructor.
+         *
+         * @param setVolume the input volume on which to compute the
+         * skeleton
+         *
+         * @param junctionDetection the junction detector
+         *
+         * @param R the offset radius for the set of points. Voronoi cells
+         * are intersected with this offset. The unit corresponds to a step in the digital space.
+         */
         SkeletonizationOrthogonalPlanes(const Container& setVolume,
                                         const JunctionDetection& junctionDetection,
                                         double R = 10);
         SkeletonizationOrthogonalPlanes(const SkeletonizationOrthogonalPlanes& other);
         ~SkeletonizationOrthogonalPlanes();
 
+   // ----------------------- Interface  --------------------------------------
 public:
+        /// @return the skeleton
         Container skeletonize();
 
+     // ----------------------- Internal methods --------------------------------------
 public:
         Point trackNextPoint(const PlaneSet& plane);
         void markPoints(const Point& point);
@@ -63,6 +110,7 @@ private:
                           const Container& endPoints);
         bool isInJunction(const PlaneSet& p, double radius);
 
+// ------------------------- Private Datas --------------------------------
 
 private:
         Container* myVolume;
@@ -71,7 +119,8 @@ private:
         double myBigR;
 
 
-//Internals
+// ------------------------- Internals --------------------------------
+
 private:
         Container* mySkeleton;
         Container* myMarkedVertices;

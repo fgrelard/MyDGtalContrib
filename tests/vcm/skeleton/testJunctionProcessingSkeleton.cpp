@@ -8,8 +8,8 @@
 #include <ctime>
 #include <vector>
 #include <cstdlib>
-#include "vcm/skeleton/JunctionProcessingSkeleton.h"
-#include "geometry/AbovePlanePredicate.h"
+#include "vcm/skeleton/post/JunctionProcessingSkeleton.h"
+#include "geometry/predicate/AbovePlanePredicate.h"
 
 using namespace DGtal;
 using namespace std;

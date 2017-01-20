@@ -3,7 +3,7 @@
 
 #include <vector>
 #include "shapes/DigitalPlane.h"
-#include "geometry/TruePredicate.h"
+#include "geometry/predicate/TruePredicate.h"
 #include "geometry/SetProcessor.h"
 #include "geometry/CurveProcessor.h"
 #include "geometry/path/BezierLinkAlgorithm.h"

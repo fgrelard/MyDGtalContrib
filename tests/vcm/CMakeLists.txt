@@ -4,6 +4,7 @@ SET(DGTAL_CONTRIB_TESTS
   testVCMAdjustableRadius
   testVCMOnDigitalSurfaceAdjustableRadius
   testCuttingPlanes
+  testRecenterSkeleton
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

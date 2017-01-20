@@ -57,10 +57,10 @@ public:
          *
          * @param chi the functor Point->Scalar
          *
-         * @param _R the offset radius for the set of points. Voronoi cells
+         * @param R the offset radius for the set of points. Voronoi cells
          * are intersected with this offset. The unit corresponds to a step in the digital space.
          *
-         * @param _r (an upper bound of) the radius of the support of
+         * @param r (an upper bound of) the radius of the support of
          * forthcoming kernel functions (\f$ \chi_r \f$). The unit
          * corresponds to a step in the digital space. This parameter is
          * used for preparing the data structure that answers to proximity
@@ -90,7 +90,7 @@ public:
          */
         Plane planeAt(const Point& point,
                       const RealVector& dirVector = RealVector::zero,
-                      const Container& points = emptyContainer) const;
+                      const Container& points = emptyContainer);
 
         /** @return Orthogonal plane at point
          * @param point the point where to estimate the plane
@@ -176,7 +176,7 @@ operator=(const OrthogonalPlaneEstimator& other) {
 template <typename Container, typename KernelFunction>
 typename OrthogonalPlaneEstimator<Container, KernelFunction>::Plane
 OrthogonalPlaneEstimator<Container, KernelFunction>::
-planeAt(const Point& point, const RealVector& dirVector,const Container& points) const {
+planeAt(const Point& point, const RealVector& dirVector,const Container& points) {
 
         typename LinearAlgebraTool::Matrix vcm_r, evec;
         RealVector eval;

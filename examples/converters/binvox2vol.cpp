@@ -7,14 +7,11 @@
 #include "DGtal/io/writers/VolWriter.h"
 #include "DGtal/io/readers/VolReader.h"
 #include "DGtal/images/ImageSelector.h"
-#include "DGtal/io/writers/ITKWriter.h"
-#include "surface/SurfaceUtils.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
-#include "geometry/VoronoiCovarianceMeasure.h"
-#include "geometry/VCMUtil.h"
 #include "DGtal/math/linalg/EigenDecomposition.h"
+#include "DGtal/images/imagesSetsUtils/ImageFromSet.h"
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -172,8 +169,7 @@ int main(int argc, char** argv) {
 	typedef HyperRectDomain<Space> Domain;
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
 	typedef ExactPredicateLpSeparableMetric<Space, 2> Metric; // L2-metric
-	typedef VoronoiCovarianceMeasure<Space,Metric> VCM;
-	typedef functors::BallConstantPointFunction<Z3i::Point,double> KernelFunction;
+
 	typedef EigenDecomposition<3,double> LinearAlgebraTool;
 
 	QApplication application(argc,argv);

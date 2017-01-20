@@ -1,6 +1,16 @@
 #ifndef RECENTER_SKELETON_H
 #define RECENTER_SKELETON_H
 
+
+/**
+ * @file RecenterSkeleton.h
+ * @author Florent Grelard (florent.grelard@labri.fr)
+ * LaBRI, Bordeaux University
+ *
+ * @date 2017/01/20
+ *
+ */
+
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
 #include "DGtal/kernel/Point2ScalarFunctors.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
@@ -8,6 +18,20 @@
 #include "geometry/CurveDecomposition.h"
 #include "Statistics.h"
 
+/**
+   * Description of template class 'RecenterSkeleton' <p>
+   * \brief Aim: This class aims at recentering points
+   * in an existing skeleton. It is based on cutting plane estimation
+   * around branching points of the skeleton. Cutting planes are then
+   * realigned to delineate subvolumes.
+   *
+   * You may obtain the recentered skeleton by using the
+   * method \ref recenter.
+   *
+   *
+   * @tparam Container type of Digital Set (model of CDigitalSet).
+   *
+   */
 template <typename Container>
 class RecenterSkeleton {
 public:
@@ -30,13 +54,28 @@ public:
 
 public:
         RecenterSkeleton() = delete;
+
+        /**
+         * Constructor.
+         *
+         * @param skeleton the input non centered skeleton
+         *
+         * @param volume the corresponding volume
+         *
+         */
         RecenterSkeleton(const Container& skeleton,
                          const Container& volume);
         ~RecenterSkeleton();
         RecenterSkeleton(const RecenterSkeleton& other);
 
+
+// ----------------------- Interface  --------------------------------------
 public:
+        /// @return the recentered skeleton
         Container recenter();
+
+
+   // ----------------------- Internal methods --------------------------------------
 public:
         std::vector<Container> adjacentBranchesToPoint(const Point& p,
                                                        const std::vector<GraphEdge>& graph);
@@ -60,6 +99,7 @@ public:
 
         Container subVolume(const Container& volume, const Plane& plane);
         Container subVolume(const Container& volume, const std::vector<Plane>& planes);
+        Container relevantCC(const Container& subVolume, const Container& constraint);
 
         template <typename OtherContainer>
         Container recenterSkeletonPoints(const Container& subVolume,
@@ -69,13 +109,13 @@ public:
         Container postProcess(const Container& existingSkeleton,
                               const Container& processedEdges);
 
-
+ // ------------------------- Private Datas --------------------------------
 private:
         Container* mySkeleton;
         Container* myVolume;
 
 
-        //Internals
+        // ----------------------- Internals  --------------------------------------
 private:
         PlaneEstimator* myPlaneEstimator;
         DTL2* myDT;
@@ -90,8 +130,8 @@ RecenterSkeleton(const Container& skeleton,
         myVolume = new Container ( volume );
         L2Metric l2Metric;
         myDT = new DTL2 ( myVolume->domain(), *myVolume, l2Metric);
-        double r = 5;
-        double R = 30;
+        double r = 10;
+        double R = 20;
         KernelFunction chi(1.0, r);
         int connexity = 6;
         myPlaneEstimator = new PlaneEstimator(volume, chi, R, r, connexity );
@@ -145,22 +185,29 @@ recenter() {
                 std::vector<Container> restricted = restrictBranches(adjacentEdges, b);
                 CuttingPlane cuttingPE(restricted, *myPlaneEstimator, *myVolume, *myDT);
                 std::vector<Plane> cuttingPlanes = cuttingPE.cuttingPlanes();
-                if (cuttingPlanes.size() < 2) continue;
+                std::vector<Plane> orientedPlanes = orientNormalPlanes(cuttingPlanes, b);
+                if (cuttingPlanes.size() != 2) continue;
                 std::vector<Container> branchesRecentering = planesToBranches(cuttingPlanes, restricted);
                 Container refBranch = referenceBranch(restricted, branchesRecentering);
                 Container restrictedVolume = SetProcessor<Container>(*myVolume).subSet(b, radius*1.5);
                 size_t i = 0;
-                for (const Plane& plane : cuttingPlanes) {
-                        std::vector<Plane> alignedPlanes = alignPlanes(plane, cuttingPlanes);
-                        std::vector<Plane> orientedPlanes = orientNormalPlanes(alignedPlanes, b);
-                        Container subVolume1 = subVolume(restrictedVolume, plane);
-                        Container subVolume2 = subVolume(restrictedVolume, orientedPlanes);
+                for (const Plane& plane : orientedPlanes) {
+                        std::vector<Plane> alignedPlanes = alignPlanes(plane, orientedPlanes);
+                        alignedPlanes = orientNormalPlanes(alignedPlanes, b);
+                        Plane currentPlane(plane.getCenter(),
+                                           -plane.getPlaneEquation().normal(),
+                                           6);
+                        Container subVolume1 = subVolume(restrictedVolume, currentPlane);
+                        Container subVolume2 = subVolume(restrictedVolume, alignedPlanes);
                         subVolume1.insert(subVolume2.begin(), subVolume2.end());
+                        subVolume1 = relevantCC(subVolume1, refBranch);
                         Container correspondingBranch = branchesRecentering[i];
                         correspondingBranch  = SetProcessor<Container>(correspondingBranch).subSet(b, correspondingBranch.size() * 0.6);
                         refBranch = SetProcessor<Container>(refBranch).subSet(b, refBranch.size()*0.6);
                         std::vector<Point> pointsToRecenter = orderedBranchToRecenter (correspondingBranch, refBranch, restrictedVolume, b);
                         Container recenteredPoints = recenterSkeletonPoints (subVolume1, pointsToRecenter, skeletonPoints);
+
+                        Container planeSet = alignedPlanes[0].intersectionWithSetOneCC(*myVolume);
                         skeletonPoints.insert(recenteredPoints.begin(), recenteredPoints.end());
                         processedEdges.insert(correspondingBranch.begin(), correspondingBranch.end());
                         processedEdges.insert(refBranch.begin(), refBranch.end());
@@ -169,7 +216,7 @@ recenter() {
         }
         Container post = postProcess(*mySkeleton, processedEdges);
         skeletonPoints.insert(post.begin(), post.end());
-        return post;
+        return skeletonPoints;
 }
 
 
@@ -250,7 +297,7 @@ restrictBranches(const std::vector<Container>& branches,
                  const Point& p) {
         std::vector<Container> restrictedBranches;
         for (const Container& branch : branches) {
-                Container restricted = SetProcessor<Container>(branch).subSet(p, branch.size());
+                Container restricted = SetProcessor<Container>(branch).subSet(p, branch.size() * 0.8);
                 restrictedBranches.push_back(restricted);
         }
         return restrictedBranches;
@@ -365,6 +412,35 @@ subVolume(const Container& restrictedVolume,
                 }
                 if (add && cuttingPlanes.size() > 0)
                         subVolume.insert(p);
+        }
+        return subVolume;
+}
+
+template <typename Container>
+Container
+RecenterSkeleton<Container>::
+relevantCC(const Container& subVolume,
+                const Container& constraint) {
+        Container vol(subVolume.domain());
+        Adj26 adj26;
+        Adj6 adj6;
+        DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+        ObjectType obj(dt26_6, subVolume);
+        std::vector<ObjectType> objects;
+        std::back_insert_iterator<std::vector<ObjectType> > inserter(objects);
+        unsigned int nbCC = obj.writeComponents(inserter);
+        if (nbCC > 1) {
+                Container candidate = subVolume;
+                double number = 0;
+                for (const ObjectType& o : objects) {
+                        Container set = o.pointSet();
+                        Container intersect = SetProcessor<Container>(set).intersection(constraint);
+                        if (intersect.size() > number) {
+                                number = intersect.size();
+                                candidate = set;
+                        }
+                }
+                return candidate;
         }
         return subVolume;
 }

@@ -8,7 +8,9 @@
 #include "DGtal/io/readers/VolReader.h"
 #include "DGtal/images/ImageSelector.h"
 #include "DGtal/io/writers/ITKWriter.h"
-#include "surface/SurfaceUtils.h"
+#include "shapes/Border.h"
+#include "DGtal/images/imagesSetsUtils/SetFromImage.h"
+
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
@@ -53,7 +55,11 @@ int main(int argc, char** argv) {
 	Domain aDomain(image.domain().lowerBound() + translationVector, image.domain().upperBound() + translationVector);
 	Image out(aDomain);
 
-	Z3i::DigitalSet surface = SurfaceUtils::extractSurfaceVoxels(image, 1, 255);
+    Z3i::DigitalSet set3d (image.domain());
+	SetFromImage<Z3i::DigitalSet>::append<Image>(set3d, image, 0,255);
+
+	Border<Z3i::DigitalSet> border(set3d);
+	Z3i::DigitalSet surface = border.pointSet();
 	for (auto it = surface.begin(), ite = surface.end(); it != ite; ++it) {
 		out.setValue(*it, image(*it));
 	}

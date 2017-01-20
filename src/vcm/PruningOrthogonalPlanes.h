@@ -1,12 +1,36 @@
 #ifndef PRUNING_ORTHOGONAL_PLANES_H
 #define PRUNING_ORTHOGONAL_PLANES_H
 
+/**
+ * @file PruningOrthogonalPlanes.h
+ * @author Florent Grelard (florent.grelard@labri.fr)
+ * LaBRI, Bordeaux University
+ *
+ * @date 2017/01/20
+ *
+ */
+
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "geometry/CurveDecomposition.h"
 #include "geometry/CurveProcessor.h"
 #include "graph/WeightedEdge.h"
 #include "DGtal/kernel/CSpace.h"
 #include "DGtal/geometry/volumes/distance/DistanceTransformation.h"
+
+/**
+   * Description of template class 'PruningOrthogonalPlanes' <p>
+   * \brief Aim: This class aims at pruning an existing skeleton
+   * based on the difference in angle between orthogonal planes
+   * computed on hand on the curve, and on the other hand, on
+   * the corresponding volume.
+   *
+   * You may obtain the pruned skeleton by using the
+   * method \ref prune.
+   *
+   *
+   * @tparam Container type of Digital Set (model of CDigitalSet).
+   *
+   */
 
 
 template <typename Container>
@@ -31,6 +55,17 @@ public:
 
 public:
         PruningOrthogonalPlanes() = delete;
+
+        /**
+         * Constructor.
+         *
+         * @param skeleton the input non centered skeleton
+         *
+         * @param volume the corresponding volume
+         *
+         * @param threshold angle threshold in degrees under which
+         * skeleton branches are removed (recommended [20;35])
+         */
         PruningOrthogonalPlanes(const Container& skeleton,
                                     const Container& volume,
                                     double threshold);
@@ -38,6 +73,7 @@ public:
         PruningOrthogonalPlanes(const PruningOrthogonalPlanes& other);
 
 public:
+        /// @return the pruned skeleton
         Container prune();
 
         double significanceMeasure(const Point& p);
@@ -45,17 +81,20 @@ public:
         Container pruneEdgeTopologyPreserving(const Container& prunedSkeleton,
                                               const GraphEdge& graphEdge);
 
+        // ----------------------- Private data --------------------------------------
 private:
         Container* mySkeleton;
         Container* myVolume;
+        double myThreshold;
 
+        // ----------------------- Internals  --------------------------------------
+private:
         DTL2* myDT;
 
         PlaneEstimator* myPlaneEstimatorCurve;
         PlaneEstimator* myPlaneEstimatorVol;
 
         Container myBranchingPoints;
-        double myThreshold;
 };
 
 template <typename Container>

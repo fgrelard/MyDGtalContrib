@@ -11,11 +11,11 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include "vcm/skeleton/SkeletonizationOrthogonalPlanes.h"
-#include "vcm/skeleton/NoPostProcessingSkeleton.h"
+#include "vcm/skeleton/post/NoPostProcessingSkeleton.h"
 #include "geometry/MedialAxis.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
-#include "geometry/AbovePlanePredicate.h"
-#include "vcm/skeleton/JunctionProcessingSkeleton.h"
+#include "geometry/predicate/AbovePlanePredicate.h"
+#include "vcm/skeleton/post/JunctionProcessingSkeleton.h"
 
 
 using namespace std;

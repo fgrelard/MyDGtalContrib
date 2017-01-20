@@ -81,7 +81,7 @@ void testGraphDecomposition(int argc, char** argv) {
         Viewer3D<> viewer;
         viewer.show();
         typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        Image image = GenericReader<Image>::import("/home/florent/test_img/Pruning/PF/skeletonBronche2Connexity.vol");
+        Image image = GenericReader<Image>::import("/home/florent/test_img/Pruning/Thinvox/results/skeletonBronche_35.vol");
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
@@ -99,7 +99,7 @@ void testGraphDecomposition(int argc, char** argv) {
 int main(int argc, char** argv) {
         srand(time(NULL));
         //testCurveTraversalAndGraph(argc, argv);
-        testCurveHierarchicalDecomposition(argc, argv);
-        //testGraphDecomposition(argc, argv);
+        //testCurveHierarchicalDecomposition(argc, argv);
+        testGraphDecomposition(argc, argv);
         return 0;
 }
