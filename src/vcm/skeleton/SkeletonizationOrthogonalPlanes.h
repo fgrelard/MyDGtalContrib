@@ -371,7 +371,7 @@ filterIsolatedPoints(int minSize) {
         SetProcessor<Container> setProc(*mySkeleton);
         std::vector<Container> components = setProc.toConnectedComponents();
         for (const Container& cc : components) {
-                if (cc.size() > minSize) {
+                if (cc.size() >= minSize) {
                         filteredSkeleton.insert(cc.begin(), cc.end());
                 }
         }
