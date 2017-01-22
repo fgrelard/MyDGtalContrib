@@ -53,10 +53,9 @@ public:
 
 
     Container fillHoles(double lowerBound = std::numeric_limits<double>::min(),
-                        double upperBound = std::numeric_limits<double>::max(),
-                        const Container& setVolume = Container(Domain(Point::zero, Point::zero)));
+                        double upperBound = std::numeric_limits<double>::max());
 
-
+    Container fillHoles(const Container& container);
     Container fillHolesNotInSet(const Container& set, const Container& setVolume);
 
     bool isPointThin(const Point& point);
@@ -153,11 +152,13 @@ Container CurveProcessor<Container>::branchingPoints() {
     L2Metric l2Metric;
 
     ObjectType graph(dt26_6, myCurve);
-    Visitor visitor( graph, *endPoints().begin() );
+    Container branchingPoints(myCurve.domain());
+    Container end = endPoints();
+    if (end.size() == 0) return branchingPoints;
+    Visitor visitor( graph, *end.begin() );
     MyNode node;
 
 	std::vector<Point> existingSkeletonOrdered;
-	Container branchingPoints(myCurve.domain());
     std::pair<Point, double> previous;
     while ( !visitor.finished() )
     {
@@ -217,7 +218,47 @@ subCurve(const DTL2& dt, const Container& constraintInSet) {
 template <typename Container>
 Container
 CurveProcessor<Container>::
-fillHoles(double lowerBound, double upperBound, const Container& setVolume) {
+fillHoles(double lowerBound, double upperBound) {
+    Adj26 adj26;
+    Adj6 adj6;
+    DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+
+    ObjectType graph(dt26_6, Container(Domain(Point::zero, Point::zero)));
+
+    ObjectType objectImage(dt26_6, myCurve);
+
+    std::vector<ObjectType> skeletonCC;
+    std::back_insert_iterator< std::vector<ObjectType> > inserterCC( skeletonCC );
+    objectImage.writeComponents(inserterCC);
+
+    Container myOneCCCurve = myCurve;
+
+    bool shouldStop = false;
+    while (!shouldStop) {
+        int indexRef = 0;
+        ConnectedComponentMerger<Space> vPair(skeletonCC, graph, lowerBound, upperBound);
+        if (!vPair.isUndefined()) {
+            Point first = vPair.first();
+            Point second = vPair.second();
+            LinkPointAlgorithm<Point>* linkAlgo;
+            linkAlgo = new BresenhamAlgorithm<Point>(first, second);
+            std::vector<Point> link = linkAlgo->linkPoints();
+            delete linkAlgo;
+            vPair.mergeObjects(skeletonCC, link);
+            myOneCCCurve.insert(link.begin(), link.end());
+        }
+        else
+            shouldStop = true;
+    }
+    return myOneCCCurve;
+
+}
+
+
+template <typename Container>
+Container
+CurveProcessor<Container>::
+fillHoles(const Container& setVolume) {
     Adj26 adj26;
     Adj6 adj6;
     DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
@@ -231,21 +272,18 @@ fillHoles(double lowerBound, double upperBound, const Container& setVolume) {
     objectImage.writeComponents(inserterCC);
     sort(skeletonCC.begin(), skeletonCC.end(), [&](const ObjectType& one,
                                                    const ObjectType& two) {
-             return one.size() < two.size();
+             return one.size() > two.size();
          });
     Container myOneCCCurve = myCurve;
 
     bool shouldStop = false;
     while (!shouldStop) {
-        ConnectedComponentMerger<Space> vPair(skeletonCC, graph, lowerBound, upperBound);
+        ConnectedComponentMerger<Space> vPair(skeletonCC, graph, std::numeric_limits<double>::min(), std::numeric_limits<double>::max());
         if (!vPair.isUndefined()) {
             Point first = vPair.first();
             Point second = vPair.second();
             LinkPointAlgorithm<Point>* linkAlgo;
-            if (setVolume.size() > 0)
-                linkAlgo = new AStarAlgorithm<Point, Container>(first, second, setVolume);
-            else
-                linkAlgo = new BresenhamAlgorithm<Point>(first, second);
+            linkAlgo = new AStarAlgorithm<Point, Container>(first, second, setVolume);
             std::vector<Point> link = linkAlgo->linkPoints();
             delete linkAlgo;
             vPair.mergeObjects(skeletonCC, link);
@@ -257,7 +295,6 @@ fillHoles(double lowerBound, double upperBound, const Container& setVolume) {
     return myOneCCCurve;
 
 }
-
 
 template <typename Container>
 Container
@@ -276,10 +313,7 @@ fillHolesNotInSet(const Container& set, const Container& setVolume) {
     std::vector<ObjectType> skeletonCC;
     std::back_insert_iterator< std::vector<ObjectType> > inserterCC( skeletonCC );
     objectImage.writeComponents(inserterCC);
-    sort(skeletonCC.begin(), skeletonCC.end(), [&](const ObjectType& one,
-                                                   const ObjectType& two) {
-             return one.size() < two.size();
-         });
+
     Container myOneCCCurve = myCurve;
 
     bool shouldStop = false;

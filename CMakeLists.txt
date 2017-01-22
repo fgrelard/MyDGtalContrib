@@ -19,7 +19,16 @@ endif( Boost_FOUND )
 include_directories(${CMAKE_SOURCE_DIR}/src/)
 option(BUILD_TESTS "Build test programs" OFF)
 option(BUILD_EXAMPLES "Build examples programs" ON)
+option(WITH_OPENMP "Parallelization with OpenMP" OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+if (WITH_OPENMP)
+  find_package(OpenMP)
+  if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  endif()
+endif(WITH_OPENMP)
 
 
 if (NOT WITH_EIGEN)

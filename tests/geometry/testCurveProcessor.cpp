@@ -90,7 +90,7 @@ void testCurveEnsureOneCC(Viewer3D<>& viewer) {
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
         double min = std::numeric_limits<double>::min();
         double max = std::numeric_limits<double>::max();
-        Z3i::DigitalSet curveCC = curveProcessor.fillHoles(min, max, setVolume);
+        Z3i::DigitalSet curveCC = curveProcessor.fillHoles(setVolume);
         Z3i::Object26_6 obj(Z3i::dt26_6, curveCC);
         vector<Z3i::Object26_6> cc;
         std::back_insert_iterator< vector<Z3i::Object26_6> > inserter(cc);

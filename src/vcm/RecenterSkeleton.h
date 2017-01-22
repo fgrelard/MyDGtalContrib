@@ -175,7 +175,11 @@ recenter() {
         std::vector<GraphEdge> graph = CurveDecomposition<Container>(*mySkeleton, branching).branchDecomposition();
         Container skeletonPoints(mySkeleton->domain());
         Container processedEdges(mySkeleton->domain());
-        for (const Point& b : branching) {
+#pragma omp parallel for schedule(dynamic)
+        for (size_t i = 0; i < branching.size(); ++i) {
+                auto begin = branching.begin();
+                std::advance(begin, i);
+                Point b = *begin;
                 std::vector<Container> adjacentEdges = adjacentBranchesToPoint(b, graph);
                 double radius = max_element(adjacentEdges.begin(), adjacentEdges.end(), [&](const Container& e1,
                                                                                             const Container& e2) {
@@ -190,7 +194,7 @@ recenter() {
                 std::vector<Container> branchesRecentering = planesToBranches(cuttingPlanes, restricted);
                 Container refBranch = referenceBranch(restricted, branchesRecentering);
                 Container restrictedVolume = SetProcessor<Container>(*myVolume).subSet(b, radius*1.5);
-                size_t i = 0;
+                size_t j = 0;
                 for (const Plane& plane : orientedPlanes) {
                         std::vector<Plane> alignedPlanes = alignPlanes(plane, orientedPlanes);
                         alignedPlanes = orientNormalPlanes(alignedPlanes, b);
@@ -204,6 +208,7 @@ recenter() {
                         Container correspondingBranch = branchesRecentering[i];
                         correspondingBranch  = SetProcessor<Container>(correspondingBranch).subSet(b, correspondingBranch.size() * 0.6);
                         refBranch = SetProcessor<Container>(refBranch).subSet(b, refBranch.size()*0.6);
+                        if (refBranch.size() == 0 || correspondingBranch.size() == 0) break;
                         std::vector<Point> pointsToRecenter = orderedBranchToRecenter (correspondingBranch, refBranch, restrictedVolume, b);
                         Container recenteredPoints = recenterSkeletonPoints (subVolume1, pointsToRecenter, skeletonPoints);
 
@@ -211,7 +216,7 @@ recenter() {
                         skeletonPoints.insert(recenteredPoints.begin(), recenteredPoints.end());
                         processedEdges.insert(correspondingBranch.begin(), correspondingBranch.end());
                         processedEdges.insert(refBranch.begin(), refBranch.end());
-                        i++;
+                        j++;
                 }
         }
         Container post = postProcess(*mySkeleton, processedEdges);
@@ -298,7 +303,8 @@ restrictBranches(const std::vector<Container>& branches,
         std::vector<Container> restrictedBranches;
         for (const Container& branch : branches) {
                 Container restricted = SetProcessor<Container>(branch).subSet(p, branch.size() * 0.8);
-                restrictedBranches.push_back(restricted);
+                if (restricted.size() > 0)
+                        restrictedBranches.push_back(restricted);
         }
         return restrictedBranches;
 }

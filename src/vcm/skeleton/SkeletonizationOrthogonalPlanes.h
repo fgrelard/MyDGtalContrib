@@ -269,10 +269,7 @@ skeletonize() {
 
         PostProcessing algo(*mySkeleton, a3ShellPoints, *myVolume, myPlanes);
         Container postProcessedSkeleton = algo.postProcess();
-
-        // double min = std::numeric_limits<double>::min();
-        // double max = std::numeric_limits<double>::max();
-        // postProcessedSkeleton = CurveProcessor<Container>(postProcessedSkeleton).fillHoles(min, max, *myVolume);
+        postProcessedSkeleton = CurveProcessor<Container>(postProcessedSkeleton).fillHoles(*myVolume);
 
         delete mySkeleton;
         mySkeleton = new Container(postProcessedSkeleton);
