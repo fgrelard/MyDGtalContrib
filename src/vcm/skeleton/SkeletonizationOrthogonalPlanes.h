@@ -257,11 +257,11 @@ skeletonize() {
 
         DGtal::trace.beginBlock("PostProcessing");
         Container fillHoles = CurveProcessor<Container>(*mySkeleton).fillHoles(sqrt(3), 2 * sqrt(3));
-        fillHoles = CurveProcessor<Container>(fillHoles).fillHolesNotInSet(a3ShellPoints, *myVolume);
         delete mySkeleton;
         mySkeleton = new Container( fillHoles );
 
         Container filteredSkeleton = filterIsolatedPoints();
+        filteredSkeleton = CurveProcessor<Container>(filteredSkeleton).fillHolesNotInSet(a3ShellPoints, *myVolume);
         delete mySkeleton;
         mySkeleton = new Container (filteredSkeleton);
 
