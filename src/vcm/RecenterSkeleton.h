@@ -232,6 +232,7 @@ recenter() {
         }
         Container post = postProcess(*mySkeleton, processedEdges);
         skeletonPoints.insert(post.begin(), post.end());
+        skeletonPoints = CurveProcessor<Container>(skeletonPoints).fillHoles(sqrt(3), 2 * sqrt(3));
         skeletonPoints = CurveProcessor<Container>(skeletonPoints).fillHoles(*myVolume);
         DGtal::trace.endBlock();
         return skeletonPoints;
