@@ -177,10 +177,11 @@ recenter() {
 
         Container branching = CurveProcessor<Container>(*mySkeleton).branchingPoints();
         std::vector<GraphEdge> graph = CurveDecomposition<Container>(*mySkeleton, branching).branchDecomposition();
+
+        DGtal::trace.beginBlock("Recentering");
         std::vector<Plane> planes = computePlanes();
         Container skeletonPoints(mySkeleton->domain());
         Container processedEdges(mySkeleton->domain());
-        DGtal::trace.beginBlock("Recentering");
 //#pragma omp parallel for schedule(dynamic) shared(skeletonPoints, processedEdges)
         for (size_t i = 0; i < branching.size(); i++) {
                 auto begin = branching.begin();
@@ -227,12 +228,11 @@ recenter() {
                         processedEdges.insert(refBranch.begin(), refBranch.end());
                         j++;
 
-
-
                 }
         }
         Container post = postProcess(*mySkeleton, processedEdges);
         skeletonPoints.insert(post.begin(), post.end());
+        skeletonPoints = CurveProcessor<Container>(skeletonPoints).fillHoles(*myVolume);
         DGtal::trace.endBlock();
         return skeletonPoints;
 }
