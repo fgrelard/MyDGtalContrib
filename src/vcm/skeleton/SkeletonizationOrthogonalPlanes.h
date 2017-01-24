@@ -230,7 +230,6 @@ skeletonize() {
 
                 RealPoint centerOfMass = Statistics<Container>(planePoints).extractCenterOfMass();
 
-
                 if (centerOfMass != RealPoint::zero && l2Metric(centerOfMass, p) <= sqrt(3)) {
                         Point g = SetProcessor<Container>(planePoints).closestPointAt(centerOfMass);
                         RealVector normal = plane.getPlaneEquation().normal();
@@ -460,7 +459,7 @@ isInJunction(const PlaneSet& planeSet, double radius) {
         Container minusSet = Plane(center, -normal, connexity).intersectionWithSetOneCC(*myVolume);
         double radiusCurrent = SetProcessor<Container>(set).lengthMajorAxis() + 2.0;
         double radiusCurrentMinus = SetProcessor<Container>(minusSet).lengthMajorAxis() + 2.0;
-        double radiusShell = std::max(4.0, std::max(radiusCurrentMinus, radiusCurrentMinus));
+        double radiusShell = std::max(4.0, std::max(radiusCurrent, radiusCurrentMinus));
         radiusShell *= 1.2;
         double noise = radiusShell / 2.0;
         if (myJunctionDetection->isInJunction(center, radiusShell, noise)) {

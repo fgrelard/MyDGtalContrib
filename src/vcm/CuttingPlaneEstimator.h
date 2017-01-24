@@ -129,7 +129,7 @@ computePlanes(const std::vector<Point>& orientedEdge) {
         for (const Point& p : orientedEdge) {
                 double radius = (*myDT)(p) + 2;
                 myPlaneEstimator->setRadius(radius);
-                Plane plane = myPlaneEstimator->convergentPlaneAt(p, *myVolume, radius * 5);
+                Plane plane = myPlaneEstimator->convergentPlaneAt(p, *myVolume, radius*2);
                 planes.push_back(plane);
 
         }
@@ -174,6 +174,7 @@ typename CuttingPlaneEstimator<PlaneEstimator>::Plane
 CuttingPlaneEstimator<PlaneEstimator>::
 referencePlane(const Point& referencePoint) {
         double radius = (*myDT)(referencePoint) + 2;
+        myPlaneEstimator->setRadius(radius);
         return myPlaneEstimator->convergentPlaneAt(referencePoint, *myVolume, radius * 5);
 }
 

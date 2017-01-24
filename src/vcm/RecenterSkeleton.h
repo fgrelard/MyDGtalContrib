@@ -131,7 +131,7 @@ RecenterSkeleton(const Container& skeleton,
         L2Metric l2Metric;
         myDT = new DTL2 ( myVolume->domain(), *myVolume, l2Metric);
         double r = 10;
-        double R = 20;
+        double R = 10;
         KernelFunction chi(1.0, r);
         int connexity = 6;
         myPlaneEstimator = new PlaneEstimator(volume, chi, R, r, connexity );
@@ -171,12 +171,14 @@ template <typename Container>
 Container
 RecenterSkeleton<Container>::
 recenter() {
+
         Container branching = CurveProcessor<Container>(*mySkeleton).branchingPoints();
         std::vector<GraphEdge> graph = CurveDecomposition<Container>(*mySkeleton, branching).branchDecomposition();
         Container skeletonPoints(mySkeleton->domain());
         Container processedEdges(mySkeleton->domain());
-#pragma omp parallel for schedule(dynamic)
-        for (size_t i = 0; i < branching.size(); ++i) {
+        DGtal::trace.beginBlock("Recentering");
+//#pragma omp parallel for schedule(dynamic) shared(skeletonPoints, processedEdges)
+        for (size_t i = 0; i < branching.size(); i++) {
                 auto begin = branching.begin();
                 std::advance(begin, i);
                 Point b = *begin;
@@ -189,10 +191,12 @@ recenter() {
                 std::vector<Container> restricted = restrictBranches(adjacentEdges, b);
                 CuttingPlane cuttingPE(restricted, *myPlaneEstimator, *myVolume, *myDT);
                 std::vector<Plane> cuttingPlanes = cuttingPE.cuttingPlanes();
+
                 std::vector<Plane> orientedPlanes = orientNormalPlanes(cuttingPlanes, b);
                 if (cuttingPlanes.size() != 2) continue;
                 std::vector<Container> branchesRecentering = planesToBranches(cuttingPlanes, restricted);
                 Container refBranch = referenceBranch(restricted, branchesRecentering);
+                refBranch = SetProcessor<Container>(refBranch).subSet(b, refBranch.size()*0.6);
                 Container restrictedVolume = SetProcessor<Container>(*myVolume).subSet(b, radius*1.5);
                 size_t j = 0;
                 for (const Plane& plane : orientedPlanes) {
@@ -205,22 +209,25 @@ recenter() {
                         Container subVolume2 = subVolume(restrictedVolume, alignedPlanes);
                         subVolume1.insert(subVolume2.begin(), subVolume2.end());
                         subVolume1 = relevantCC(subVolume1, refBranch);
-                        Container correspondingBranch = branchesRecentering[i];
+                        Container correspondingBranch = branchesRecentering[j];
                         correspondingBranch  = SetProcessor<Container>(correspondingBranch).subSet(b, correspondingBranch.size() * 0.6);
-                        refBranch = SetProcessor<Container>(refBranch).subSet(b, refBranch.size()*0.6);
+
                         if (refBranch.size() == 0 || correspondingBranch.size() == 0) break;
                         std::vector<Point> pointsToRecenter = orderedBranchToRecenter (correspondingBranch, refBranch, restrictedVolume, b);
                         Container recenteredPoints = recenterSkeletonPoints (subVolume1, pointsToRecenter, skeletonPoints);
 
-                        Container planeSet = alignedPlanes[0].intersectionWithSetOneCC(*myVolume);
                         skeletonPoints.insert(recenteredPoints.begin(), recenteredPoints.end());
                         processedEdges.insert(correspondingBranch.begin(), correspondingBranch.end());
                         processedEdges.insert(refBranch.begin(), refBranch.end());
                         j++;
+
+
+
                 }
         }
         Container post = postProcess(*mySkeleton, processedEdges);
         skeletonPoints.insert(post.begin(), post.end());
+        DGtal::trace.endBlock();
         return skeletonPoints;
 }
 
