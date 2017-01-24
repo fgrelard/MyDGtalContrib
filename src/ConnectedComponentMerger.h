@@ -35,11 +35,16 @@ public:
         ConnectedComponentMerger(const std::vector<ObjectType>& cc,
                                  const ObjectType& surroundingSetGraph,
                                  double lowerBound = std::numeric_limits<double>::min(),
-                                 double upperBound = std::numeric_limits<double>::max()) {
-                if (surroundingSetGraph.size() > 0)
-                        findObjectToMerge(cc, surroundingSetGraph, lowerBound, upperBound);
+                                 double upperBound = std::numeric_limits<double>::max(),
+                                 int indexRef=-1) {
+                if (indexRef == -1) {
+                        if (surroundingSetGraph.size() > 0)
+                                findObjectToMerge(cc, surroundingSetGraph, lowerBound, upperBound);
+                        else
+                                findObjectToMerge(cc, lowerBound, upperBound);
+                }
                 else
-                        findObjectToMerge(cc, lowerBound, upperBound);
+                        findObjectToMerge(cc, surroundingSetGraph, lowerBound, upperBound, indexRef);
 
         }
 
@@ -54,9 +59,16 @@ public:
         Scalar second() const { return mySecondPoint; }
         int firstPosition() const { return myFirstIndex; }
         int secondPosition() const { return mySecondIndex; }
-        bool isUndefined() const { return (myFirstIndex == -1 && mySecondIndex == -1); }
+        bool isUndefined() const { return (myFirstIndex == -1 ||  mySecondIndex == -1); }
 
 public:
+
+        void findObjectToMerge(const std::vector<ObjectType>& cc,
+                               const ObjectType& surroundingSetGraph,
+                               double lowerBound,
+                               double upperBound,
+                               int index);
+
         void findObjectToMerge(const std::vector<ObjectType>& cc,
                                double lowerBound,
                                double upperBound);
@@ -74,6 +86,75 @@ private:
         int myFirstIndex = -1;
         int mySecondIndex = -1;
 };
+
+template <typename Space>
+void ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>& objects,
+                                                        const ObjectType& graph,
+                                                        double lowerBound,
+                                                        double upperBound,
+                                                        int index)  {
+        typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
+
+        typedef DistanceToPointFunctor<L2Metric> DistanceFunctor;
+
+        typedef DGtal::DistanceBreadthFirstVisitor<ObjectType, DistanceFunctor, std::set<Scalar> > Visitor;
+        typedef typename Visitor::Node MyNode;
+
+        myFirstIndex = index;
+
+        Adj26 adj26;
+        Adj6 adj6;
+        DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
+        double distance = std::numeric_limits<double>::max();
+
+        Container currentCC = objects[myFirstIndex].pointSet();
+        CurveProcessor<Container> curveProc(currentCC);
+        Container endPointCurrent = curveProc.endPoints();
+        Container merged(graph.domain());
+        for (int i = 0; i < objects.size(); i++) {
+                if (i != index) {
+                        Container set = objects[i].pointSet();
+                        merged.insert(set.begin(), set.end());
+                }
+        }
+
+        for (const Scalar&  e : endPointCurrent) {
+                L2Metric l2Metric;
+                DistanceFunctor functor(l2Metric, e);
+                Visitor visitor( graph, functor, e );
+                MyNode node;
+                double currentDistance = std::numeric_limits<double>::max();
+                Scalar candidate;
+                while ( !visitor.finished() )
+                {
+                        node = visitor.current();
+                        if (node.second > upperBound || node.second > distance) break;
+                        if (node.second > lowerBound) {
+                                auto iteratorObj = merged.find(node.first);
+                                if (iteratorObj != merged.end()) {
+                                        currentDistance = node.second;
+                                        candidate = node.first;
+                                        break;
+                                }
+                        }
+                        visitor.expand();
+                }
+                if (currentDistance < distance) {
+                        myFirstPoint = e;
+                        mySecondPoint = candidate;
+                        distance = currentDistance;
+                }
+        }
+
+        for (auto itCC = objects.begin(), itCCe = objects.end(); itCC!=itCCe; ++itCC) {
+                Container oSet = itCC->pointSet();
+                auto iterator = oSet.find(mySecondPoint);
+                if (iterator != oSet.end()) {
+                        mySecondIndex = itCC - objects.begin();
+                        break;
+                }
+        }
+}
 
 
 template <typename Space>
@@ -123,11 +204,19 @@ ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>
         Adj6 adj6;
         DT26_6 dt26_6 (adj26, adj6, DGtal::JORDAN_DT );
         double distance = std::numeric_limits<double>::max();
+
+
         for (size_t i = 0; i < objects.size(); i++) {
                 Container currentCC = objects[i].pointSet();
                 CurveProcessor<Container> curveProc(currentCC);
                 Container endPointCurrent = curveProc.endPoints();
-
+                Container merged(graph.domain());
+                for (int index = 0; index < objects.size(); index++) {
+                        if (index != i) {
+                                Container set = objects[index].pointSet();
+                                merged.insert(set.begin(), set.end());
+                        }
+                }
                 for (const Scalar&  e : endPointCurrent) {
                         L2Metric l2Metric;
                         DistanceFunctor functor(l2Metric, e);
@@ -140,12 +229,8 @@ ConnectedComponentMerger<Space>::findObjectToMerge(const std::vector<ObjectType>
                                 node = visitor.current();
                                 if (node.second > upperBound || node.second > distance) break;
                                 if (node.second > lowerBound) {
-                                        auto iteratorObj = find_if(objects.begin(), objects.end(), [&](const ObjectType& o) {
-                                                        Container set = o.pointSet();
-                                                        return (set.find(node.first) != set.end());
-                                                });
-                                        if (iteratorObj != objects.end() &&
-                                            currentCC.find(node.first) == currentCC.end()) {
+                                        auto iteratorObj = merged.find(node.first);
+                                        if (iteratorObj != merged.end()) {
                                                 currentDistance = node.second;
                                                 candidate = node.first;
                                                 break;
@@ -213,7 +298,7 @@ mergeObjects(std::vector<ObjectType>& objects, const std::vector<Scalar>& link) 
                 objects.pop_back();
                 objects.pop_back();
         }
-        objects.push_back(toAdd);
+        objects.insert(objects.begin(), toAdd);
 }
 
 

@@ -1,12 +1,17 @@
+if (WITH_ITK)
+  SET(DGTAL_CONTRIB_EXAMPLES
+    dicom2vol
+    vol2dicom
+    )
+endif(WITH_ITK)
+
 SET(DGTAL_CONTRIB_EXAMPLES
   binvox2vol
   pgm2vol
   tre2vol
   vol2noff
   vol2skelab
-  dicom2vol
   skelab2vol
-  vol2dicom
   vol2pgm
   vol2surfacevol
   )

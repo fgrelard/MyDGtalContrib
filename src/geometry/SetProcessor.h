@@ -131,6 +131,7 @@ template <typename Container>
 Container
 SetProcessor<Container>::
 subSet(const Point& extremity, double radius) {
+        if (myContainer->size() == 0) return *myContainer;
         Ball<Point> ball(extremity, radius);
         Container subSet = ball.intersection(*myContainer);
         if (subSet.size() < 2)
