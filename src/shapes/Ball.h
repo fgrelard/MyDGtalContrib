@@ -42,10 +42,10 @@ private:
 template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::intersection(const DigitalSet& setPoint) {
 	DigitalSet intersection(setPoint.domain());
-	for (auto it = setPoint.begin(), ite = setPoint.end(); it != ite; ++it) {
-		double distance = Distance::euclideanDistance(*it, myCenter);
+	for (const Point& p : setPoint) {
+		double distance = Distance::euclideanDistance(p, myCenter);
 		if (distance <= myRadius) {
-			intersection.insert(*it);
+			intersection.insert(p);
 		}
 	}
 	return intersection;

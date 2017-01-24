@@ -219,11 +219,11 @@ isConvergenceReached(const Container& volume,
                         current = plane.getCenter() + dirVector * scalar;
                         scalar++;
                         itSetVolume = std::find(volume.begin(), volume.end(), current);
-                        double distance = l2Metric(current, plane.getCenter());
-                        alright = (distance < currentRadius);
                 }
-                return alright;
+                 double distance = l2Metric(current, plane.getCenter());
+                 alright = (distance < currentRadius);
         }
+        return alright;
 }
 
 template <typename Container, typename KernelFunction>

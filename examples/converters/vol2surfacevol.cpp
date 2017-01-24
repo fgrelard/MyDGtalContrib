@@ -7,7 +7,6 @@
 #include "DGtal/io/writers/VolWriter.h"
 #include "DGtal/io/readers/VolReader.h"
 #include "DGtal/images/ImageSelector.h"
-#include "DGtal/io/writers/ITKWriter.h"
 #include "shapes/Border.h"
 #include "DGtal/images/imagesSetsUtils/SetFromImage.h"
 

@@ -83,6 +83,7 @@ PointUtil::
 twoClosestPointsTrackingWithNormal(const Container& container, const Point& reference, const RealVector& dirRef,
 								   const Point& other, const RealVector& dirOther) {
 
+	if (dirRef == RealVector::zero || dirOther == RealVector::zero) return std::make_pair(other, reference);
 	RealVector normalRef = dirRef.getNormalized();
 	RealVector normalOther = dirOther.getNormalized();
 	RealVector dirVectorReference = (other - reference).getNormalized();
@@ -92,22 +93,30 @@ twoClosestPointsTrackingWithNormal(const Container& container, const Point& refe
 	if (normalOther.dot(dirVectorOther) < 0)
 		normalOther = -normalOther;
 
+
 	Container traversedCurrent = PointUtil::traversedLineTracking(container, reference, normalRef);
 	Container traversedReference = PointUtil::traversedLineTracking(container, other, normalOther);
+	if (traversedCurrent.size() == 0 || traversedReference.size() == 0)
+		return std::make_pair(other, reference);
+
 	double distanceCR = std::numeric_limits<double>::max();
 	Point closest1, closest2;
 	DGtal::ExactPredicateLpSeparableMetric<typename Container::Space,2> l2Metric;
+
 	for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
-		Point nearest = *min_element(traversedReference.begin(), traversedReference.end(), [&](const Point& one, const Point& two) {
-				return l2Metric(one, *it) < l2Metric(two, *it);
+		Point current = *it;
+		Point nearest = *std::min_element(traversedReference.begin(), traversedReference.end(), [&](const Point& one, const Point& two) {
+				return (l2Metric(one, current) < l2Metric(two, current)
+						&& l2Metric(one, current) > sqrt(3));
 			});
-		double currentDistance = l2Metric(nearest, *it);
-		if (currentDistance < distanceCR && currentDistance > sqrt(3)) {
+		double currentDistance = l2Metric(nearest, current);
+		if (currentDistance < distanceCR) {
 			distanceCR = currentDistance;
 			closest1 = *it;
 			closest2 = nearest;
 		}
 	}
+
 	return std::make_pair(closest1, closest2);
 }
 
