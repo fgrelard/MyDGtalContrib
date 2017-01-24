@@ -21,6 +21,7 @@ void testCuttingPlanes(Viewer3D<>& viewer) {
         typedef functors::BallConstantPointFunction<Z3i::Point, double> KernelFunction;
         typedef OrthogonalPlaneEstimator<Z3i::DigitalSet, KernelFunction> PlaneEstimator;
         typedef DistanceTransformation<Z3i::Space, Z3i::DigitalSet, Z3i::L2Metric> DTL2;
+        typedef DigitalPlane<Z3i::Space> Plane;
 
 
         Image image = GenericReader<Image>::import("/home/florent/test_img/junction_simple4PI045.vol");
@@ -46,8 +47,8 @@ void testCuttingPlanes(Viewer3D<>& viewer) {
         }
         KernelFunction chi(1.0, 10);
         PlaneEstimator estimator(setVolume, chi, 20, 10, 6);
-        CuttingPlaneEstimator<PlaneEstimator> cuttingPlaneEstimator(branches, estimator, setVolume, dt);
-        std::vector<PlaneEstimator::Plane> planes = cuttingPlaneEstimator.cuttingPlanes();
+        CuttingPlaneEstimator<Plane> cuttingPlaneEstimator(branches, setVolume);
+        std::vector<PlaneEstimator::Plane> planes = cuttingPlaneEstimator.cuttingPlanes(estimator, dt);
         for (const PlaneEstimator::Plane& plane : planes) {
                 //trace.info() << plane.getCenter() << endl;
                 //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << plane.getCenter();

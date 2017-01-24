@@ -6,34 +6,52 @@
 #include "DGtal/topology/MetricAdjacency.h"
 #include "geometry/CurveProcessor.h"
 
-template <typename PlaneEstimator>
+template <typename Plane>
 class CuttingPlaneEstimator {
 public:
-        typedef typename PlaneEstimator::Plane Plane;
-        typedef typename PlaneEstimator::Container Container;
-        typedef typename PlaneEstimator::Point Point;
-        typedef typename PlaneEstimator::RealVector RealVector;
-        typedef typename PlaneEstimator::Domain Domain;
-        typedef typename PlaneEstimator::Space Space;
-        typedef typename PlaneEstimator::L2Metric L2Metric;
+        typedef typename Plane::DigitalSet Container;
+        typedef typename Plane::Point Point;
+        typedef typename Plane::Vector RealVector;
+        typedef typename Plane::Domain Domain;
+        typedef typename Plane::Space Space;
+        typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
         typedef DGtal::DistanceTransformation<Space, Container, L2Metric> DTL2;
 
 public:
         CuttingPlaneEstimator();
         CuttingPlaneEstimator(const std::vector<Container>& branches,
-                      const PlaneEstimator& planeEstimator,
-                      const Container& setVolume,
-                      const DTL2& aDT) ;
+                              const Container& setVolume) ;
         CuttingPlaneEstimator(const CuttingPlaneEstimator& other);
         ~CuttingPlaneEstimator();
 
 public:
-        std::vector<Plane> cuttingPlanes();
+        template <typename PlaneEstimator>
+        std::vector<Plane> cuttingPlanes(PlaneEstimator& planeEstimator,
+                const DTL2& dt);
+
+        std::vector<Plane> cuttingPlanes(const std::vector<Plane>& planes);
 
 public:
-        std::vector<Plane> computePlanes(const std::vector<Point>& orientedEdge);
+
+        template <typename PlaneEstimator>
+        Plane referencePlane(const Point& referencePoint,
+                             PlaneEstimator& planeEstimator,
+                             const DTL2& dt);
+
+        Plane referencePlane(const Point& referencePoint,
+                             const std::vector<Plane>& planes);
+
+        template <typename PlaneEstimator>
+        std::vector<Plane> computePlanes(const std::vector<Point>& orientedEdge,
+                                         PlaneEstimator& planeEstimator,
+                                         const DTL2& dt);
+
+        std::vector<Plane> extractPlanes(const std::vector<Point>& orientedEdge,
+                                         const std::vector<Plane>& planes);
+
         Plane cuttingPlane(const std::vector<Plane>& planes);
-        Plane referencePlane(const Point& referencePoint);
+
+
         std::vector<Plane> filteredPlanes(const std::vector<Plane>& cuttingPlanes,
                                           const std::vector<Plane>& endPlanes,
                                           const Plane& referencePlane);
@@ -41,104 +59,158 @@ public:
 
 private:
         std::vector<Container>* myBranches;
-        PlaneEstimator* myPlaneEstimator;
         Container* myVolume;
-        DTL2* myDT;
 
 };
 
-template <typename PlaneEstimator>
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+CuttingPlaneEstimator<Plane>::
 CuttingPlaneEstimator() {
         myBranches = 0;
-        myPlaneEstimator = 0;
         myVolume = 0;
-        myDT = 0;
 }
 
-template <typename PlaneEstimator>
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+CuttingPlaneEstimator<Plane>::
 CuttingPlaneEstimator(const std::vector<Container>& branches,
-              const PlaneEstimator& planeEstimator,
-              const Container& setVolume,
-              const DTL2& aDT) {
+              const Container& setVolume) {
         myBranches = new std::vector<Container>( branches );
-        myPlaneEstimator = new PlaneEstimator( planeEstimator );
         myVolume = new Container( setVolume );
-        myDT = new DTL2( aDT );
 }
 
-template <typename PlaneEstimator>
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+CuttingPlaneEstimator<Plane>::
 CuttingPlaneEstimator( const CuttingPlaneEstimator& other) {
         myBranches = new std::vector<Container>( *other.myBranches );
-        myPlaneEstimator = new PlaneEstimator( *other.myPlaneEstimator );
         myVolume = new Container( *other.myContainer );
-        myDT = new DTL2 ( *other.myDT );
 }
 
-template <typename PlaneEstimator>
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+CuttingPlaneEstimator<Plane>::
 ~CuttingPlaneEstimator() {
         if (myBranches) {
                 delete myBranches;
                 myBranches = 0;
         }
-        if (myPlaneEstimator) {
-                delete myPlaneEstimator;
-                myPlaneEstimator = 0;
-        }
         if (myVolume) {
                 delete myVolume;
                 myVolume = 0;
         }
-        if (myDT) {
-                delete myDT;
-                myDT = 0;
-        }
+
 }
 
+template <typename Plane>
 template <typename PlaneEstimator>
-std::vector<typename CuttingPlaneEstimator<PlaneEstimator>::Plane>
-CuttingPlaneEstimator<PlaneEstimator>::
-cuttingPlanes() {
+std::vector<Plane>
+CuttingPlaneEstimator<Plane>::
+cuttingPlanes(PlaneEstimator& planeEstimator, const DTL2& dt) {
         std::vector<Plane> cuttingPlanes;
         std::vector<Plane> endPlanes;
         Point b = extractBranchingPoint();
 
         for (const Container& branch : *myBranches) {
                 std::vector<Point> orderedBranch = CurveProcessor<Container>(branch).convertToOrderedCurve(b);
-                std::vector<Plane> planes = computePlanes(orderedBranch);
+                std::vector<Plane> planes = computePlanes(orderedBranch, planeEstimator, dt);
                 Plane cutting = cuttingPlane(planes);
                 Plane end = *(planes.rbegin());
 
                 cuttingPlanes.push_back(cutting);
                 endPlanes.push_back(end);
         }
-        Plane planeReference = referencePlane(b);
+        Plane planeReference = referencePlane(b, planeEstimator, dt);
         cuttingPlanes = filteredPlanes(cuttingPlanes, endPlanes, planeReference);
         return cuttingPlanes;
 
 }
 
+template <typename Plane>
+std::vector<Plane>
+CuttingPlaneEstimator<Plane>::
+cuttingPlanes(const std::vector<Plane>& branchesToPlanes) {
+        std::vector<Plane> cuttingPlanes;
+        std::vector<Plane> endPlanes;
+        Point b = extractBranchingPoint();
+
+        for (const Container& branch : *myBranches) {
+                std::vector<Point> orderedBranch = CurveProcessor<Container>(branch).convertToOrderedCurve(b);
+                std::vector<Plane> planes = extractPlanes(orderedBranch, branchesToPlanes);
+                Plane cutting = cuttingPlane(planes);
+                Plane end = *(planes.rbegin());
+
+                cuttingPlanes.push_back(cutting);
+                endPlanes.push_back(end);
+        }
+        Plane planeReference = referencePlane(b, branchesToPlanes);
+        cuttingPlanes = filteredPlanes(cuttingPlanes, endPlanes, planeReference);
+        return cuttingPlanes;
+
+}
+
+template <typename Plane>
 template <typename PlaneEstimator>
-std::vector<typename CuttingPlaneEstimator<PlaneEstimator>::Plane>
-CuttingPlaneEstimator<PlaneEstimator>::
-computePlanes(const std::vector<Point>& orientedEdge) {
+Plane
+CuttingPlaneEstimator<Plane>::
+referencePlane(const Point& referencePoint,
+               PlaneEstimator& planeEstimator,
+               const DTL2& dt) {
+        double radius = dt(referencePoint) + 2;
+        planeEstimator.setRadius(radius);
+        return planeEstimator.convergentPlaneAt(referencePoint, *myVolume, radius * 5);
+}
+
+template <typename Plane>
+Plane
+CuttingPlaneEstimator<Plane>::
+referencePlane(const Point& referencePoint,
+               const std::vector<Plane>& branchesToPlanes) {
+        auto iterator = std::find_if(branchesToPlanes.begin(),
+                             branchesToPlanes.end(),
+                             [&](const Plane& plane) {
+                                     return (plane.getCenter() == referencePoint);
+                             });
+        if (iterator != branchesToPlanes.end()) {
+                return *iterator;
+        }
+        return Plane();
+}
+
+
+template <typename Plane>
+template <typename PlaneEstimator>
+std::vector<Plane>
+CuttingPlaneEstimator<Plane>::
+computePlanes(const std::vector<Point>& orientedEdge,
+              PlaneEstimator& planeEstimator,
+              const DTL2& dt) {
         std::vector<Plane> planes;
         for (const Point& p : orientedEdge) {
-                double radius = (*myDT)(p) + 2;
-                myPlaneEstimator->setRadius(radius);
-                Plane plane = myPlaneEstimator->convergentPlaneAt(p, *myVolume, radius*2);
+                double radius = dt(p) + 2;
+                planeEstimator.setRadius(radius);
+                Plane plane = planeEstimator.convergentPlaneAt(p, *myVolume, radius*5);
                 planes.push_back(plane);
 
         }
         return planes;
 }
 
-template <typename PlaneEstimator>
-typename CuttingPlaneEstimator<PlaneEstimator>::Plane
-CuttingPlaneEstimator<PlaneEstimator>::
+
+template <typename Plane>
+std::vector<Plane>
+CuttingPlaneEstimator<Plane>::
+extractPlanes(const std::vector<Point>& orientedEdge,
+              const std::vector<Plane>& branchesToPlane) {
+        std::vector<Plane> planes;
+        for (const Point & p : orientedEdge) {
+                Plane plane = referencePlane(p, branchesToPlane);
+                //if (plane == Plane())
+                        planes.push_back(plane);
+        }
+        return planes;
+}
+
+template <typename Plane>
+Plane
+CuttingPlaneEstimator<Plane>::
 cuttingPlane(const std::vector<Plane>& planes) {
         typedef DGtal::MetricAdjacency<Space, 3> MAdj;
 
@@ -169,18 +241,10 @@ cuttingPlane(const std::vector<Plane>& planes) {
 
 }
 
-template <typename PlaneEstimator>
-typename CuttingPlaneEstimator<PlaneEstimator>::Plane
-CuttingPlaneEstimator<PlaneEstimator>::
-referencePlane(const Point& referencePoint) {
-        double radius = (*myDT)(referencePoint) + 2;
-        myPlaneEstimator->setRadius(radius);
-        return myPlaneEstimator->convergentPlaneAt(referencePoint, *myVolume, radius * 5);
-}
 
-template <typename PlaneEstimator>
-std::vector<typename CuttingPlaneEstimator<PlaneEstimator>::Plane>
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+std::vector<Plane>
+CuttingPlaneEstimator<Plane>::
 filteredPlanes(const std::vector<Plane>& cuttingPlanes, const std::vector<Plane>& endPlanes, const Plane& referencePlane) {
 
         std::vector<Plane> first, second;
@@ -199,9 +263,9 @@ filteredPlanes(const std::vector<Plane>& cuttingPlanes, const std::vector<Plane>
         return (second.size() > first.size()) ? second : first;
 }
 
-template <typename PlaneEstimator>
-typename CuttingPlaneEstimator<PlaneEstimator>::Point
-CuttingPlaneEstimator<PlaneEstimator>::
+template <typename Plane>
+typename CuttingPlaneEstimator<Plane>::Point
+CuttingPlaneEstimator<Plane>::
 extractBranchingPoint() {
         for (int i = 0; i < myBranches->size(); i++) {
                 Container setCurrent = (*myBranches)[i];

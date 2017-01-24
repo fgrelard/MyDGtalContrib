@@ -18,8 +18,9 @@ class DigitalPlane
 
         BOOST_CONCEPT_ASSERT(( DGtal::concepts::CSpace< TSpace > ));
 public :
+        typedef TSpace Space;
         typedef DGtal::ParallelStrip<TSpace> PlaneEquation;
-        typedef typename TSpace::RealVector Point;
+        typedef typename TSpace::Point Point;
         typedef typename TSpace::RealVector Vector;
         typedef typename DGtal::HyperRectDomain< TSpace > Domain;
         typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS+DGtal::HIGH_BEL_DS >::Type DigitalSet;

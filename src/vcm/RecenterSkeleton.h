@@ -49,7 +49,7 @@ public:
         typedef DGtal::MetricAdjacency<Space, 3> Adj26;
         typedef DGtal::DigitalTopology< Adj26, Adj6 > DT26_6;
         typedef DGtal::Object<DT26_6, Container> ObjectType;
-        typedef CuttingPlaneEstimator<PlaneEstimator> CuttingPlane;
+        typedef CuttingPlaneEstimator<Plane> CuttingPlane;
 
 
 public:
@@ -77,6 +77,9 @@ public:
 
    // ----------------------- Internal methods --------------------------------------
 public:
+
+        std::vector<Plane> computePlanes();
+
         std::vector<Container> adjacentBranchesToPoint(const Point& p,
                                                        const std::vector<GraphEdge>& graph);
 
@@ -174,6 +177,7 @@ recenter() {
 
         Container branching = CurveProcessor<Container>(*mySkeleton).branchingPoints();
         std::vector<GraphEdge> graph = CurveDecomposition<Container>(*mySkeleton, branching).branchDecomposition();
+        std::vector<Plane> planes = computePlanes();
         Container skeletonPoints(mySkeleton->domain());
         Container processedEdges(mySkeleton->domain());
         DGtal::trace.beginBlock("Recentering");
@@ -189,11 +193,11 @@ recenter() {
                                             })->size()*0.5;
 
                 std::vector<Container> restricted = restrictBranches(adjacentEdges, b);
-                CuttingPlane cuttingPE(restricted, *myPlaneEstimator, *myVolume, *myDT);
-                std::vector<Plane> cuttingPlanes = cuttingPE.cuttingPlanes();
+                CuttingPlane cuttingPE(restricted, *myVolume);
+                std::vector<Plane> cuttingPlanes = cuttingPE.cuttingPlanes(planes);
 
                 std::vector<Plane> orientedPlanes = orientNormalPlanes(cuttingPlanes, b);
-                if (cuttingPlanes.size() != 2) continue;
+                if (cuttingPlanes.size() < 2) continue;
                 std::vector<Container> branchesRecentering = planesToBranches(cuttingPlanes, restricted);
                 Container refBranch = referenceBranch(restricted, branchesRecentering);
                 refBranch = SetProcessor<Container>(refBranch).subSet(b, refBranch.size()*0.6);
@@ -207,8 +211,10 @@ recenter() {
                                            6);
                         Container subVolume1 = subVolume(restrictedVolume, currentPlane);
                         Container subVolume2 = subVolume(restrictedVolume, alignedPlanes);
+
                         subVolume1.insert(subVolume2.begin(), subVolume2.end());
                         subVolume1 = relevantCC(subVolume1, refBranch);
+
                         Container correspondingBranch = branchesRecentering[j];
                         correspondingBranch  = SetProcessor<Container>(correspondingBranch).subSet(b, correspondingBranch.size() * 0.6);
 
@@ -229,6 +235,21 @@ recenter() {
         skeletonPoints.insert(post.begin(), post.end());
         DGtal::trace.endBlock();
         return skeletonPoints;
+}
+
+template <typename Container>
+std::vector<typename RecenterSkeleton<Container>::Plane>
+RecenterSkeleton<Container>::
+computePlanes() {
+        std::vector<Plane> planes;
+        for (const Point& p : *mySkeleton) {
+                double radius = (*myDT)(p) + 2;
+                myPlaneEstimator->setRadius(radius);
+                Plane plane = myPlaneEstimator->convergentPlaneAt(p, *myVolume, radius*5);
+                planes.push_back(plane);
+
+        }
+        return planes;
 }
 
 
@@ -309,7 +330,7 @@ restrictBranches(const std::vector<Container>& branches,
                  const Point& p) {
         std::vector<Container> restrictedBranches;
         for (const Container& branch : branches) {
-                Container restricted = SetProcessor<Container>(branch).subSet(p, branch.size() * 0.8);
+                Container restricted = SetProcessor<Container>(branch).subSet(p, branch.size());
                 if (restricted.size() > 0)
                         restrictedBranches.push_back(restricted);
         }
@@ -467,6 +488,8 @@ recenterSkeletonPoints(const Container& subVolume,
                        const Container& computedSkeleton) {
 
         typedef typename Space::RealPoint RealPoint;
+        Container setVCM(subVolume.domain());
+        setVCM.insert(existingSkeleton.begin(), existingSkeleton.end());
         Container smoothSkeleton(subVolume.domain());
         if (existingSkeleton.size() <= 2) {
                 smoothSkeleton.insert(existingSkeleton.begin(), existingSkeleton.end());
@@ -479,10 +502,11 @@ recenterSkeletonPoints(const Container& subVolume,
         double radius = existingSkeleton.size() * 0.4;
         radius = (radius < 2) ? 2 : radius;
         KernelFunction chi(1.0, radius);
-        PlaneEstimator planeEstimator(subVolume, chi, 30, radius, 6);
+        PlaneEstimator planeEstimator(setVCM, chi, 20, radius, 6);
         L2Metric l2Metric;
 
         for (const Point& cp : existingSkeleton) {
+
                 Point currentPoint = SetProcessor<Container>(subVolume).closestPointAt(cp);
                 Plane plane = planeEstimator.planeAt(currentPoint);
                 Container planeSet = plane.intersectionWithSetOneCC(subVolume);
