@@ -34,7 +34,6 @@ public:
 public:
         std::vector<RealVector> planeToQuadrangle();
         SubImage sliceFromPlane(const Image& image, int patch_width);
-        std::pair<Point, Point> twoClosestPointsTrackingWithNormal(const DigPlane& other, const DigitalSet& container);
 
 private:
         DigPlane myDigitalPlane;
@@ -121,43 +120,7 @@ DigitalPlaneProcessor<TSpace>::sliceFromPlane(const typename DigitalPlaneProcess
         return outImage;
 }
 
-template <typename TSpace>
-std::pair<typename DigitalPlaneProcessor<TSpace>::Point,
-          typename DigitalPlaneProcessor<TSpace>::Point>
-DigitalPlaneProcessor<TSpace>::
-twoClosestPointsTrackingWithNormal(const DigPlane& otherPlane, const DigitalSet& container) {
-        Point reference = myDigitalPlane.getCenter();
-        RealVector normalRef = myDigitalPlane.getPlaneEquation().normal();
-        Point other = otherPlane.getCenter();
-        RealVector normalOther = other.getPlaneEquation().normal();
 
-        RealVector dirVectorReference = (other - reference).getNormalized();
-        RealVector dirVectorOther = (reference - other).getNormalized();
-        if (normalRef.dot(dirVectorReference) < 0)
-                normalRef = -normalRef;
-        if (normalOther.dot(dirVectorOther) < 0)
-                normalOther = -normalOther;
-
-        SetProcessor<DigitalSet> setProc(container);
-        DigitalSet traversedCurrent = setProc.traversedLineTracking( reference, normalRef);
-        DigitalSet traversedReference = setProc.traversedLineTracking( other, normalOther);
-        double distanceCR = std::numeric_limits<double>::max();
-        Point closest1, closest2;
-        L2Metric l2Metric;
-
-        SetProcessor<DigitalSet> setProcessor(traversedReference);
-        for (auto it = traversedCurrent.begin(), ite = traversedCurrent.end(); it != ite; ++it) {
-
-                Point nearest = setProcessor.closestPointAt(*it);
-                double currentDistance = l2Metric(nearest, *it);
-                if (currentDistance < distanceCR && currentDistance > sqrt(3)) {
-                        distanceCR = currentDistance;
-                        closest1 = *it;
-                        closest2 = nearest;
-                }
-        }
-        return std::make_pair(closest1, closest2);
-}
 
 
 #endif
