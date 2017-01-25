@@ -44,13 +44,9 @@ private:
         Domain myDomain3D;
         SubDomain myDomain2D;
         int myCurrentIndex = 0;
-private:
-        static int cpt;
 
 };
 
-template <typename Space, typename KSpace>
-int ViewerSlice<Space, KSpace>::cpt = 0;
 
 template <typename Space, typename KSpace>
 ViewerSlice<Space, KSpace>::
@@ -71,27 +67,56 @@ void
 ViewerSlice<Space, KSpace>::
 keyPressEvent(QKeyEvent * e) {
         typedef typename Space::RealPoint RealPoint;
-
+        bool display = false;
         if (e->key() == Qt::Key_Right) {
                 if (myCurrentIndex < myPlanes.size() - 1)
                         myCurrentIndex++;
+                display = true;
         }
         if (e->key() == Qt::Key_Left) {
                 if (myCurrentIndex > 0)
                         myCurrentIndex--;
+                display = true;
         }
-        Plane plane = myPlanes[myCurrentIndex];
-        DGtal::functors::Identity idV;
-        DGtal::functors::Point2DEmbedderIn3D<Domain>  embedder(myDomain3D,
-                                                               plane.getCenter(),
-                                                               plane.getPlaneEquation().normal(),
-                                                               myPatchWidth,
-                                                               myDomain3D.lowerBound());
-        SubImage image = DigitalPlaneProcessor<Space>(plane).sliceFromPlane(myImage, myPatchWidth);
+        if (display) {
+                auto camera = this->camera();
+                auto pos = camera->position();
+                auto sceneCenter = camera->sceneCenter();
+                auto sceneRadius = camera->sceneRadius();
+                Plane plane = myPlanes[myCurrentIndex];
+                DGtal::functors::Identity idV;
+                DGtal::functors::Point2DEmbedderIn3D<Domain>  embedder(myDomain3D,
+                                                                       plane.getCenter(),
+                                                                       plane.getPlaneEquation().normal(),
+                                                                       myPatchWidth,
+                                                                       myDomain3D.lowerBound());
+                SubImage image = DigitalPlaneProcessor<Space>(plane).sliceFromPlane(myImage, myPatchWidth);
+                (*this) << image;
+                int numberImage =  this->getCurrentGLImageNumber() - 1;
 
-        (*this) << image;
-        (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(cpt++, embedder(RealPoint(0,0)), embedder(RealPoint(myPatchWidth,0)), embedder(myDomain2D.upperBound()), embedder(RealPoint(0, myPatchWidth)));
-        (*this) << DGtal::Viewer3D<>::updateDisplay;
+                (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage,
+                                                                        embedder(RealPoint(0,0)),
+                                                                        embedder(RealPoint(myPatchWidth,0)),
+                                                                        embedder(myDomain2D.upperBound()),
+                                                                        embedder(RealPoint(0, myPatchWidth)));
+
+                //Removes the previous image
+                if (numberImage - 1 >= 0) {
+                        (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage-1,
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)));
+                }
+
+                (*this) << DGtal::Viewer3D<>::updateDisplay;
+
+                //Keeps the camera parameters (pos and zoom)
+                camera->setPosition(pos);
+                camera->setSceneCenter(sceneCenter);
+                camera->setSceneRadius(sceneRadius);
+                this->setCamera(camera);
+        }
 
 }
 

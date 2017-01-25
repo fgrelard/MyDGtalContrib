@@ -82,8 +82,11 @@ int main( int  argc, char**  argv )
         SetFromImage<Z3i::DigitalSet>::append<Image> (setCurve, curve,
                                                       thresholdMin-1, thresholdMax);
 
-
-        QApplication application(argc,argv);
+        CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
+        Z3i::DigitalSet endPoints = curveProcessor.endPoints();
+        Z3i::DigitalSet branchingPoints = curveProcessor.branchingPoints();
+        Z3i::Point point = (*endPoints.begin());
+        std::vector<Z3i::Point> curveOrdered = CurveDecomposition<Z3i::DigitalSet>(setCurve, branchingPoints).curveTraversalForGraphDecomposition(point);
 
 
 
@@ -95,19 +98,20 @@ int main( int  argc, char**  argv )
         OrthoPlaneEstimator orthogonalPlaneEstimator(setVolume, chi, 20, 10);
         orthogonalPlaneEstimator.setRadius(radiusVCM);
         std::vector<Plane> planes;
-        for (const Z3i::Point& p : setCurve) {
+        for (const Z3i::Point& p : curveOrdered) {
                 double radius = dt(p) + 2.0;
                 orthogonalPlaneEstimator.setRadius(radius);
                 Plane plane = orthogonalPlaneEstimator.convergentPlaneAt(p, setVolume, radiusVCM);
                 planes.push_back(plane);
         }
 
+        QApplication application(argc,argv);
         ViewerSlice<Z3i::Space, Z3i::KSpace> viewer(planes, input, 100);
         Color color(210,210,210,20);
         viewer << CustomColors3D(Color::Red, Color::Red) << setCurve;
         viewer << CustomColors3D(color, color) << setVolume;
-        viewer.show();
         viewer << Viewer3D<>::updateDisplay;
+        viewer.show();
         application.exec();
         return 0;
 
