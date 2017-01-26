@@ -24,7 +24,7 @@ public:
 
 public:
         Container extractAnnulus();
-
+        Point projection(const Point& p);
 private:
         Distance* myDistanceMap;
         Container* myInnerSet;
@@ -65,7 +65,21 @@ template <typename ImageFct>
 typename SegmentationAnnulus<ImageFct>::Container
 SegmentationAnnulus<ImageFct>::
 extractAnnulus() {
+        Container annulus(myDistanceMap->domain());
+        for (const Point& p : *myInnerSet) {
+                Point proj = projection(p);
+                annulus.insert(proj);
+        }
+        return annulus;
+}
 
+template <typename ImageFct>
+typename SegmentationAnnulus<ImageFct>::Point
+SegmentationAnnulus<ImageFct>::
+projection(const Point& p) {
+        RealVector v = myDistanceMap->projection(p);
+        Point proj = p + v;
+        return proj;
 }
 
 #endif

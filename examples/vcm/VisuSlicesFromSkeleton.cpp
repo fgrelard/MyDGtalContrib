@@ -85,7 +85,9 @@ int main( int  argc, char**  argv )
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setCurve);
         Z3i::DigitalSet endPoints = curveProcessor.endPoints();
         Z3i::DigitalSet branchingPoints = curveProcessor.branchingPoints();
-        Z3i::Point point = (*endPoints.begin());
+        Z3i::Point point = *min_element(setCurve.begin(), setCurve.end(), [&](const Z3i::Point& p1, const Z3i::Point& p2) {
+                        return (p1[2] < p2[2]);
+                });
         std::vector<Z3i::Point> curveOrdered = CurveDecomposition<Z3i::DigitalSet>(setCurve, branchingPoints).curveTraversalForGraphDecomposition(point);
 
 

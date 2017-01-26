@@ -6,6 +6,7 @@ if (WITH_ITK)
 endif(WITH_ITK)
 
 SET(DGTAL_CONTRIB_EXAMPLES
+  ${DGTAL_CONTRIB_EXAMPLES}
   binvox2vol
   pgm2vol
   tre2vol

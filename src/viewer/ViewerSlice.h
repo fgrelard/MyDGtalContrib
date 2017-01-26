@@ -25,6 +25,7 @@ public:
         typedef DGtal::HyperRectDomain<SubSpace> SubDomain;
         typedef DGtal::ImageContainerBySTLVector<SubDomain, unsigned char> SubImage;
         typedef typename SubSpace::Point SubPoint;
+        typedef DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
 
 public:
         ViewerSlice() = delete;
@@ -35,7 +36,14 @@ public:
                     int patchWidth);
 
 public:
-        void keyPressEvent(QKeyEvent * e);
+        virtual void keyPressEvent(QKeyEvent * e);
+        virtual void postSelection(const QPoint& point);
+        virtual void mouseMoveEvent ( QMouseEvent *e );
+        virtual void mousePressEvent ( QMouseEvent *e );
+        virtual void mouseReleaseEvent ( QMouseEvent *e );
+
+private:
+        void displayCurrentSlice();
 private:
         std::vector<Plane> myPlanes;
         Image myImage;
@@ -65,58 +73,117 @@ ViewerSlice(const std::vector<Plane>& planes,
 template <typename Space, typename KSpace>
 void
 ViewerSlice<Space, KSpace>::
-keyPressEvent(QKeyEvent * e) {
+displayCurrentSlice() {
         typedef typename Space::RealPoint RealPoint;
+
+        auto camera = this->camera();
+        auto pos = camera->position();
+        auto sceneCenter = camera->sceneCenter();
+        auto sceneRadius = camera->sceneRadius();
+        Plane plane = myPlanes[myCurrentIndex];
+        DGtal::functors::Identity idV;
+        DGtal::functors::Point2DEmbedderIn3D<Domain>  embedder(myDomain3D,
+                                                               plane.getCenter(),
+                                                               plane.getPlaneEquation().normal(),
+                                                               myPatchWidth,
+                                                               myDomain3D.lowerBound());
+        SubImage image = DigitalPlaneProcessor<Space>(plane).sliceFromPlane(myImage, myPatchWidth);
+        (*this) << image;
+        int numberImage =  this->getCurrentGLImageNumber() - 1;
+
+        (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage,
+                                                                embedder(RealPoint(0,0)),
+                                                                embedder(RealPoint(myPatchWidth,0)),
+                                                                embedder(myDomain2D.upperBound()),
+                                                                embedder(RealPoint(0, myPatchWidth)));
+
+        //Removes the previous image
+        if (numberImage - 1 >= 0) {
+                (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage-1,
+                                                                        embedder(RealPoint(0,0)),
+                                                                        embedder(RealPoint(0,0)),
+                                                                        embedder(RealPoint(0,0)),
+                                                                        embedder(RealPoint(0,0)));
+        }
+
+        (*this) << DGtal::Viewer3D<>::updateDisplay;
+
+        //Keeps the camera parameters (pos and zoom)
+        camera->setPosition(pos);
+        camera->setSceneCenter(sceneCenter);
+        camera->setSceneRadius(sceneRadius);
+        this->setCamera(camera);
+}
+
+template <typename Space, typename KSpace>
+void
+ViewerSlice<Space, KSpace>::
+keyPressEvent(QKeyEvent * e) {
+
         bool display = false;
         if (e->key() == Qt::Key_Right) {
                 if (myCurrentIndex < myPlanes.size() - 1)
                         myCurrentIndex++;
                 display = true;
         }
-        if (e->key() == Qt::Key_Left) {
+        else if (e->key() == Qt::Key_Left) {
                 if (myCurrentIndex > 0)
                         myCurrentIndex--;
                 display = true;
         }
-        if (display) {
-                auto camera = this->camera();
-                auto pos = camera->position();
-                auto sceneCenter = camera->sceneCenter();
-                auto sceneRadius = camera->sceneRadius();
-                Plane plane = myPlanes[myCurrentIndex];
-                DGtal::functors::Identity idV;
-                DGtal::functors::Point2DEmbedderIn3D<Domain>  embedder(myDomain3D,
-                                                                       plane.getCenter(),
-                                                                       plane.getPlaneEquation().normal(),
-                                                                       myPatchWidth,
-                                                                       myDomain3D.lowerBound());
-                SubImage image = DigitalPlaneProcessor<Space>(plane).sliceFromPlane(myImage, myPatchWidth);
-                (*this) << image;
-                int numberImage =  this->getCurrentGLImageNumber() - 1;
-
-                (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage,
-                                                                        embedder(RealPoint(0,0)),
-                                                                        embedder(RealPoint(myPatchWidth,0)),
-                                                                        embedder(myDomain2D.upperBound()),
-                                                                        embedder(RealPoint(0, myPatchWidth)));
-
-                //Removes the previous image
-                if (numberImage - 1 >= 0) {
-                        (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage-1,
-                                                                                embedder(RealPoint(0,0)),
-                                                                                embedder(RealPoint(0,0)),
-                                                                                embedder(RealPoint(0,0)),
-                                                                                embedder(RealPoint(0,0)));
-                }
-
-                (*this) << DGtal::Viewer3D<>::updateDisplay;
-
-                //Keeps the camera parameters (pos and zoom)
-                camera->setPosition(pos);
-                camera->setSceneCenter(sceneCenter);
-                camera->setSceneRadius(sceneRadius);
-                this->setCamera(camera);
+        else {
+                DGtal::Viewer3D<>::keyPressEvent(e);
         }
+        if (display) {
+                displayCurrentSlice();
+        }
+
+}
+
+template <typename Space, typename KSpace>
+void
+ViewerSlice<Space,KSpace>::
+postSelection(const QPoint& point)
+{
+  // Compute orig and dir, used to draw a representation of the intersecting line
+        auto camera = this->camera();
+        qglviewer::Vec selectedPoint, orig, dir;
+        camera->convertClickToLine(point, orig, dir);
+
+        // Find the selectedPoint coordinates, using camera()->pointUnderPixel().
+        bool found;
+        L2Metric l2Metric;
+        selectedPoint = camera->pointUnderPixel(point, found);
+        if (found) {
+                Point dgtalPoint(selectedPoint[0], selectedPoint[1], selectedPoint[2]);
+                auto iterator = std::min_element(myPlanes.begin(), myPlanes.end(), [&](const Plane& f, const Plane& s) {
+                                return (l2Metric(f.getCenter(), dgtalPoint) < l2Metric(s.getCenter(), dgtalPoint));
+                        });
+                myCurrentIndex = iterator - myPlanes.begin();
+                displayCurrentSlice();
+        }
+}
+
+template <typename Space, typename KSpace>
+void
+ViewerSlice<Space, KSpace>::
+mouseMoveEvent ( QMouseEvent *e ) {
+        QGLViewer::mouseMoveEvent(e);
+}
+
+
+template <typename Space, typename KSpace>
+void
+ViewerSlice<Space, KSpace>::
+mousePressEvent ( QMouseEvent *e ) {
+        QGLViewer::mousePressEvent(e);
+}
+
+template <typename Space, typename KSpace>
+void
+ViewerSlice<Space, KSpace>::
+mouseReleaseEvent ( QMouseEvent *e ) {
+        QGLViewer::mouseReleaseEvent(e);
 
 }
 

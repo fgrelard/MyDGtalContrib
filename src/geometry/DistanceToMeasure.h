@@ -121,7 +121,9 @@ public:
                 return d2 / m;
         }
 
-public:
+        Domain domain() const { return myMeasure.domain(); }
+
+private:
         Value myMass;
         const ImageFct& myMeasure;
         ImageFct myDistance2;

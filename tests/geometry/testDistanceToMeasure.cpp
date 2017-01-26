@@ -46,15 +46,14 @@ int main( int argc, char** argv )
         }
         trace.beginBlock( "Computing delta-distance." );
         Distance     delta( mass, fimg, rmax );
-        const FloatImage2D& d2 = delta.myDistance2;
         trace.endBlock();
 
         float m = 0.0f;
-        for ( typename Domain::ConstIterator it = d2.domain().begin(),
-                      itE = d2.domain().end(); it != itE; ++it )
+        for ( typename Domain::ConstIterator it = delta.domain().begin(),
+                      itE = delta.domain().end(); it != itE; ++it )
         {
                 Point p = *it;
-                float v = sqrt( d2( p ) );
+                float v = sqrt( delta.distance2( p ) );
                 m = std::max( v, m );
         }
 
@@ -66,22 +65,25 @@ int main( int argc, char** argv )
         cmap_grad.addColor( Color( 0,   0, 255 ) );
         cmap_grad.addColor( Color( 0,   0, 0 ) );
         Board2D board;
-        board << SetMode( d2.domain().className(), "Paving" );
+        board << SetMode( delta.domain().className(), "Paving" );
 
 
-        for ( typename Domain::ConstIterator it = d2.domain().begin(),
-                      itE = d2.domain().end(); it != itE; ++it )
+        for ( typename Domain::ConstIterator it = delta.domain().begin(),
+                      itE = delta.domain().end(); it != itE; ++it )
         {
                 Point p = *it;
-                float v = sqrt( d2( p ) );
+                float v = sqrt( delta.distance2( p ) );
                 v = std::min( (float)m, std::max( v, 0.0f ) );
                 RealVector grad = delta.projection( p );
-                 board <<  CustomStyle( p.className(),
-                                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
-                         Point(p[0] + grad[0], p[1] + grad[1]);
+                board <<  CustomStyle( p.className(),
+                                       new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
+                        Point(p[0] + grad[0], p[1] + grad[1]);
                 board << CustomStyle( p.className(),
                                       new CustomColors( Color::Black, cmap_grad( v ) ) )
                       << p;
+
+
+                // / ( 1.1 - ( (double)img( *it ) ) / 255.0 ) ;
 
                 board.drawLine( p[ 0 ], p[ 1 ], p[ 0 ] + grad[ 0 ], p[ 1 ] + grad[ 1 ], 0 );
 
