@@ -52,6 +52,7 @@ private:
         Domain myDomain3D;
         SubDomain myDomain2D;
         int myCurrentIndex = 0;
+        bool myRemove = true;
 
 };
 
@@ -97,13 +98,15 @@ displayCurrentSlice() {
                                                                 embedder(myDomain2D.upperBound()),
                                                                 embedder(RealPoint(0, myPatchWidth)));
 
-        //Removes the previous image
-        if (numberImage - 1 >= 0) {
-                (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage-1,
-                                                                        embedder(RealPoint(0,0)),
-                                                                        embedder(RealPoint(0,0)),
-                                                                        embedder(RealPoint(0,0)),
-                                                                        embedder(RealPoint(0,0)));
+        //Removes the previous images
+        if (myRemove) {
+                for (int i = 0; i < numberImage; i++) {
+                        (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(i,
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)),
+                                                                                embedder(RealPoint(0,0)));
+                }
         }
 
         (*this) << DGtal::Viewer3D<>::updateDisplay;
@@ -130,6 +133,9 @@ keyPressEvent(QKeyEvent * e) {
                 if (myCurrentIndex > 0)
                         myCurrentIndex--;
                 display = true;
+        }
+        else if (e->key() == Qt::Key_R) {
+                myRemove = !myRemove;
         }
         else {
                 DGtal::Viewer3D<>::keyPressEvent(e);
