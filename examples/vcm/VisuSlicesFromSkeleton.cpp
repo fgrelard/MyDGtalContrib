@@ -100,7 +100,11 @@ int main( int  argc, char**  argv )
         OrthoPlaneEstimator orthogonalPlaneEstimator(setVolume, chi, 20, 10);
         orthogonalPlaneEstimator.setRadius(radiusVCM);
         std::vector<Plane> planes;
-        for (const Z3i::Point& p : curveOrdered) {
+
+        DGtal::trace.info() << "Plane computation" << std::endl;
+#pragma omp parallel for schedule(dynamic) firstprivate(orthogonalPlaneEstimator, setVolume) shared(curveOrdered, planes)
+        for (int i = 0; i < curveOrdered.size(); i++) {
+                Z3i::Point p = curveOrdered[i];
                 double radius = dt(p) + 2.0;
                 orthogonalPlaneEstimator.setRadius(radius);
                 Plane plane = orthogonalPlaneEstimator.convergentPlaneAt(p, setVolume, radiusVCM);

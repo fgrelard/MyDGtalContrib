@@ -1,4 +1,4 @@
-#ifndef SEGMENTATION_ANNULUS_H
+ale#ifndef SEGMENTATION_ANNULUS_H
 #define SEGMENTATION_ANNULUS_H
 
 #include "geometry/DistanceToMeasure.h"
