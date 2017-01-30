@@ -12,6 +12,7 @@ SET(DGTAL_CONTRIB_TESTS
   testPointUtil
   testMultiPathThinner
   testDistanceToMeasure
+  testDistanceToMeasureEdge
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})

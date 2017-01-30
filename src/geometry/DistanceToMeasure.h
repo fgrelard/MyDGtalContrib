@@ -19,24 +19,25 @@ public:
         typedef DGtal::MetricAdjacency<Space,1> Adjacency;
 
 public:
-        DistanceToMeasure( Value m0, const ImageFct& measure, Value rmax = 10.0 )
+
+        DistanceToMeasure( Value m0, const ImageFct& measure, Value rmax = 10.0, bool initialize = true )
                 : myMass( m0 ), myMeasure( measure ), myDistance2( myMeasure.domain() ),
                   myR2Max( rmax*rmax ) {
-                init( );
+                if (initialize)
+                        init( );
         }
 
         DistanceToMeasure(const DistanceToMeasure& other) : myMass(other.myMass), myMeasure(other.myMeasure), myDistance2(other.myDistance2), myR2Max(other.myR2Max) {
         }
 
-        void init( ) {
+        virtual void init( ) {
                 double       nb = myDistance2.domain().size();
                 unsigned int i  = 0;
-                DGtal::trace.progressBar( i, nb );
 
                 for ( typename Domain::ConstIterator it = myDistance2.domain().begin(),
                               itE = myDistance2.domain().end(); it != itE; ++it, ++i )
                 {
-                        if ( ( i % 100 ) == 0 ) DGtal::trace.progressBar( i, nb );
+                        DGtal::trace.progressBar( i, nb );
                         myDistance2.setValue( *it, computeDistance2( *it ) );
                 }
         }
@@ -56,7 +57,7 @@ public:
                 return q.inf( myDistance2.domain().upperBound() );
         }
 
-        RealVector projection( const Point& p ) const {
+        virtual RealVector projection( const Point& p ) const {
                 std::vector<Point> neighborsP;
                 std::back_insert_iterator<std::vector<Point> > outIterator(neighborsP);
                 Adjacency::writeNeighbors(outIterator, p);
@@ -85,7 +86,7 @@ public:
                 return vectorToReturn;
         }
 
-        Value computeDistance2( const Point& p ) {
+        virtual Value computeDistance2( const Point& p ) {
                 typedef DGtal::ExactPredicateLpSeparableMetric<Space,2> Distance;
                 typedef DistanceToPointFunctor<Distance>         DistanceToPoint;
 
@@ -123,7 +124,7 @@ public:
 
         Domain domain() const { return myMeasure.domain(); }
 
-private:
+protected:
         Value myMass;
         const ImageFct& myMeasure;
         ImageFct myDistance2;
