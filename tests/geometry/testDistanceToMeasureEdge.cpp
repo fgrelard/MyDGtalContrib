@@ -34,7 +34,7 @@ int main( int argc, char** argv )
         typedef DistanceToMeasureEdge<FloatImage2D>                 Distance;
 
         GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( "/home/florent/test_img/Retina/30 normal FFA/11-1.pgm" );
-        double           mass = 10;
+        double           mass = 2.5;
         double           rmax = 5;
         FloatImage2D     fimg( img.domain() );
         FloatImage2D::Iterator outIt = fimg.begin();
@@ -64,31 +64,32 @@ int main( int argc, char** argv )
         cmap_grad.addColor( Color( 0, 255, 0 ) );
         cmap_grad.addColor( Color( 0,   0, 255 ) );
         cmap_grad.addColor( Color( 0,   0, 0 ) );
-        Board2D board;
-        board << SetMode( delta.domain().className(), "Paving" );
-
+        QApplication app(argc, argv);
+        Viewer3D<> viewer;
+        viewer.show();
 
         for ( typename Domain::ConstIterator it = delta.domain().begin(),
                       itE = delta.domain().end(); it != itE; ++it )
         {
                 Point p = *it;
+                Z3i::Point c(p[0], p[1], 0);
                 float v = sqrt( delta.distance2( p ) );
                 v = std::min( (float)m, std::max( v, 0.0f ) );
                 RealVector grad = delta.projection( p );
+                Z3i::RealVector grad3D(grad[0], grad[1], 0);
                 // board <<  CustomStyle( p.className(),
                 //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
                 //         Point(p[0] + grad[0], p[1] + grad[1]);
-                board << CustomStyle( p.className(),
-                                      new CustomColors( Color::Black, cmap_grad( v ) ) )
-                      << p;
+                Color currentColor = cmap_grad( v );
+                currentColor.alpha(120);
+                viewer << CustomColors3D( Color::Black, currentColor )
+                       << c;
 
-
-                // / ( 1.1 - ( (double)img( *it ) ) / 255.0 ) ;
-
-                 board.drawLine( p[ 0 ], p[ 1 ], p[ 0 ] + grad[ 0 ], p[ 1 ] + grad[ 1 ], 0 );
+                //viewer.addLine( c, c+grad3D.getNormalized() );
 
         }
-        std::cout << endl;
-        board.saveSVG("delta2.svg");
+        viewer << Viewer3D<>::updateDisplay;
+        app.exec();
+
         return 0;
 }

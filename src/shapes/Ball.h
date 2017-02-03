@@ -24,11 +24,15 @@ public:
 
 public:
 	inline bool contains(const Point& point) const {return Distance::euclideanDistance(point, myCenter) <= myRadius;}
-	DigitalSet intersection(const DigitalSet& setPoint);
+
 
 	template <typename Image>
 	Image intersection(const Image& image);
 
+	template <typename Image>
+	Image surfaceIntersection(const Image& image);
+
+	DigitalSet intersection(const DigitalSet& setPoint);
 	DigitalSet surfaceIntersection(const DigitalSet& setSurface);
     DigitalSet pointSet() const;
 	DigitalSet pointsInHalfBall(const RealVector& normal = RealVector(0,1,0)) const;
@@ -49,12 +53,43 @@ template <typename Image>
 Image
 Ball<Point>::
 intersection(const Image& image) {
-	auto domain = image.domain();
+	DigitalSet points = pointSet();
+	Domain domainImage = image.domain();
+	Domain domainPointSet = points.domain();
+	Point lowerS = domainPointSet.lowerBound();
+	Point upperS = domainPointSet.upperBound();
+	Domain domain(PointUtil::box(lowerS, domainImage),
+				  PointUtil::box(upperS, domainImage));
 	Image other(domain);
 	for (auto it = domain.begin(), ite = domain.end();
 		 it != ite; ++it) {
 		Point p = *it;
 		if (contains(p))
+			other.setValue(p, image(p));
+		else
+			other.setValue(p, 0);
+	}
+	return other;
+}
+
+template <typename Point>
+template <typename Image>
+Image
+Ball<Point>::
+surfaceIntersection(const Image& image) {
+	DigitalSet points = pointSet();
+	Domain domainImage = image.domain();
+	Domain domainPointSet = points.domain();
+	Point lowerS = domainPointSet.lowerBound();
+	Point upperS = domainPointSet.upperBound();
+	Domain domain(PointUtil::box(lowerS, domainImage),
+				  PointUtil::box(upperS, domainImage));
+	Image other(domain);
+	DigitalSet surface = pointsSurfaceBall();
+	for (auto it = domain.begin(), ite = domain.end();
+		 it != ite; ++it) {
+		Point p = *it;
+		if (surface.find(p) != surface.end())
 			other.setValue(p, image(p));
 		else
 			other.setValue(p, 0);

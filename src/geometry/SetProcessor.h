@@ -40,8 +40,6 @@ public:
         }
 
 public:
-        std::pair<Point, Point> majorAxis();
-        double lengthMajorAxis();
 
         Point closestPointAt(const RealPoint& point);
         std::pair<Point, Point> twoClosestPoints(const Container& other);
@@ -62,36 +60,7 @@ private:
 
 };
 
-template <typename Container>
-std::pair<typename SetProcessor<Container>::Point, typename SetProcessor<Container>::Point>
-SetProcessor<Container>::majorAxis() {
-        Point p1, p2;
-        L2Metric l2Metric;
-        double distanceFarthestPoint = 0;
-        for (const Point& p : *myContainer) {
-                for (const Point& o : *myContainer) {
-                        double currentDistance = l2Metric(p, o);
-                        if (l2Metric(p, o) > distanceFarthestPoint) {
-                                distanceFarthestPoint = currentDistance;
-                                p1 = p;
-                                p2 = o;
-                        }
-                }
-        }
-        std::pair<Point, Point> pair = std::make_pair(p1, p2);
-        return pair;
-}
 
-
-template <typename Container>
-double
-SetProcessor<Container>::lengthMajorAxis() {
-        L2Metric l2Metric;
-        std::pair<Point, Point> farthest = majorAxis();
-        double distanceFarthestPoint = l2Metric(farthest.first, farthest.second);
-        double radius = distanceFarthestPoint / 2.0;
-        return radius;
-}
 
 template <typename Container>
 typename SetProcessor<Container>::Point

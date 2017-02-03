@@ -16,7 +16,7 @@
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "vcm/CuttingPlaneEstimator.h"
 #include "geometry/CurveDecomposition.h"
-#include "Statistics.h"
+#include "ShapeDescriptor.h"
 
 /**
    * Description of template class 'RecenterSkeleton' <p>
@@ -511,7 +511,7 @@ recenterSkeletonPoints(const Container& subVolume,
                 Point currentPoint = SetProcessor<Container>(subVolume).closestPointAt(cp);
                 Plane plane = planeEstimator.planeAt(currentPoint);
                 Container planeSet = plane.intersectionWithSetOneCC(subVolume);
-                RealPoint realCenter = Statistics<Container>(planeSet).extractCenterOfMass();
+                RealPoint realCenter = ShapeDescriptor<Container>(planeSet).extractCenterOfMass();
                 Point centerOfMass = SetProcessor<Container>(planeSet).closestPointAt(realCenter);
                 bool stop = false;
                 for (const Point& p : computedSkeleton)

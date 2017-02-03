@@ -16,6 +16,10 @@ namespace PointUtil {
 	template <typename Domain, typename Container>
 	Domain computeBoundingBox(const Container& points);
 
+	template <typename Domain>
+	typename Domain::Point box(const typename Domain::Point& p,
+							   const Domain& domain);
+
 	template <typename Container, typename Point, typename RealVector>
 	Point trackPoint(const Container& container, const Point& start, const RealVector& vector);
 
@@ -45,6 +49,17 @@ Domain PointUtil::computeBoundingBox(const Container & points) {
 	}
 	Domain domain(low, up);
 	return domain;
+}
+
+template <typename Domain>
+typename Domain::Point
+PointUtil::
+box(const typename Domain::Point& p,
+	const Domain& domain) {
+	typedef typename Domain::Point Point;
+	Point lower = domain.lowerBound();
+	Point upper = domain.upperBound();
+	return p.sup(lower).inf(upper);
 }
 
 template <typename Container, typename Point, typename RealVector>

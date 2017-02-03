@@ -1,6 +1,7 @@
 SET(DGTAL_CONTRIB_EXAMPLES
   EnsureConnectivity
   DeltaDistance
+  DeltaDistanceEdge
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

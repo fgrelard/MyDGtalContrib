@@ -22,7 +22,7 @@
 #include "geometry/junction/SSIJunctionDetection.h"
 #include "vcm/skeleton/post/JunctionProcessingSkeleton.h"
 #include "geometry/predicate/AbovePlanePredicate.h"
-#include "Statistics.h"
+#include "ShapeDescriptor.h"
 
 /**
    * Description of template class 'SkeletonizationOrthogonalPlanes' <p>
@@ -228,7 +228,7 @@ skeletonize() {
                 markPoints(p);
                 markPoints(restrictPlaneSet(planeSet, radius));
 
-                RealPoint centerOfMass = Statistics<Container>(planePoints).extractCenterOfMass();
+                RealPoint centerOfMass = ShapeDescriptor<Container>(planePoints).extractCenterOfMass();
 
                 if (centerOfMass != RealPoint::zero && l2Metric(centerOfMass, p) <= sqrt(3)) {
                         Point g = SetProcessor<Container>(planePoints).closestPointAt(centerOfMass);
@@ -457,8 +457,8 @@ isInJunction(const PlaneSet& planeSet, double radius) {
         int connexity = planeSet.digitalPlane().getConnexity();
         Container set = planeSet.pointSet();
         Container minusSet = Plane(center, -normal, connexity).intersectionWithSetOneCC(*myVolume);
-        double radiusCurrent = SetProcessor<Container>(set).lengthMajorAxis() + 2.0;
-        double radiusCurrentMinus = SetProcessor<Container>(minusSet).lengthMajorAxis() + 2.0;
+        double radiusCurrent = ShapeDescriptor<Container>(set).lengthMajorAxis() + 2.0;
+        double radiusCurrentMinus = ShapeDescriptor<Container>(minusSet).lengthMajorAxis() + 2.0;
         double radiusShell = std::max(4.0, std::max(radiusCurrent, radiusCurrentMinus));
         radiusShell *= 1.2;
         double noise = radiusShell / 2.0;

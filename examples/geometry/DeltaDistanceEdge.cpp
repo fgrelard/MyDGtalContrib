@@ -17,46 +17,12 @@
 #include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/viewers/Viewer3D.h"
-#include "geometry/DistanceToMeasure.h"
-#include "shapes/Ball.h"
-#include "geometry/SetProcessor.h"
+#include "geometry/DistanceToMeasureEdge.h"
 
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
 
-double signedAngle(const Z2i::RealVector& v) {
-        double angle = atan2(v[1], v[0]);
-        return (angle > 0 ? angle : (2*M_PI + angle));
-}
-
-double signedAngleTwoVectors(const Z2i::RealVector& v1,
-                             const Z2i::RealVector& v2) {
-        if (v1 == v2) return 2 * M_PI;
-        double angle = signedAngle(v1) - signedAngle(v2);
-        if (angle < 0) {
-                return 2 * M_PI;
-        }
-        return angle;
-}
-
-double twoAngleClusters(const std::vector<Z2i::RealVector>& dirs) {
-        if (dirs.size() == 1) return 0;
-        double maxAngle = 0;
-        for (const Z2i::RealVector& f : dirs) {
-                Z2i::RealVector other = *min_element(dirs.begin(),
-                                                     dirs.end(),
-                                                     [&](const Z2i::RealVector& lhs,
-                                                         const Z2i::RealVector& rhs) {
-                                                             return (signedAngleTwoVectors(f, lhs) < signedAngleTwoVectors(f, rhs));
-                        });
-
-                double angle = signedAngleTwoVectors(f, other);
-                if (angle != 2* M_PI && angle > maxAngle)
-                        maxAngle = angle;
-        }
-        return maxAngle;
-}
 
 int main( int argc, char** argv )
 {
@@ -65,7 +31,7 @@ int main( int argc, char** argv )
 
         typedef ImageContainerBySTLVector<Domain,unsigned char> GrayLevelImage2D;
         typedef ImageContainerBySTLVector<Domain,float>         FloatImage2D;
-        typedef DistanceToMeasure<FloatImage2D>                 Distance;
+        typedef DistanceToMeasureEdge<FloatImage2D>                 Distance;
 
         po::options_description general_opt("Allowed options are: ");
         general_opt.add_options()
@@ -75,7 +41,6 @@ int main( int argc, char** argv )
                 ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;
-
 
         bool parseOK=true;
         po::variables_map vm;
@@ -99,13 +64,10 @@ int main( int argc, char** argv )
                 return 0;
         }
 
-
         string inputFilename = vm["input"].as<std::string>();
         int thresholdMax = vm["thresholdMax"].as<int>();
         double mass = vm["mass"].as<double>();
         double rmax = vm["rmax"].as<double>();
-
-
 
         GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( inputFilename );
         auto domain = img.domain();
@@ -130,9 +92,13 @@ int main( int argc, char** argv )
                 m = std::max( v, m );
         }
 
-        //  GradientColorMap<float> cmap_grad( 0, 1.82 );
-        GradientColorMap<float> cmap_grad( 0, 2*M_PI );
 
+        double min = delta.distance2(*std::min_element(delta.domain().begin(), delta.domain().end(), [&](const Point& f,
+                                                                                        const Point& s) {
+                                              return delta.distance2(f) < delta.distance2(s);
+                                                       }));
+        trace.info() << min << endl;
+        GradientColorMap<float> cmap_grad( min, m );
         cmap_grad.addColor( Color( 255, 255, 255 ) );
         cmap_grad.addColor( Color( 255, 255, 0 ) );
         cmap_grad.addColor( Color( 255, 0, 0 ) );
@@ -143,9 +109,6 @@ int main( int argc, char** argv )
         Viewer3D<> viewer;
         viewer.show();
 
-
-
-        vector<double> ve;
         for ( typename Domain::ConstIterator it = delta.domain().begin(),
                       itE = delta.domain().end(); it != itE; ++it )
         {
@@ -153,36 +116,19 @@ int main( int argc, char** argv )
                 Z3i::Point c(p[0], p[1], 0);
                 float v = sqrt( delta.distance2( p ) );
                 v = std::min( (float)m, std::max( v, 0.0f ) );
-                int radius = 4;
-                Ball<Point> ball(p, radius);
-                FloatImage2D aSet = ball.intersection( fimg );
-                std::vector<RealVector> dirs;
-                DigitalSet projections(img.domain());
-                for (const Point& b : aSet.domain()) {
-                        if (aSet(b) == 0) continue;
-                        RealVector grad = delta.projection(b);
-                        if (ball.contains(b+grad) &&
-                            grad != RealVector::zero) {
-                                grad = grad.getNormalized();
-                                 dirs.push_back(grad);
-                         }
-                }
-
-                double angle = twoAngleClusters(dirs);
-                RealVector grad = delta.projection(p);
+                RealVector grad = delta.projection( p );
                 Z3i::RealVector grad3D(grad[0], grad[1], 0);
-                // if (distanceProj < v) continue;
-                Color currentColor = cmap_grad(angle);
-//                            Color currentColor = cmap_grad( angle );
+                // board <<  CustomStyle( p.className(),
+                //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
+                //         Point(p[0] + grad[0], p[1] + grad[1]);
+                Color currentColor = cmap_grad( v );
                 currentColor.alpha(255);
                 viewer << CustomColors3D( Color::Black, currentColor )
                        << c;
-                viewer.addLine( c, c+grad3D*5 );
-
-
+                if (grad3D.norm() < 20)
+                        viewer.addLine( c, c+grad3D );
 
         }
-
         viewer << Viewer3D<>::updateDisplay;
         app.exec();
 

@@ -4,7 +4,7 @@ add_subdirectory(shapes)
 add_subdirectory(vcm)
 
 SET(DGTAL_CONTRIB_TESTS
-  testStatistics
+  testShapeDescriptor
   testModeller
   )
 

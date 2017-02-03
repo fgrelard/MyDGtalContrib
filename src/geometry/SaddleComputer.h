@@ -6,9 +6,10 @@
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/topology/ImplicitDigitalSurface.h"
-#include "geometry/VCMOnDigitalSurfaceAdjustableRadius.h"
-#include "geometry/VCMUtil.h"
+#include "vcm/VCMOnDigitalSurfaceAdjustableRadius.h"
+#include "Threshold.h"
 
+using namespace DGtal;
 
 template <typename BackgroundPredicate>
 class SaddleComputer {
@@ -51,6 +52,7 @@ public:
 	DGtal::Z3i::DigitalSet saddlePointsToOnePoint(const std::vector<DGtal::Z3i::Object26_6>& branchingPoints);
 
 
+	double computeCurvatureJunction(const DGtal::Z3i::RealPoint& lambda);
 
 private:
 	VCMOnSurface* myVCMSurface;
@@ -97,7 +99,7 @@ DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::computeBranchingPart
 			  itE = vcm.mapPoint2ChiVCM().end(); it != itE; ++it )
     {
 		auto lambda = it->second.values;
-		double ratio = VCMUtil::computeCurvatureJunction(lambda);
+		double ratio = computeCurvatureJunction(lambda);
 		if (ratio > threshold &&  sqrt(lambda[2]) < R*R)
 			aSet.insert(it->first);
 	}
@@ -113,7 +115,7 @@ std::vector<double> SaddleComputer<BackgroundPredicate>::extractCurvatureOnPoint
 			  itE = myVCMSurface->mapPoint2ChiVCM().end(); it != itE; ++it )
     {
 		auto lambda = it->second.values;
-		double ratio = VCMUtil::computeCurvatureJunction(lambda);
+		double ratio = computeCurvatureJunction(lambda);
 	    curvatureValues.push_back(ratio);
 	}
 	return curvatureValues;
@@ -129,7 +131,7 @@ std::vector<std::pair<Z3i::Point, double> > SaddleComputer<BackgroundPredicate>:
 			  itE = myVCMSurface->mapPoint2ChiVCM().end(); it != itE; ++it )
     {
 		auto lambda = it->second.values;
-		double ratio = VCMUtil::computeCurvatureJunction(lambda);
+		double ratio = computeCurvatureJunction(lambda);
 	    curvatureValues.push_back(std::make_pair(it->first, ratio));
 	}
 	return curvatureValues;
@@ -140,7 +142,7 @@ DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::extractSaddlePoints(
 
 	auto myDomain = setVolume.domain();
 	std::vector<double> curvaturePoints = extractCurvatureOnPoints();
-	double threshold2 = Statistics::unimodalThresholding(curvaturePoints);
+	double threshold2 = Threshold<std::vector<double> >(curvaturePoints).unimodalThreshold();
 
 //	Z3i::DigitalSet setSurface = SurfaceUtils::extractSurfaceVoxels(volume, thresholdMin, thresholdMax);
 	Z3i::DigitalSet branchingPoints = computeBranchingPartsWithVCMFeature(*myVCMSurface, threshold2);
@@ -183,7 +185,7 @@ DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::saddlePointsToOnePoi
 		Z3i::Point maximizingCurvaturePoint;
 		for (auto itPoint = it->pointSet().begin(), itPointE = it->pointSet().end(); itPoint != itPointE; ++itPoint) {
 			auto lambda = (myVCMSurface->mapPoint2ChiVCM()).at(*itPoint).values;
-			double ratio = VCMUtil::computeCurvatureJunction(lambda);
+			double ratio = computeCurvatureJunction(lambda);
 			if (ratio > ratioMax) {
 				ratioMax = ratio;
 				maximizingCurvaturePoint = *itPoint;
@@ -194,6 +196,13 @@ DGtal::Z3i::DigitalSet SaddleComputer<BackgroundPredicate>::saddlePointsToOnePoi
 	return maxCurvaturePoints;
 }
 
-
+double computeCurvatureJunction(const DGtal::Z3i::RealPoint& lambda) {
+	double lambda0 = (lambda[0] < 1) ? 1.0 : lambda[0];
+	double lambda1 = (lambda[1] < 1) ? 1.0 : lambda[1];
+	double lambda2 = (lambda[2] < 1) ? 1.0 : lambda[2];
+	double ratio = lambda0 / (lambda0 + lambda1 + lambda2);
+//    ratio = (sqrt(lambda1) * sqrt(lambda2)) / (sqrt(lambda0));
+	return ratio;
+}
 
 #endif
