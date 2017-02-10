@@ -26,7 +26,6 @@ Z3i::DigitalSet readSkelab(string filename)
 	vector<Z3i::Point> points;
 	if (f)
 	{
-
 		fscanf(f, "ID Cx Cy Cz RADIUS #NEIGHBORS NEIGHBORS_LIST\n");
 
 		int count;

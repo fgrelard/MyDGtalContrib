@@ -40,6 +40,7 @@ void testCurveEndPoints() {
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
 
         Z3i::DigitalSet newCurve = curveProcessor.endPoints();
+
         for (const Z3i::Point& p : newCurve)
                 trace.info() << p << endl;
          trace.endBlock();
@@ -54,7 +55,6 @@ void testCurveBranchingPoints() {
         Z3i::DigitalSet setVolume(image.domain());
         SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
         CurveProcessor<Z3i::DigitalSet> curveProcessor(setVolume);
-
         Z3i::DigitalSet newCurve = curveProcessor.branchingPoints();
         for (const Z3i::Point& p : newCurve)
                 trace.info() << p << endl;

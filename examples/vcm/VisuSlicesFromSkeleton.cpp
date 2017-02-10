@@ -112,10 +112,10 @@ int main( int  argc, char**  argv )
         }
 
         QApplication application(argc,argv);
-        ViewerSlice<Z3i::Space, Z3i::KSpace> viewer(planes, input, 100);
+        ViewerSlice<Z3i::Space, Z3i::KSpace> viewer(planes, input, 50);
         Color color(210,210,210,20);
-        viewer << CustomColors3D(Color::Red, Color::Red) << setCurve;
-        viewer << CustomColors3D(color, color) << setVolume;
+        // viewer << CustomColors3D(Color::Red, Color::Red) << setCurve;
+        viewer << CustomColors3D(Color::Blue, Color::Blue) << setVolume;
         viewer << Viewer3D<>::updateDisplay;
         viewer.show();
         application.exec();

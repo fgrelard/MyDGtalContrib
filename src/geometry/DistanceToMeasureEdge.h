@@ -58,32 +58,28 @@ public:
                         RealVector dir = (g - p).getNormalized();
                         DigitalSet dirPlus = ball.pointsInHalfBall(dir);
                         DigitalSet dirMinus = ball.pointsInHalfBall(-dir);
-                        DigitalPlane<Space> plane(p, dir, 8);
-                        DigitalSet pointsBall = ball.pointSet();
-                        DigitalSet pointsInPlane = empty;//plane.intersectionWithSetOneCC(pointsBall);
+
+                        DigitalSet pointsInPlane = empty;
                         std::vector<double> values;
                         for (const Point& pplus : dirPlus) {
-                                if (!this->domain().isInside(pplus) ||
-                                    pointsInPlane.find(pplus) != pointsInPlane.end()) continue;
+                                if (!this->domain().isInside(pplus)) continue;
                                 Value mpt = this->myMeasure( pplus );
                                 double dist = l2Metric(p, pplus);
                                 m += mpt;
                                 d2 += mpt * dist * dist;
-                                values.push_back(m);
+                                values.push_back(mpt);
                         }
                         DGtal::Statistic<double> stats;
                         stats.addValues(values.begin(), values.end());
                         double std = sqrt(stats.variance());
-                        m *= std;
+                        m *= 1 - std;
                         for (const Point& pminus : dirMinus) {
-                                if (!this->domain().isInside(pminus) ||
-                                    pointsInPlane.find(pminus) != pointsInPlane.end()) continue;
+                                if (!this->domain().isInside(pminus)) continue;
                                 Value mpt = this->myMeasure( pminus );
                                 double dist = l2Metric(p, pminus);
                                 m -= mpt;
                                 d2 -= mpt * dist * dist;
                         }
-
                         if (m < this->myMass) {
                                 break;
                         }
@@ -91,8 +87,8 @@ public:
                 }
                 // m = std::fabs(m);
                 // d2 = std::fabs(d2);
-                if (m < 1)
-                        m = 1;
+                 if (m < 1)
+                         m = 1;
                 if (i != max)
                         return d2/m;
                 return this->myR2Max;

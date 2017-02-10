@@ -44,7 +44,7 @@ public:
 
         RealVector extractEigenVector(const Matrix& m, int colNumber);
 
-        RealVector extractEigenValue(const Matrix& m, int colNumber);
+        double extractEigenValue(const Matrix& m, int colNumber);
 
         Matrix computeCovarianceMatrix();
 
@@ -193,7 +193,7 @@ ShapeDescriptor<Container>::computeCovarianceMatrix() {
     int dimens = Point::dimension;
     int size = myData.size();
     Matrix A(size, dimens);
-    if (size < dimens) return Matrix(0, 0);
+    if (size < dimens) return A;
 
     int i = 0;
     for (ConstIterator it = myData.begin(), ite = myData.end();
@@ -244,16 +244,15 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::extractEigenVe
 }
 
 template <typename Container>
-typename Container::Space::RealVector ShapeDescriptor<Container>::extractEigenValue(const Matrix& m, int colNumber) {
+double ShapeDescriptor<Container>::extractEigenValue(const Matrix& m, int columnNumber) {
 
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(m);
     typename Container::Space::RealVector vector;
-    auto veigen = eig.eigenvalues().col(colNumber);
-    for (typename Container::Space::RealVector::Dimension i = 0; i < Container::Space::RealVector::dimension; i++) {
-        vector[i] = veigen[i];
-    }
-    return vector;
+    auto veigen = eig.eigenvalues().col(0);
+    if (columnNumber < Space::dimension)
+        return veigen[columnNumber];
+    return 0.0;
 }
 
 

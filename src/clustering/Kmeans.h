@@ -3,23 +3,23 @@
 
 #include <vector>
 #include <limits>
-#include "Statistics.h"
+#include "DGtal/math/Statistic.h"
 
 template <typename Container>
 class KMeans {
 
 public:
-        std::vector<Container> kmeansAlgorithm(int k);
+    std::vector<Container> kmeansAlgorithm(int k);
 
 private:
-        std::vector<Container> initialize2Clusters();
+    std::vector<Container> initialize2Clusters();
 
-        void assignClasses(std::vector<Container> & clusters, const Container& centroids);
+    void assignClasses(std::vector<Container> & clusters, const Container& centroids);
 
-        void recomputeCentroids( Container& centroids, const std::vector<Container> & clusters);
+    void recomputeCentroids( Container& centroids, const std::vector<Container> & clusters);
 
 private:
-        Container myContainer;
+    Container myContainer;
 };
 
 template <typename Container>
@@ -50,8 +50,8 @@ template <typename Container>
 std::vector<Container> KMeans<Container>::initialize2Clusters() {
         typedef typename Container::value_type Scalar;
         std::vector<Container> clusters;
-        Scalar minVal = *min_element(myContainer.begin(), myContainer.end());
-        Scalar maxVal = *max_element(myContainer.begin(), myContainer.end());
+        Scalar minVal = *std::min_element(myContainer.begin(), myContainer.end());
+        Scalar maxVal = *std::max_element(myContainer.begin(), myContainer.end());
         clusters.push_back({minVal});
         clusters.push_back({maxVal});
         return clusters;
@@ -80,13 +80,15 @@ void KMeans<Container>::assignClasses(std::vector<Container> & clusters, const C
         }
 }
 
- template <typename Container>
- void KMeans<Container>::recomputeCentroids( Container& centroids, const std::vector<Container> & clusters) {
-         for (int i = 0, end = clusters.size(); i < end; i++) {
-                 Statistics<Container> stats(clusters[i]);
-                 double mean = stats.mean();
-                 centroids[i] = mean;
-         }
- }
+template <typename Container>
+void KMeans<Container>::recomputeCentroids( Container& centroids, const std::vector<Container> & clusters) {
+        typedef typename Container::value_type Scalar;
+        for (int i = 0, end = clusters.size(); i < end; i++) {
+                DGtal::Statistic<Scalar> stats;
+                stats.addValues(clusters[i].begin(), clusters[i].end());
+                double mean = stats.mean();
+                centroids[i] = mean;
+        }
+}
 
 #endif

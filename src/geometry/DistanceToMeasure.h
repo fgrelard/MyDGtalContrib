@@ -27,6 +27,7 @@ public:
                         init( );
         }
 
+
         DistanceToMeasure(const DistanceToMeasure& other) : myMass(other.myMass), myMeasure(other.myMeasure), myDistance2(other.myDistance2), myR2Max(other.myR2Max) {
         }
 
@@ -41,6 +42,19 @@ public:
                         myDistance2.setValue( *it, computeDistance2( *it ) );
                 }
         }
+
+        inline const ImageFct& measure() const {
+                return myMeasure;
+        }
+
+        inline Value operator()( const Point& p ) const {
+                return distance( p );
+        }
+
+        Value distance( const Point& p ) const {
+                return sqrt( distance2( p ) );
+        }
+
 
         Value distance2( const Point& p ) const {
                 return myDistance2( p );
@@ -97,7 +111,8 @@ public:
                 Value             m  = DGtal::NumberTraits<Value>::ZERO;
                 Value             d2 = DGtal::NumberTraits<Value>::ZERO;
                 Adjacency             graph;
-                DistanceToPoint   d2pfct( Distance(), p );
+                Distance l2;
+                DistanceToPoint   d2pfct( l2, p );
                 DistanceVisitor   visitor( graph, d2pfct, p );
 
                 Value last = d2pfct( p );
