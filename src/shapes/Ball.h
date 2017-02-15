@@ -15,7 +15,7 @@ class Ball {
 public:
 	typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
 	typedef DGtal::HyperRectDomain< Space > Domain;
-    typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS >::Type DigitalSet;
+	typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS >::Type DigitalSet;
 	typedef typename Space::RealVector RealVector;
 	typedef typename Space::Dimension Dimension;
 public:
@@ -35,7 +35,7 @@ public:
 
 	DigitalSet intersection(const DigitalSet& setPoint);
 	DigitalSet surfaceIntersection(const DigitalSet& setSurface);
-    DigitalSet pointSet() const;
+	DigitalSet pointSet() const;
 	DigitalSet pointsInHalfBall(const RealVector& normal = RealVector(0,1,0)) const;
 	DigitalSet pointsSurfaceBall() const;
 
@@ -112,7 +112,7 @@ typename Ball<Point>::DigitalSet Ball<Point>::intersection(const DigitalSet& set
 
 template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::surfaceIntersection(const DigitalSet& setSurface) {
-    DigitalSet intersection(setSurface.domain());
+	DigitalSet intersection(setSurface.domain());
 	for (auto it = setSurface.begin(), ite = setSurface.end(); it != ite; ++it) {
 		double distance = Distance::euclideanDistance(*it, myCenter);
 		if (distance >= myRadius-1 && distance <= myRadius) {
@@ -154,7 +154,7 @@ template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::pointsSurfaceBall() const {
 	Point lower = myCenter + Point::diagonal(-myRadius);
 	Point upper = myCenter + Point::diagonal(myRadius+1);
-    Domain domain(lower, upper);
+	Domain domain(lower, upper);
 	DigitalSet points(domain);
 	for (const Point& p : domain) {
 		double distance = Distance::euclideanDistance(p, myCenter);

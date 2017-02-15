@@ -425,7 +425,6 @@ Container Modeller<Container>::addNoise(const Container& set, float noise) {
         L2Metric l2Metric;
         KanungoNoise kanungo(set, set.domain(), noise);
         Container set2(set.domain());
-
         Container neighbors(set.domain());
         DGtal::DigitalSetInserter<Container> inserter(neighbors);
         for (auto it = set.begin(), ite = set.end(); it != ite; ++it) {

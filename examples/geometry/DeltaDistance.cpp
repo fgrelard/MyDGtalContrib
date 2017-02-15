@@ -172,7 +172,7 @@ maxProjection(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& pToV,
                                                                                   const Z2i::RealVector& v2) {
             return v1.norm() < v2.norm();
         });
-        Z2i::Point proj = current + candidate;
+        Z2i::Point proj = projection + candidate;
         double value = sqrt(delta.distance2(proj));
         aMap[current] = value;
     }
@@ -185,8 +185,8 @@ int main( int argc, char **argv )
     using namespace DGtal;
     using namespace DGtal::Z2i;
 
-    typedef ImageContainerBySTLVector<Domain,unsigned char> GrayLevelImage2D;
-    typedef ImageContainerBySTLVector<Domain,float>         FloatImage2D;
+    typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage2D;
+    typedef ImageContainerBySTLVector<Domain, float>         FloatImage2D;
     typedef DistanceToMeasure<FloatImage2D>                 Distance;
 
     po::options_description general_opt("Allowed options are: ");
@@ -331,8 +331,7 @@ int main( int argc, char **argv )
         viewer << CustomColors3D(currentColor, currentColor)
                << c;
 
-
-         Z3i::RealVector grad3D(grad[0], grad[1], 0);
+        Z3i::RealVector grad3D(grad[0], grad[1], 0);
         if (std::isnan(grad3D.norm()) || grad3D.norm() == 0) continue;
         viewer.addLine(c, c+grad3D);
 
