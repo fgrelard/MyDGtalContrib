@@ -193,7 +193,7 @@ ShapeDescriptor<Container>::computeCovarianceMatrix() {
     int dimens = Point::dimension;
     int size = myData.size();
     Matrix A(size, dimens);
-    if (size < dimens) return A;
+    if (size < dimens) return Matrix(0,0);
 
     int i = 0;
     for (ConstIterator it = myData.begin(), ite = myData.end();

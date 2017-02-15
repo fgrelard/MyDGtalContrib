@@ -117,14 +117,14 @@ public:
 
                 Value last = d2pfct( p );
                 MyNode node;
+                Value firstMass = myMeasure(p);
                 while ( ! visitor.finished() )
                 {
                         node = visitor.current();
-                        if ( ( node.second != last ) // all the vertices of the same layer have been processed.
+                         if ( ( node.second != last ) // all the vertices of the same layer have been processed.
                              && ( m >= myMass ) ) break;
                         if ( node.second > myR2Max ) { d2 = m * myR2Max; break; }
-                        if ( myMeasure.domain().isInside( node.first ) )
-                        {
+                        if ( myMeasure.domain().isInside( node.first ) ) {
                                 Value mpt  = myMeasure( node.first );
                                 d2        += mpt * node.second * node.second;
                                 m         += mpt;
@@ -134,6 +134,8 @@ public:
                         else
                                 visitor.ignore();
                 }
+                if (m == DGtal::NumberTraits<Value>::ZERO)
+                        return myR2Max;
                 return d2 / m;
         }
 

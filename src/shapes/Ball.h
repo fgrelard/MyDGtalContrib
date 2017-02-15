@@ -17,6 +17,7 @@ public:
 	typedef DGtal::HyperRectDomain< Space > Domain;
     typedef typename DGtal::DigitalSetSelector< Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS >::Type DigitalSet;
 	typedef typename Space::RealVector RealVector;
+	typedef typename Space::Dimension Dimension;
 public:
 	Ball() : myRadius(0.0), myCenter({0,0,0}) {}
 	Ball(const Point& center, double radius) : myCenter(center), myRadius(radius) {}
@@ -123,20 +124,15 @@ typename Ball<Point>::DigitalSet Ball<Point>::surfaceIntersection(const DigitalS
 
 template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::pointSet() const {
-    Point lower(-myRadius + myCenter[0], -myRadius + myCenter[1], -myRadius + myCenter[2]);
-	Point upper(myRadius + myCenter[0] + 1, myRadius + myCenter[1] + 1, myRadius + myCenter[2] + 1);
-    Domain domain(lower, upper);
+	Point lower = myCenter + Point::diagonal(-myRadius);
+	Point upper = myCenter + Point::diagonal(myRadius+1);
+	Domain domain(lower, upper);
 	DigitalSet points(domain);
-	for (typename Point::Scalar i = -myRadius + myCenter[0], iend = myRadius + myCenter[0] + 1; i < iend; i++) {
-		for (typename Point::Scalar j = -myRadius + myCenter[1], jend = myRadius + myCenter[1] + 1; j < jend; j++) {
-			for (typename Point::Scalar k = -myRadius + myCenter[2], kend = myRadius + myCenter[2] + 1; k < kend; k++) {
-				Point p(i, j, k);
-				if (contains(p)) {
-					points.insert(p);
-				}
-			}
-		}
+	for (const Point& p : domain) {
+		if (contains(p))
+			points.insert(p);
 	}
+
 	return points;
 }
 
@@ -144,42 +140,30 @@ typename Ball<Point>::DigitalSet Ball<Point>::pointSet() const {
 
 template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::pointsInHalfBall(const RealVector& normal) const {
-	std::set<Point> points;
+	DigitalSet points = pointSet();
+	DigitalSet pointsInHalf(points.domain());
 	DigitalPlane<Space> plane(myCenter, normal);
-	double d = myCenter[0] * normal[0] + myCenter[1] * normal[1] + myCenter[2] * normal[2];
-	for (typename Point::Scalar i = -myRadius + myCenter[0], iend = myRadius + myCenter[0] + 1; i < iend; i++) {
-		for (typename Point::Scalar j = -myRadius + myCenter[1], jend = myRadius + myCenter[1] + 1; j < jend; j++) {
-			for (typename Point::Scalar k = -myRadius + myCenter[2], kend = myRadius + myCenter[2] + 1; k < kend; k++) {
-				Point p(i, j, k);
-				if (contains(p) && plane.isPointAbove(p)) {
-					points.insert(p);
-				}
-			}
-		}
+	for (const Point& p : points) {
+		if (plane.isPointAbove(p))
+			pointsInHalf.insert(p);
 	}
-	Domain domain = PointUtil::computeBoundingBox<Domain>(points);
-    DigitalSet aSet(domain);
-	aSet.insert(points.begin(), points.end());
-	return aSet;
+	return pointsInHalf;
 }
 
 template <typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::pointsSurfaceBall() const {
-	std::set<Point> points;
-	for (typename Point::Scalar i = -myRadius + myCenter[0], iend = myRadius + myCenter[0] + 1; i < iend; i++) {
-		for (typename Point::Scalar j = -myRadius + myCenter[1], jend = myRadius + myCenter[1] + 1; j < jend; j++) {
-			for (typename Point::Scalar k = -myRadius + myCenter[2], kend = myRadius + myCenter[2] + 1; k < kend; k++) {
-				Point p(i, j, k);
-				double distance = Distance::euclideanDistance(p, myCenter);
-				if (distance >= myRadius-1 && distance <= myRadius) {
-					points.insert(p);
-				}
-			}
-		}
+	Point lower = myCenter + Point::diagonal(-myRadius);
+	Point upper = myCenter + Point::diagonal(myRadius+1);
+    Domain domain(lower, upper);
+	DigitalSet points(domain);
+	for (const Point& p : domain) {
+		double distance = Distance::euclideanDistance(p, myCenter);
+		if (distance >= myRadius-1 && distance <= myRadius)
+			points.insert(p);
 	}
-	Domain domain = PointUtil::computeBoundingBox<Domain>(points);
-    DigitalSet aSet(domain);
-	aSet.insert(points.begin(), points.end());
-	return aSet;
+
+
+	return points;
 }
+
 #endif

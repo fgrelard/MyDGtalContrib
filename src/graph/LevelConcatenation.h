@@ -5,7 +5,6 @@
 #include <functional>
 #include "Concatenation.h"
 #include "DGtal/base/Common.h"
-#include "DGtal/helpers/StdDefs.h"
 
 class LevelConcatenation {
 public:
