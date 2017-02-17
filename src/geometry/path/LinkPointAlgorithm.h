@@ -4,22 +4,26 @@
 #include "DGtal/base/Common.h"
 #include "DGtal/base/CBidirectionalRange.h"
 
-template <typename Point>
+template<typename Point>
 class LinkPointAlgorithm {
-        BOOST_CONCEPT_ASSERT(( DGtal::concepts::CBidirectionalRange<Point> ));
+    BOOST_CONCEPT_ASSERT((DGtal::concepts::CBidirectionalRange<Point>));
 
 public:
-        typedef std::vector<Point> Path;
+    typedef std::vector<Point> Path;
 public:
-        LinkPointAlgorithm() {}
-        LinkPointAlgorithm(const Point& aSource, const Point& aDestination) : mySource(aSource), myDestination(aDestination) {}
-        LinkPointAlgorithm(const LinkPointAlgorithm& other) : mySource(other.mySource), myDestination(other.myDestination) {}
+    LinkPointAlgorithm() {}
 
-        virtual Path linkPoints() = 0;
+    LinkPointAlgorithm(const Point &aSource, const Point &aDestination) : mySource(aSource),
+                                                                          myDestination(aDestination) {}
+
+    LinkPointAlgorithm(const LinkPointAlgorithm &other) : mySource(other.mySource),
+                                                          myDestination(other.myDestination) {}
+
+    virtual Path linkPoints() = 0;
 
 protected:
-        Point mySource;
-        Point myDestination;
+    Point mySource;
+    Point myDestination;
 };
 
 #endif

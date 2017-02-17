@@ -14,85 +14,86 @@
 #include "DGtal/images/CImage.h"
 
 
-template <typename Container>
+template<typename Container>
 class ShapeDescriptor {
 public:
-        typedef typename Container::Space Space;
-        typedef typename Space::Point Point;
-        typedef typename Space::RealVector RealVector;
-        typedef typename Space::RealPoint RealPoint;
-        typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
-        typedef Eigen::MatrixXd Matrix;
+    typedef typename Container::Space Space;
+    typedef typename Space::Point Point;
+    typedef typename Space::RealVector RealVector;
+    typedef typename Space::RealPoint RealPoint;
+    typedef typename DGtal::ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
+    typedef Eigen::MatrixXd Matrix;
 public:
-        ShapeDescriptor() = delete;
-        ShapeDescriptor(const Container& aData) : myData(aData) {}
+    ShapeDescriptor() = delete;
+
+    ShapeDescriptor(const Container &aData) : myData(aData) {}
 
 public:
 
-        std::pair<Point, Point> majorAxis();
+    std::pair<Point, Point> majorAxis();
 
-        double lengthMajorAxis();
+    double lengthMajorAxis();
 
-        template <typename Image>
-        RealPoint centerOfMass(const Image& image);
+    template<typename Image>
+    RealPoint centerOfMass(const Image &image);
 
-        RealPoint extractCenterOfMass();
+    RealPoint extractCenterOfMass();
 
-        RealVector computeNormalFromLinearRegression();
+    RealVector computeNormalFromLinearRegression();
 
-        RealVector computeNormalFromCovarianceMatrix();
+    RealVector computeNormalFromCovarianceMatrix();
 
-        RealVector extractEigenVector(const Matrix& m, int colNumber);
+    RealVector extractEigenVector(const Matrix &m, int colNumber);
 
-        double extractEigenValue(const Matrix& m, int colNumber);
+    double extractEigenValue(const Matrix &m, int colNumber);
 
-        Matrix computeCovarianceMatrix();
+    Matrix computeCovarianceMatrix();
 
-        template <typename Image2D>
-        Matrix computeCovarianceMatrixImage(const Image2D& image);
+    template<typename Image2D>
+    Matrix computeCovarianceMatrixImage(const Image2D &image);
 
 private:
-        Container myData;
+    Container myData;
 };
 
 
-template <typename Container>
+template<typename Container>
 std::pair<typename ShapeDescriptor<Container>::Point, typename ShapeDescriptor<Container>::Point>
 ShapeDescriptor<Container>::majorAxis() {
-        Point p1, p2;
-        L2Metric l2Metric;
-        double distanceFarthestPoint = 0;
-        for (const Point& p : myData) {
-                for (const Point& o : myData) {
-                        double currentDistance = l2Metric(p, o);
-                        if (l2Metric(p, o) > distanceFarthestPoint) {
-                                distanceFarthestPoint = currentDistance;
-                                p1 = p;
-                                p2 = o;
-                        }
-                }
+    Point p1, p2;
+    L2Metric l2Metric;
+    double distanceFarthestPoint = 0;
+    for (const Point &p : myData) {
+        for (const Point &o : myData) {
+            double currentDistance = l2Metric(p, o);
+            if (l2Metric(p, o) > distanceFarthestPoint) {
+                distanceFarthestPoint = currentDistance;
+                p1 = p;
+                p2 = o;
+            }
         }
-        std::pair<Point, Point> pair = std::make_pair(p1, p2);
-        return pair;
+    }
+    std::pair<Point, Point> pair = std::make_pair(p1, p2);
+    return pair;
 }
 
 
-template <typename Container>
+template<typename Container>
 double
 ShapeDescriptor<Container>::lengthMajorAxis() {
-        L2Metric l2Metric;
-        std::pair<Point, Point> farthest = majorAxis();
-        double distanceFarthestPoint = l2Metric(farthest.first, farthest.second);
-        double radius = distanceFarthestPoint / 2.0;
-        return radius;
+    L2Metric l2Metric;
+    std::pair<Point, Point> farthest = majorAxis();
+    double distanceFarthestPoint = l2Metric(farthest.first, farthest.second);
+    double radius = distanceFarthestPoint / 2.0;
+    return radius;
 }
 
 
-template <typename Container>
-template <typename Image>
-typename Container::Space::RealPoint ShapeDescriptor<Container>::centerOfMass(const Image& image) {
+template<typename Container>
+template<typename Image>
+typename Container::Space::RealPoint ShapeDescriptor<Container>::centerOfMass(const Image &image) {
 
-    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
+    BOOST_CONCEPT_ASSERT((DGtal::concepts::CImage<Image>));
 
     double m000 = 0.0;
     std::vector<double> masses(Container::Space::dimension, 0.0);
@@ -114,10 +115,10 @@ typename Container::Space::RealPoint ShapeDescriptor<Container>::centerOfMass(co
     return Container::Space::RealPoint::zero;
 }
 
-template <typename Container>
+template<typename Container>
 typename Container::Space::RealPoint ShapeDescriptor<Container>::
 extractCenterOfMass() {
-    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CDigitalSet< Container > ));
+    BOOST_CONCEPT_ASSERT((DGtal::concepts::CDigitalSet<Container>));
 
     if (myData.size() != 0) {
         typedef typename DGtal::ImageSelector<typename Container::Domain, unsigned char>::Type Image;
@@ -133,7 +134,7 @@ extractCenterOfMass() {
  * Computes the normal of a plane from a set of points
  * Method : linear regression
  */
-template <typename Container>
+template<typename Container>
 typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalFromLinearRegression() {
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1> VectorXi;
     unsigned int size = myData.size();
@@ -141,10 +142,10 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
     VectorXi b = VectorXi::Zero(size, 1);
 
     for (int i = 0; i < size; i++) {
-        A(i, 0) = (double)myData[i][0]*1.0;
-        A(i, 1) = (double)myData[i][1]*1.0;
+        A(i, 0) = (double) myData[i][0] * 1.0;
+        A(i, 1) = (double) myData[i][1] * 1.0;
         A(i, 2) = 1.0;
-        b(i, 0) = (double)myData[i][2]*1.0;
+        b(i, 0) = (double) myData[i][2] * 1.0;
     }
     Eigen::Vector3d x = A.colPivHouseholderQr().solve(b);
     typename Container::Space::RealVector normal;
@@ -158,7 +159,7 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
  * Computes the normal of a plane from a set of points
  * Method : covariance matrix
  */
-template <typename Container>
+template<typename Container>
 typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalFromCovarianceMatrix() {
 
     unsigned int size = myData.size();
@@ -166,9 +167,9 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
 
     Matrix A(size, 3);
     for (int i = 0; i < size; i++) {
-        A(i, 0) = (double)myData[i][0] * 1.0;
-        A(i, 1) = (double)myData[i][1] * 1.0;
-        A(i, 2) = (double)myData[i][2] * 1.0;
+        A(i, 0) = (double) myData[i][0] * 1.0;
+        A(i, 1) = (double) myData[i][1] * 1.0;
+        A(i, 2) = (double) myData[i][2] * 1.0;
     }
     Matrix centered = A.rowwise() - A.colwise().mean();
     Matrix cov = (centered.adjoint() * centered) / double(A.rows() - 1);
@@ -181,7 +182,7 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
     return normal;
 }
 
-template <typename Container>
+template<typename Container>
 typename ShapeDescriptor<Container>::Matrix
 ShapeDescriptor<Container>::computeCovarianceMatrix() {
 
@@ -193,7 +194,7 @@ ShapeDescriptor<Container>::computeCovarianceMatrix() {
     int dimens = Point::dimension;
     int size = myData.size();
     Matrix A(size, dimens);
-    if (size < dimens) return Matrix(0,0);
+    if (size < dimens) return Matrix(0, 0);
 
     int i = 0;
     for (ConstIterator it = myData.begin(), ite = myData.end();
@@ -208,11 +209,11 @@ ShapeDescriptor<Container>::computeCovarianceMatrix() {
     return cov;
 }
 
-template <typename Container>
-template <typename Image>
+template<typename Container>
+template<typename Image>
 typename ShapeDescriptor<Container>::Matrix
-ShapeDescriptor<Container>::computeCovarianceMatrixImage(const Image& image) {
-    BOOST_CONCEPT_ASSERT(( DGtal::concepts::CImage< Image > ));
+ShapeDescriptor<Container>::computeCovarianceMatrixImage(const Image &image) {
+    BOOST_CONCEPT_ASSERT((DGtal::concepts::CImage<Image>));
 
     typedef typename Image::Domain Domain;
     typedef typename Domain::Point Point;
@@ -230,8 +231,8 @@ ShapeDescriptor<Container>::computeCovarianceMatrixImage(const Image& image) {
     return computeCovarianceMatrix();
 }
 
-template <typename Container>
-typename Container::Space::RealVector ShapeDescriptor<Container>::extractEigenVector(const Matrix& m, int colNumber) {
+template<typename Container>
+typename Container::Space::RealVector ShapeDescriptor<Container>::extractEigenVector(const Matrix &m, int colNumber) {
 
 
     Eigen::SelfAdjointEigenSolver<Matrix> eig(m);
@@ -243,8 +244,8 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::extractEigenVe
     return vector;
 }
 
-template <typename Container>
-double ShapeDescriptor<Container>::extractEigenValue(const Matrix& m, int columnNumber) {
+template<typename Container>
+double ShapeDescriptor<Container>::extractEigenValue(const Matrix &m, int columnNumber) {
 
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eig(m);
@@ -254,7 +255,6 @@ double ShapeDescriptor<Container>::extractEigenValue(const Matrix& m, int column
         return veigen[columnNumber];
     return 0.0;
 }
-
 
 
 #endif
