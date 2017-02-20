@@ -36,15 +36,15 @@ namespace PointUtil {
 template<typename Domain, typename Container>
 Domain PointUtil::computeBoundingBox(const Container &points) {
     typedef typename Container::value_type Point;
-    int maximum = std::numeric_limits<int>::max();
-    int min_x = maximum, min_y = maximum, min_z = maximum;
-    int max_x = -maximum, max_y = -maximum, max_z = -maximum;
+    int min = std::numeric_limits<int>::max();
+    int max = std::numeric_limits<int>::min();
 
-    Point low, up;
+    Point low = Point::diagonal(min);
+    Point up = Point::diagonal(max);
     for (const auto &point : points) {
         for (int i = 0; i < Point::dimension; i++) {
-            low[i] = point[i] < low[i] ? point[i] : low[i];
-            up[i] = point[i] > up[i] ? point[i] : up[i];
+            low[i] = (point[i] < low[i]) ? point[i] : low[i];
+            up[i] = (point[i] > up[i]) ? point[i] : up[i];
         }
     }
     Domain domain(low, up);

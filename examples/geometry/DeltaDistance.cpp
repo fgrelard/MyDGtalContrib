@@ -54,7 +54,8 @@ computePointToVectors(const DistanceFunction& delta) {
     for (const Z2i::Point& p : delta.domain()) {
         Z2i::RealVector v = delta.projectionDistance(p);
         Z2i::Point dest = p+v;
-        aMap[dest].push_back(-v);
+        if (delta.domain().isInside(dest))
+            aMap[dest].push_back(-v);
     }
     return aMap;
 }
@@ -145,7 +146,6 @@ double twoOrientation(const std::vector<Z2i::RealVector>& dirs) {
     Statistic<double> stat(true);
     stat.addValues(orientation.begin(), orientation.end());
     double value = stat.median();
-    if (std::isnan(value)) DGtal::trace.info() << "coucou"<< std::endl;
     double angle = meanAngle(dirs);
     value *= std::abs(M_PI/4 - angle);
     return value;
@@ -179,7 +179,7 @@ maxProjection(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& pToV,
 template <typename DistanceToMeasure>
 std::map<Z2i::Point, double>
 maxProjectionRadius(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& pToV,
-              const DistanceToMeasure& delta) {
+                    const DistanceToMeasure& delta) {
     std::map<Z2i::Point, double> aMap;
     for (const Z2i::Point& current:  delta.domain()) {
         Z2i::RealVector vecProj = delta.projectionDistance(current);
@@ -198,8 +198,10 @@ maxProjectionRadius(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& p
 
 }
 
+template <typename Domain>
 std::map<Z2i::Point, std::set<Z2i::Point> >
-computeVoronoiMap(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& vectors) {
+computeVoronoiMap(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& vectors,
+                  const Domain& domainImage) {
     std::map<Z2i::Point, std::set<Z2i::Point> > aMap;
     for (const auto& pair : vectors) {
         Z2i::Point p = pair.first;
@@ -209,8 +211,10 @@ computeVoronoiMap(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& vec
         vertices.push_back(p);
         for (const Z2i::RealVector& v : vec) {
             Z2i::Point proj = p + v;
-            vertices.push_back(proj);
+            if (domainImage.isInside(proj))
+                vertices.push_back(proj);
         }
+
         Z2i::Domain domain = PointUtil::computeBoundingBox<Z2i::Domain>(vertices);
         Polygon<Z2i::Point> polygon(vertices.begin(), vertices.end());
         std::set<Z2i::Point> hullSet;
@@ -291,10 +295,11 @@ int main( int argc, char **argv )
     }
 
 
+    srand(time(NULL));
     std::map<Z2i::Point, std::vector<Z2i::RealVector> > pToV = computePointToVectors(delta);
     //std::map< Z2i::Point, double > pToValues = maxProjectionRadius(pToV, delta);
     std::map< Z2i::Point, double > pToValues = maxProjection(pToV, delta);
-    std::map<Z2i::Point, std::set<Z2i::Point> > voro = computeVoronoiMap(pToV);
+    std::map<Z2i::Point, std::set<Z2i::Point> > voro = computeVoronoiMap(pToV, domain);
     QApplication app(argc, argv);
     Viewer3D<> viewer;
     viewer.show();
@@ -369,7 +374,8 @@ int main( int argc, char **argv )
         vector<Z2i::RealVector> vec = pair.second;
         size_t size = vec.size();
         if (p[0] % 30 != 0 || p[1] % 30 != 0) continue;
-        std::set<Z2i::Point> vorocell = voro[p];
+        if (voro.find(p) == voro.end()) continue;
+        std::set<Z2i::Point> vorocell = voro.at(p);
         int r = rand() % 256, g = rand() % 256, b = rand() % 256;
         Color color(r, g, b);
         for (const Z2i::Point& v : vorocell) {
