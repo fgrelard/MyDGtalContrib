@@ -6,6 +6,8 @@
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "geometry/DistanceToPointFunctor.h"
+#include "PointUtil.h"
+#include "CurveProcessor.h"
 
 
 template<typename ImageFct>
@@ -94,8 +96,8 @@ public:
                         otherDistance = distance;
                         distance = tmpDistance;
                     }
-                    vectorToReturn[d] = (std::fabs(distance - distance_center) >=
-                                         std::fabs(distance_center - otherDistance)) ? -(distance - distance_center) /
+                    vectorToReturn[d] = (std::abs(distance - distance_center) >=
+                                         std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
                                                                                        2.0 :
                                         -(distance_center - otherDistance) / 2.0;
                 }
@@ -116,6 +118,15 @@ public:
         typedef DGtal::DistanceBreadthFirstVisitor<Adjacency, DistanceToPoint, std::set<Point> >
                 DistanceVisitor;
         typedef typename DistanceVisitor::Node MyNode;
+        typedef DGtal::MetricAdjacency<Space, 1> Adj6;
+        typedef DGtal::MetricAdjacency<Space, 3> Adj26;
+        typedef DGtal::DigitalTopology<Adj26, Adj6> Topology;
+        typedef typename DGtal::DigitalSetSelector<Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS>::Type DigitalSet;
+        typedef DGtal::Object<Topology, DigitalSet> ObjectType;
+
+        Adj26 adj26;
+        Adj6 adj6;
+        Topology dt26_6(adj26, adj6, DGtal::JORDAN_DT);
 
         Value m = DGtal::NumberTraits<Value>::ZERO;
         Value d2 = DGtal::NumberTraits<Value>::ZERO;
@@ -127,27 +138,43 @@ public:
         Value last = d2pfct(p);
         MyNode node;
         Value firstMass = myMeasure(p);
+        DGtal::Statistic<Value> stat(true);
+        stat.addValue(firstMass);
         while (!visitor.finished()) {
             node = visitor.current();
-            if ((node.second != last) // all the vertices of the same layer have been processed.
-                && (m >= myMass))
+            std::vector<MyNode> vec;
+            visitor.getCurrentLayer(vec);
+
+            std::vector<Point> vecPoints;
+            for (const MyNode &n : vec)
+                vecPoints.push_back(n.first);
+
+            for (const Point &s : vecPoints) {
+                if (!myMeasure.domain().isInside(s)) continue;
+                double currentColor = myMeasure(s);
+                stat.addValue(currentColor);
+                firstMass = stat.median();
+                currentColor = currentColor - firstMass;
+                d2 += currentColor * node.second * node.second;
+                m = DGtal::NumberTraits<Value>::ZERO;
+                for (const Value &v : stat) {
+                    m += v - firstMass;
+                }
+
+            }
+            if ((m >= myMass))
                 break;
             if (node.second > myR2Max) {
                 d2 = m * myR2Max;
                 break;
             }
-            if (myMeasure.domain().isInside(node.first)) {
-                Value mpt = myMeasure(node.first);
-                d2 += mpt * node.second * node.second;
-                m += mpt;
-                last = node.second;
-                visitor.expand();
-            } else
-                visitor.ignore();
+            visitor.expandLayer();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return myR2Max;
-        return d2 / m;
+        if (node.second == myR2Max)
+            return 0.0;
+        return node.second;
     }
 
     Domain domain() const { return myMeasure.domain(); }

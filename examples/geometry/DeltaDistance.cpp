@@ -16,8 +16,6 @@
 #include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "geometry/DistanceToMeasure.h"
-#include "shapes/Ball.h"
-#include "geometry/SetProcessor.h"
 
 using namespace std;
 using namespace DGtal;
@@ -53,6 +51,11 @@ computePointToVectors(const DistanceFunction& delta) {
     }
     for (const Z2i::Point& p : delta.domain()) {
         Z2i::RealVector v = delta.projectionDistance(p);
+        if (v == Z2i::RealVector(0, 1) ||
+            v == Z2i::RealVector(1, 0) ||
+            v == Z2i::RealVector(-1, 0) ||
+            v == Z2i::RealVector(0, -1))
+            DGtal::trace.info() << v.getNormalized() << std::endl;
         Z2i::Point dest = p+v;
         if (delta.domain().isInside(dest))
             aMap[dest].push_back(-v);
@@ -218,12 +221,15 @@ computeVoronoiMap(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& vec
         Z2i::Domain domain = PointUtil::computeBoundingBox<Z2i::Domain>(vertices);
         Polygon<Z2i::Point> polygon(vertices.begin(), vertices.end());
         std::set<Z2i::Point> hullSet;
-        for (const Z2i::Point& p : domain) {
-            if (polygon.isInside(p))
-                hullSet.insert(p);
+        for (const Z2i::Point &d : domain) {
+            if (polygon.isInside(d))
+                hullSet.insert(d);
         }
-        aMap[p] = hullSet;
+        if (hullSet.size() != 0) {
+            aMap[p] = hullSet;
+        }
     }
+    return aMap;
 }
 
 int main( int argc, char **argv )
@@ -278,7 +284,7 @@ int main( int argc, char **argv )
     FloatImage2D     fimg( img.domain() );
     FloatImage2D::Iterator outIt = fimg.begin();
     for ( GrayLevelImage2D::ConstIterator it = img.begin(), itE = img.end(); it != itE; ++it ) {
-        float v = ((float)*it) * 1.0 / thresholdMax;
+        float v = ((float) *it) * 1.0f / thresholdMax;
         *outIt++ = v;
     }
     trace.beginBlock( "Computing delta-distance." );
@@ -298,17 +304,14 @@ int main( int argc, char **argv )
     srand(time(NULL));
     std::map<Z2i::Point, std::vector<Z2i::RealVector> > pToV = computePointToVectors(delta);
     //std::map< Z2i::Point, double > pToValues = maxProjectionRadius(pToV, delta);
-    std::map< Z2i::Point, double > pToValues = maxProjection(pToV, delta);
+    //std::map< Z2i::Point, double > pToValues = maxProjection(pToV, delta);
     std::map<Z2i::Point, std::set<Z2i::Point> > voro = computeVoronoiMap(pToV, domain);
     QApplication app(argc, argv);
     Viewer3D<> viewer;
     viewer.show();
 
 
-
-
-
-    /*DGtal::trace.beginBlock("Tube criterion");
+    DGtal::trace.beginBlock("Tube criterion");
     std::map<Z2i::Point, double> pToValues;
     for ( typename Domain::ConstIterator it = delta.domain().begin(),
                   itE = delta.domain().end(); it != itE; ++it ) {
@@ -316,7 +319,7 @@ int main( int argc, char **argv )
         Z3i::Point c(p[0], p[1], 0);
         float v = sqrt( delta.distance2( p ) );
         v = std::min( (float)m, std::max( v, 0.0f ) );
-        int radius = 3;
+        int radius = 1;
         Ball<Point> ball(p, radius);
         FloatImage2D aSet = ball.intersection( fimg );
         std::vector<RealVector> dirs;
@@ -337,11 +340,11 @@ int main( int argc, char **argv )
         double angle = meanAngle(dirs);
         double orientation = twoOrientation(dirs);
         double distanceNormalized = v / m;
-        length = orientation;
+        length = v;
         pToValues[p] = length;
 
     }
-    DGtal::trace.endBlock();*/
+    DGtal::trace.endBlock();
 
     double min = std::min_element(pToValues.begin(), pToValues.end(), [&](const std::pair<Z2i::Point, double>& p1,
                                                                           const std::pair<Z2i::Point, double>& p2) {
@@ -362,31 +365,30 @@ int main( int argc, char **argv )
     cmap_grad.addColor( Color( 0,   0, 255 ) );
     cmap_grad.addColor( Color( 0,   0, 0 ) );
 
-
     for (const auto& pair : pToV)  {
         Point p = pair.first;
-        Z3i::Point p3D (p[0], p[1], 0);
         if (pToValues.find(p) == pToValues.end()) continue;
+        //if (p[0] % 30 != 0 || p[1] % 30 != 0) continue;
+        //if (voro.find(p) == voro.end()) continue;
+        Z3i::Point p3D(p[0], p[1], 0);
         double value = pToValues.at(p);
         Color currentColor = cmap_grad(value);
         currentColor.alpha(180);
         viewer << CustomColors3D(currentColor, currentColor) << p3D;
         vector<Z2i::RealVector> vec = pair.second;
         size_t size = vec.size();
-        if (p[0] % 30 != 0 || p[1] % 30 != 0) continue;
-        if (voro.find(p) == voro.end()) continue;
-        std::set<Z2i::Point> vorocell = voro.at(p);
-        int r = rand() % 256, g = rand() % 256, b = rand() % 256;
-        Color color(r, g, b);
-        for (const Z2i::Point& v : vorocell) {
-            Z3i::Point v3D(v[0], v[1], 0);
-            viewer << CustomColors3D(color, color) << v3D;
-        }
-//        for (const Z2i::RealVector& v : vec) {
-//            Z3i::RealVector vec3D(v[0], v[1], 0);
-//            if (std::isnan(vec3D.norm()) || vec3D.norm() == 0) continue;
-//            viewer.addLine(p3D, p3D+vec3D);
+//        std::set<Z2i::Point> vorocell = voro.at(p);
+//        int r = rand() % 256, g = rand() % 256, b = rand() % 256;
+//        Color color(r, g, b);
+//        for (const Z2i::Point& v : vorocell) {
+//            Z3i::Point v3D(v[0], v[1], 0);
+//            viewer << CustomColors3D(color, color) << v3D;
 //        }
+        for (const Z2i::RealVector &v : vec) {
+            Z3i::RealVector vec3D(v[0], v[1], 0);
+            if (std::isnan(v.norm()) || v.norm() == 0) continue;
+            viewer.addLine(p3D, p3D + vec3D);
+        }
 
     }
 
