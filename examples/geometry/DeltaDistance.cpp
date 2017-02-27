@@ -303,13 +303,13 @@ int main( int argc, char **argv )
     srand(time(NULL));
     std::map<Z2i::Point, std::vector<Z2i::RealVector> > pToV = computePointToVectors(delta);
     //std::map< Z2i::Point, double > pToValues = maxProjectionRadius(pToV, delta);
-    //std::map< Z2i::Point, double > pToValues = maxProjection(pToV, delta);
+    std::map<Z2i::Point, double> pToValues = maxProjection(pToV, delta);
     std::map<Z2i::Point, std::set<Z2i::Point> > voro = computeVoronoiMap(pToV, domain);
     QApplication app(argc, argv);
     Viewer3D<> viewer;
     viewer.show();
 
-    DGtal::trace.beginBlock("Tube criterion");
+    /*DGtal::trace.beginBlock("Tube criterion");
     std::map<Z2i::Point, double> pToValues;
     for ( typename Domain::ConstIterator it = delta.domain().begin(),
                   itE = delta.domain().end(); it != itE; ++it ) {
@@ -342,7 +342,7 @@ int main( int argc, char **argv )
         pToValues[p] = length;
 
     }
-    DGtal::trace.endBlock();
+    DGtal::trace.endBlock();*/
 
     double min = std::min_element(pToValues.begin(), pToValues.end(), [&](const std::pair<Z2i::Point, double>& p1,
                                                                           const std::pair<Z2i::Point, double>& p2) {
@@ -373,12 +373,12 @@ int main( int argc, char **argv )
     for (const auto& pair : pToV)  {
         Point p = pair.first;
         std::vector<Z2i::RealVector> vec = pair.second;
-        if (pToValues.find(p) == pToValues.end()) continue;
+        //if (pToValues.find(p) == pToValues.end()) continue;
         Z3i::Point p3D(p[0], p[1], 0);
         double value = pToValues.at(p);
         Color currentColor = cmap_grad(value);
         currentColor.alpha(180);
-        viewer << CustomColors3D(currentColor, currentColor) << p3D;
+//        viewer << CustomColors3D(currentColor, currentColor) << p3D;
 
 //        if (p[0] % 30 != 0 || p[1] % 30 != 0) continue;
 
@@ -388,7 +388,6 @@ int main( int argc, char **argv )
             viewer.addLine(p3D, p3D + vec3D);
         }
         if (voro.find(p) == voro.end()) continue;
-
 
 
         size_t size = vec.size();

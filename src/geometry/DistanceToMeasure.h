@@ -89,22 +89,23 @@ public:
             Value distance = (myDistance2.domain().isInside(n)) ? distance2(n) : distance_center;
             Point diff = p - n;
             Point otherPoint = p + diff;
+            Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
+                                                                              : distance_center;
             auto valMax = std::max_element(diff.begin(), diff.end(), [&](const Scalar &one, const Scalar &two) {
                 return std::abs(one) < std::abs(two);
             });
             int d = valMax - diff.begin();
-            Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
-                                                                              : distance_center;
+
             if (otherPoint[d] > n[d]) {
                 Value tmpDistance = otherDistance;
                 otherDistance = distance;
                 distance = tmpDistance;
             }
-            if (distance == 0 && otherDistance != 0) {
-                distance = otherDistance + 1;
+            if (std::abs(std::sqrt(distance) - std::sqrt(distance_center)) > Point::dimension) {
+                distance = distance_center;
             }
-            if (distance != 0 && otherDistance == 0) {
-                otherDistance = distance + 1;
+            if (std::abs(std::sqrt(otherDistance) - std::sqrt(distance_center)) > Point::dimension) {
+                otherDistance = distance_center;
             }
             vectorToReturn[d] = (std::abs(distance - distance_center) >=
                                  std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
