@@ -17,7 +17,9 @@ public:
     typedef typename ImageFct::Point Point;
     typedef typename ImageFct::Domain Domain;
     typedef typename Domain::Space Space;
+    typedef typename Space::Dimension Dimension;
     typedef typename Space::RealVector RealVector;
+    typedef typename Point::Scalar Scalar;
     typedef DGtal::MetricAdjacency<Space, 1> Adjacency;
 
 public:
@@ -84,24 +86,32 @@ public:
         for (Iterator it = neighborsP.begin(), ite = neighborsP.end();
              it != ite; ++it) {
             Point n = *it;
-            Value distance = (myDistance2.domain().isInside(*it)) ? distance2(n) : distance_center;
-            for (int d = 0; d < Point::dimension; d++) {
-                if (p[d] != n[d]) {
-                    Point otherPoint = n;
-                    otherPoint[d] = p[d] + (p[d] - n[d]);
-                    Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
-                                                                                      : distance_center;
-                    if (otherPoint[d] > n[d]) {
-                        Value tmpDistance = otherDistance;
-                        otherDistance = distance;
-                        distance = tmpDistance;
-                    }
-                    vectorToReturn[d] = (std::abs(distance - distance_center) >=
-                                         std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
-                                                                                       2.0 :
-                                        -(distance_center - otherDistance) / 2.0;
-                }
+            Value distance = (myDistance2.domain().isInside(n)) ? distance2(n) : distance_center;
+            Point diff = p - n;
+            Point otherPoint = p + diff;
+            auto valMax = std::max_element(diff.begin(), diff.end(), [&](const Scalar &one, const Scalar &two) {
+                return std::abs(one) < std::abs(two);
+            });
+            int d = valMax - diff.begin();
+            Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
+                                                                              : distance_center;
+            if (otherPoint[d] > n[d]) {
+                Value tmpDistance = otherDistance;
+                otherDistance = distance;
+                distance = tmpDistance;
             }
+            if (distance == 0 && otherDistance != 0) {
+                distance = otherDistance + 1;
+            }
+            if (distance != 0 && otherDistance == 0) {
+                otherDistance = distance + 1;
+            }
+            vectorToReturn[d] = (std::abs(distance - distance_center) >=
+                                 std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
+                                                                              2.0 :
+                                -(distance_center - otherDistance) / 2.0;
+
+
         }
         return vectorToReturn;
     }
@@ -145,36 +155,35 @@ public:
             std::vector<MyNode> vec;
             visitor.getCurrentLayer(vec);
 
-            std::vector<Point> vecPoints;
-            for (const MyNode &n : vec)
-                vecPoints.push_back(n.first);
-
-            for (const Point &s : vecPoints) {
-                if (!myMeasure.domain().isInside(s)) continue;
-                double currentColor = myMeasure(s);
+            for (const MyNode &n : vec) {
+                if (!myMeasure.domain().isInside(n.first)) continue;
+                double currentColor = myMeasure(n.first);
                 stat.addValue(currentColor);
-                firstMass = stat.median();
-                currentColor = currentColor - firstMass;
-                d2 += currentColor * node.second * node.second;
-                m = DGtal::NumberTraits<Value>::ZERO;
-                for (const Value &v : stat) {
-                    m += v - firstMass;
-                }
-
             }
-            if ((m >= myMass))
+            firstMass = stat.median();
+            m = DGtal::NumberTraits<Value>::ZERO;
+            for (const Value &v : stat) {
+                m += v - firstMass;
+            }
+
+            if (node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
+                node.second = myR2Max;
                 break;
-            if (node.second > myR2Max) {
+            }
+            if (m >= myMass) {
+                break;
+            }
+            if (node.second > std::sqrt(myR2Max)) {
                 d2 = m * myR2Max;
                 break;
             }
             visitor.expandLayer();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
-            return myR2Max;
+            return 0.0;
         if (node.second == myR2Max)
             return 0.0;
-        return node.second;
+        return node.second * node.second;
     }
 
     Domain domain() const { return myMeasure.domain(); }
