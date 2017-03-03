@@ -12,7 +12,7 @@ public:
     typedef typename ImageFct::Domain Domain;
     typedef typename Domain::Space Space;
     typedef typename Space::RealVector RealVector;
-    typedef DistanceToMeasure<ImageFct> Distance;
+    typedef DistanceToMeasureEdge <ImageFct> Distance;
     typedef typename DGtal::DigitalSetSelector<Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS>::Type Container;
 
 public:

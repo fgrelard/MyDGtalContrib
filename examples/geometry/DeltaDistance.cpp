@@ -4,18 +4,18 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/filesystem.hpp>
 #include <ShapeDescriptor.h>
 #include <DGtal/io/writers/PGMWriter.h>
+#include <DGtal/io/writers/PPMWriter.h>
 #include <DGtal/geometry/volumes/distance/VoronoiMap.h>
 #include <shapes/Polygon.h>
+#include <geometry/DistanceToMeasure.h>
+#include <viewer/ViewerDistanceBall.h>
 
-#include "DGtal/helpers/StdDefs.h"
-#include "DGtal/graph/DistanceBreadthFirstVisitor.h"
-#include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
-#include "DGtal/io/viewers/Viewer3D.h"
-#include "geometry/DistanceToMeasure.h"
+#include "geometry/DistanceToMeasureEdge.h"
 
 using namespace std;
 using namespace DGtal;
@@ -115,9 +115,9 @@ double lengthVectors(const std::vector<Z2i::RealVector>& dirs) {
     if (dirs.size() == 1) return 0;
     Z2i::RealVector sum;
     for (const Z2i::RealVector& f : dirs) {
-        sum += f;
+        sum += f.getNormalized();
     }
-    return sum.norm() / dirs.size();
+    return sum.norm();
 }
 
 double twoOrientation(const std::vector<Z2i::RealVector>& dirs) {
@@ -145,7 +145,7 @@ double twoOrientation(const std::vector<Z2i::RealVector>& dirs) {
     stat.addValues(orientation.begin(), orientation.end());
     double value = stat.median();
     double angle = meanAngle(dirs);
-    value *= std::abs(M_PI/4 - angle);
+    //value *= std::abs(M_PI/4 - angle);
     return value;
 }
 
@@ -188,8 +188,7 @@ maxProjectionRadius(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& p
                                                                                   const Z2i::RealVector& v2) {
             return v1.norm() < v2.norm();
         });
-        Z2i::Point proj = projection + candidate;
-        double value = sqrt(delta.distance2(proj));
+        double value = candidate.norm();
         aMap[current] = value;
     }
     return aMap;
@@ -231,6 +230,15 @@ computeVoronoiMap(const std::map<Z2i::Point, std::vector<Z2i::RealVector> >& vec
     return aMap;
 }
 
+template <typename FImg>
+FImg invert(const FImg &img) {
+    FImg invert(img.domain());
+    for (const auto &p : img.domain()) {
+        invert.setValue(p, 255 - img(p));
+    }
+    return invert;
+}
+
 int main( int argc, char **argv )
 {
     using namespace DGtal;
@@ -238,12 +246,14 @@ int main( int argc, char **argv )
 
     typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage2D;
     typedef ImageContainerBySTLVector<Domain, float>         FloatImage2D;
-    typedef DistanceToMeasure<FloatImage2D>                 Distance;
+    typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
+    typedef DistanceToMeasureEdge<FloatImage2D> Distance;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
             ("help,h", "display this message")
             ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+            ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
             ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
             ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
             ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
@@ -274,9 +284,17 @@ int main( int argc, char **argv )
 
 
     string inputFilename = vm["input"].as<std::string>();
+    string outputFilename = vm["output"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
     double mass = vm["mass"].as<double>();
     double rmax = vm["rmax"].as<double>();
+
+    boost::filesystem::path path(outputFilename);
+
+    string ext = path.extension().string();
+    string filename = path.replace_extension(boost::filesystem::path("")).string();
+    string outname = filename + "_" + std::to_string((int) mass) + "_" + std::to_string((int) rmax) + ext;
+    DGtal::trace.info() << outname << std::endl;
 
     GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( inputFilename );
     auto domain = img.domain();
@@ -286,8 +304,11 @@ int main( int argc, char **argv )
         float v = ((float) *it) * 1.0f / thresholdMax;
         *outIt++ = v;
     }
+
+    FloatImage2D finv = invert(fimg);
     trace.beginBlock( "Computing delta-distance." );
     Distance     delta( mass, fimg, rmax );
+    Distance deltaInvert(0.1, finv, rmax);
     trace.endBlock();
 
     float m = 0.0f;
@@ -299,17 +320,17 @@ int main( int argc, char **argv )
         m = std::max( v, m );
     }
 
-
+    DGtal::trace.info() << m << std::endl;
     srand(time(NULL));
     std::map<Z2i::Point, std::vector<Z2i::RealVector> > pToV = computePointToVectors(delta);
     //std::map< Z2i::Point, double > pToValues = maxProjectionRadius(pToV, delta);
-    std::map<Z2i::Point, double> pToValues = maxProjection(pToV, delta);
+    //std::map<Z2i::Point, double> pToValues = maxProjection(pToV, delta);
     std::map<Z2i::Point, std::set<Z2i::Point> > voro = computeVoronoiMap(pToV, domain);
     QApplication app(argc, argv);
-    Viewer3D<> viewer;
+    ViewerDistanceBall<Distance> viewer(delta);
     viewer.show();
 
-    /*DGtal::trace.beginBlock("Tube criterion");
+    DGtal::trace.beginBlock("Tube criterion");
     std::map<Z2i::Point, double> pToValues;
     for ( typename Domain::ConstIterator it = delta.domain().begin(),
                   itE = delta.domain().end(); it != itE; ++it ) {
@@ -317,7 +338,7 @@ int main( int argc, char **argv )
         Z3i::Point c(p[0], p[1], 0);
         float v = sqrt( delta.distance2( p ) );
         v = std::min( (float)m, std::max( v, 0.0f ) );
-        int radius = 4;
+        int radius = deltaInvert.distance(p);
         Ball<Point> ball(p, radius);
         FloatImage2D aSet = ball.intersection( fimg );
         std::vector<RealVector> dirs;
@@ -334,7 +355,7 @@ int main( int argc, char **argv )
 
         }
         //No normalization
-        double length = lengthMinorAxis(dirs);
+        double length = lengthVectors(dirs);
         double angle = meanAngle(dirs);
         double orientation = twoOrientation(dirs);
         double distanceNormalized = v / m;
@@ -342,7 +363,7 @@ int main( int argc, char **argv )
         pToValues[p] = length;
 
     }
-    DGtal::trace.endBlock();*/
+    DGtal::trace.endBlock();
 
     double min = std::min_element(pToValues.begin(), pToValues.end(), [&](const std::pair<Z2i::Point, double>& p1,
                                                                           const std::pair<Z2i::Point, double>& p2) {
@@ -363,52 +384,56 @@ int main( int argc, char **argv )
     cmap_grad.addColor( Color( 0,   0, 255 ) );
     cmap_grad.addColor( Color( 0,   0, 0 ) );
 
-    for (const Z2i::Point &p : img.domain()) {
-        Z3i::Point p3D(p[0], p[1], 0);
-        if (img(p) == 255)
-            viewer << CustomColors3D(Color::Red, Color::Red) << p3D;
-    }
 
 
     for (const auto& pair : pToV)  {
         Point p = pair.first;
+        if (p[0] % 40 != 0 || p[1] % 40 != 0) continue;
+        Ball<Z2i::Point> ball(p, deltaInvert.distance(p));
+        for (const Z2i::Point &b : ball.pointSet()) {
+            viewer << CustomColors3D(Color::Black, Color::Black) << Z3i::Point(b[0], b[1], 0);
+        }
+
+
+    }
+
+    for (const auto &pair : pToV) {
+        Point p = pair.first;
         std::vector<Z2i::RealVector> vec = pair.second;
-        //if (pToValues.find(p) == pToValues.end()) continue;
+
         Z3i::Point p3D(p[0], p[1], 0);
+        if (pToValues.find(p) == pToValues.end()) continue;
+
         double value = pToValues.at(p);
         Color currentColor = cmap_grad(value);
         currentColor.alpha(180);
-//        viewer << CustomColors3D(currentColor, currentColor) << p3D;
-
-//        if (p[0] % 30 != 0 || p[1] % 30 != 0) continue;
-
+        viewer << CustomColors3D(currentColor, currentColor) << p3D;
         for (const Z2i::RealVector &v : vec) {
             Z3i::RealVector vec3D(v[0], v[1], 0);
             if (std::isnan(v.norm()) || v.norm() == 0) continue;
             viewer.addLine(p3D, p3D + vec3D);
         }
-        if (voro.find(p) == voro.end()) continue;
-
-
-        size_t size = vec.size();
-        std::set<Z2i::Point> vorocell = voro.at(p);
-        int r = rand() % 256, g = rand() % 256, b = rand() % 256;
-        Color color(r, g, b);
-        for (const Z2i::Point &v : vorocell) {
-            Z3i::Point v3D(v[0], v[1], 0);
-            viewer << CustomColors3D(color, color) << v3D;
-        }
-
+//        if (voro.find(p) == voro.end()) continue;
+//
+//
+//        size_t size = vec.size();
+//        std::set<Z2i::Point> vorocell = voro.at(p);
+//        int r = rand() % 256, g = rand() % 256, b = rand() % 256;
+//        Color color(r, g, b);
+//        for (const Z2i::Point &v : vorocell) {
+//            Z3i::Point v3D(v[0], v[1], 0);
+//            viewer << CustomColors3D(color, color) << v3D;
+//        }
     }
 
 
-    GrayLevelImage2D out(domain);
+    FloatImage2D out(domain);
     for (const std::pair<Z2i::Point, double>& pair : pToValues) {
-        unsigned char value = pair.second * 255 / max;
+        float value = pair.second;
         out.setValue(pair.first, value);
     }
 
-    PGMWriter<GrayLevelImage2D>::exportPGM("test.pgm", out);
+    PPMWriter<FloatImage2D, GradientColorMap<float> >::exportPPM(outname, out, cmap_grad);
     viewer << Viewer3D<>::updateDisplay;
     app.exec();
 

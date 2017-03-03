@@ -7,17 +7,12 @@
 
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
-#include "DGtal/base/ConstAlias.h"
-#include "DGtal/base/CountedConstPtrOrConstPtr.h"
-#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "DGtal/images/ImageContainerBySTLVector.h"
 #include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
-#include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/viewers/Viewer3D.h"
-#include "geometry/DistanceToMeasure.h"
 
 using namespace std;
 using namespace DGtal;
@@ -31,7 +26,7 @@ int main( int argc, char** argv )
 
         typedef ImageContainerBySTLVector<Domain,unsigned char> GrayLevelImage2D;
         typedef ImageContainerBySTLVector<Domain,float>         FloatImage2D;
-        typedef DistanceToMeasure<FloatImage2D>                 Distance;
+    typedef DistanceToMeasureEdge <FloatImage2D> Distance;
 
         GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( "/home/florent/Documents/DGtal/VCM/img/annulus.pgm" );
         double           mass = 3;

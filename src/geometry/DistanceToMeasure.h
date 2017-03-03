@@ -6,8 +6,6 @@
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "geometry/DistanceToPointFunctor.h"
-#include "PointUtil.h"
-#include "CurveProcessor.h"
 
 
 template<typename ImageFct>
@@ -17,9 +15,7 @@ public:
     typedef typename ImageFct::Point Point;
     typedef typename ImageFct::Domain Domain;
     typedef typename Domain::Space Space;
-    typedef typename Space::Dimension Dimension;
     typedef typename Space::RealVector RealVector;
-    typedef typename Point::Scalar Scalar;
     typedef DGtal::MetricAdjacency<Space, 1> Adjacency;
 
 public:
@@ -86,33 +82,32 @@ public:
         for (Iterator it = neighborsP.begin(), ite = neighborsP.end();
              it != ite; ++it) {
             Point n = *it;
-            Value distance = (myDistance2.domain().isInside(n)) ? distance2(n) : distance_center;
-            Point diff = p - n;
-            Point otherPoint = p + diff;
-            Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
-                                                                              : distance_center;
-            auto valMax = std::max_element(diff.begin(), diff.end(), [&](const Scalar &one, const Scalar &two) {
-                return std::abs(one) < std::abs(two);
-            });
-            int d = valMax - diff.begin();
+            Value distance = (myDistance2.domain().isInside(*it)) ? distance2(n) : distance_center;
+            for (int d = 0; d < Point::dimension; d++) {
+                if (p[d] != n[d]) {
+                    Point otherPoint = n;
+                    otherPoint[d] = p[d] + (p[d] - n[d]);
+                    Value otherDistance = (myDistance2.domain().isInside(otherPoint)) ? distance2(otherPoint)
+                                                                                      : distance_center;
+                    if (otherPoint[d] > n[d]) {
+                        Value tmpDistance = otherDistance;
+                        otherDistance = distance;
+                        distance = tmpDistance;
+                    }
+                    //Necessary to avoid incorrect vector direction for pixels of max distance near pixels of min distance (background)
+                    if (std::abs(std::sqrt(distance) - std::sqrt(distance_center)) > Point::dimension) {
+                        distance = distance_center;
+                    }
+                    if (std::abs(std::sqrt(otherDistance) - std::sqrt(distance_center)) > Point::dimension) {
+                        otherDistance = distance_center;
+                    }
 
-            if (otherPoint[d] > n[d]) {
-                Value tmpDistance = otherDistance;
-                otherDistance = distance;
-                distance = tmpDistance;
+                    vectorToReturn[d] = (std::fabs(distance - distance_center) >=
+                                         std::fabs(distance_center - otherDistance)) ? -(distance - distance_center) /
+                                                                                       2.0 :
+                                        -(distance_center - otherDistance) / 2.0;
+                }
             }
-            if (std::abs(std::sqrt(distance) - std::sqrt(distance_center)) > Point::dimension) {
-                distance = distance_center;
-            }
-            if (std::abs(std::sqrt(otherDistance) - std::sqrt(distance_center)) > Point::dimension) {
-                otherDistance = distance_center;
-            }
-            vectorToReturn[d] = (std::abs(distance - distance_center) >=
-                                 std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
-                                                                              2.0 :
-                                -(distance_center - otherDistance) / 2.0;
-
-
         }
         return vectorToReturn;
     }
@@ -129,15 +124,6 @@ public:
         typedef DGtal::DistanceBreadthFirstVisitor<Adjacency, DistanceToPoint, std::set<Point> >
                 DistanceVisitor;
         typedef typename DistanceVisitor::Node MyNode;
-        typedef DGtal::MetricAdjacency<Space, 1> Adj6;
-        typedef DGtal::MetricAdjacency<Space, 3> Adj26;
-        typedef DGtal::DigitalTopology<Adj26, Adj6> Topology;
-        typedef typename DGtal::DigitalSetSelector<Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS>::Type DigitalSet;
-        typedef DGtal::Object<Topology, DigitalSet> ObjectType;
-
-        Adj26 adj26;
-        Adj6 adj6;
-        Topology dt26_6(adj26, adj6, DGtal::JORDAN_DT);
 
         Value m = DGtal::NumberTraits<Value>::ZERO;
         Value d2 = DGtal::NumberTraits<Value>::ZERO;
@@ -149,42 +135,27 @@ public:
         Value last = d2pfct(p);
         MyNode node;
         Value firstMass = myMeasure(p);
-        DGtal::Statistic<Value> stat(true);
-        stat.addValue(firstMass);
         while (!visitor.finished()) {
             node = visitor.current();
-            std::vector<MyNode> vec;
-            visitor.getCurrentLayer(vec);
-
-            for (const MyNode &n : vec) {
-                if (!myMeasure.domain().isInside(n.first)) continue;
-                double currentColor = myMeasure(n.first);
-                stat.addValue(currentColor);
-            }
-            firstMass = stat.median();
-            m = DGtal::NumberTraits<Value>::ZERO;
-            for (const Value &v : stat) {
-                m += v - firstMass;
-            }
-
-            if (node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
-                node.second = myR2Max;
+            if ((node.second != last) // all the vertices of the same layer have been processed.
+                && (m >= myMass))
                 break;
-            }
-            if (m >= myMass) {
-                break;
-            }
-            if (node.second > std::sqrt(myR2Max)) {
+            if (node.second > myR2Max) {
                 d2 = m * myR2Max;
                 break;
             }
-            visitor.expandLayer();
+            if (myMeasure.domain().isInside(node.first)) {
+                Value mpt = myMeasure(node.first);
+                d2 += mpt * node.second * node.second;
+                m += mpt;
+                last = node.second;
+                visitor.expand();
+            } else
+                visitor.ignore();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
-            return 0.0;
-        if (node.second == myR2Max)
-            return 0.0;
-        return node.second * node.second;
+            return myR2Max;
+        return d2 / m;
     }
 
     Domain domain() const { return myMeasure.domain(); }
