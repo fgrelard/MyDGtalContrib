@@ -185,7 +185,7 @@ public:
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return 0.0;
-        if (node.second == myR2Max)
+        if (node.second == myR2Max && m < myMass)
             return 0.0;
         return node.second * node.second;
     }

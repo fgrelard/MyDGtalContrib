@@ -4,6 +4,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
         DeltaDistanceEdge
         VisuDeltaDistance
         HessianLocalAdaptative
+        HessianLocalAdaptative3D
         )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

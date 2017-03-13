@@ -35,27 +35,6 @@ FImg invert(const FImg &img) {
 
 int main(int argc, char **argv) {
     using namespace DGtal;
-    using namespace DGtal::Z2i;
-
-    typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage2D;
-
-    typedef ImageContainerBySTLVector<Domain, float> FloatImage2D;
-    typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
-    typedef DistanceToMeasureEdge<FloatImage2D> Distance;
-    typedef int InputPixelType;
-    typedef double OutputPixelType;
-    typedef itk::Image<InputPixelType, 2> InputImageType;
-    typedef itk::Image<OutputPixelType, 2> OutputImageType;
-    typedef itk::ImageFileReader<InputImageType> ReaderType;
-    typedef itk::ImageRegionIteratorWithIndex<OutputImageType> ImageIterator;
-    typedef itk::DiscreteHessianGaussianImageFunction<InputImageType>
-            HessianFilterType;
-    typedef itk::Point<InputPixelType, 2> ITKPoint;
-    typedef typename InputImageType::IndexType IndexType;
-    typedef ImageContainerByITKImage<Domain, int> ITKImage;
-    typedef HessianFilterType::TensorType::EigenValuesArrayType EigenValues;
-    typedef itk::SymmetricSecondRankTensor<double, 2> HessianPixelType;
-    typedef itk::Image<HessianPixelType, 2> HessianImageType;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -87,20 +66,43 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-
     string inputFilename = vm["input"].as<std::string>();
     string outname = vm["output"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
     double mass = vm["mass"].as<double>();
     double rmax = vm["rmax"].as<double>();
+    constexpr unsigned int dimension = 3;
+
+    typedef SpaceND<dimension> Space;
+    typedef HyperRectDomain<Space> Domain;
+    typedef typename Space::Point Point;
+    typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
+
+    typedef ImageContainerBySTLVector<Domain, float> FloatImage;
+    typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
+    typedef DistanceToMeasureEdge<FloatImage> Distance;
+    typedef int InputPixelType;
+    typedef double OutputPixelType;
+    typedef itk::Image<InputPixelType, dimension> InputImageType;
+    typedef itk::Image<OutputPixelType, dimension> OutputImageType;
+    typedef itk::ImageFileReader<InputImageType> ReaderType;
+    typedef itk::ImageRegionIteratorWithIndex<OutputImageType> ImageIterator;
+    typedef itk::DiscreteHessianGaussianImageFunction<InputImageType>
+            HessianFilterType;
+    typedef itk::Point<InputPixelType, dimension> ITKPoint;
+    typedef typename InputImageType::IndexType IndexType;
+    typedef ImageContainerByITKImage<Domain, int> ITKImage;
+    typedef HessianFilterType::TensorType::EigenValuesArrayType EigenValues;
+    typedef itk::SymmetricSecondRankTensor<double, dimension> HessianPixelType;
+    typedef itk::Image<HessianPixelType, dimension> HessianImageType;
 
 
-    GrayLevelImage2D img = DGtal::ITKReader<GrayLevelImage2D>::importITK(inputFilename);
-    GrayLevelImage2D imgInvert = invert(img);
+    GrayLevelImage img = DGtal::ITKReader<GrayLevelImage>::importITK(inputFilename);
+    GrayLevelImage imgInvert = invert(img);
     auto domain = img.domain();
-    FloatImage2D fimg(imgInvert.domain());
-    FloatImage2D::Iterator outIt = fimg.begin();
-    for (GrayLevelImage2D::ConstIterator it = imgInvert.begin(), itE = imgInvert.end(); it != itE; ++it) {
+    FloatImage fimg(imgInvert.domain());
+    FloatImage::Iterator outIt = fimg.begin();
+    for (GrayLevelImage::ConstIterator it = imgInvert.begin(), itE = imgInvert.end(); it != itE; ++it) {
         float v = ((float) *it) * 1.0f / thresholdMax;
         *outIt++ = v;
     }
@@ -110,25 +112,23 @@ int main(int argc, char **argv) {
 
     std::map<Point, double> pToValues;
     QApplication app(argc, argv);
-    ViewerDistanceBall<Distance> viewer(delta);
+    Viewer3D<> viewer;
     viewer.show();
 
 
     ITKImage image = DGtal::ITKReader<ITKImage>::importITK(inputFilename);
-    ITKPoint origin;
-    origin[0] = 0;
-    origin[1] = 0;
     ITKImage::ITKImagePointer imagePointer = image.getITKImagePointer();
+    HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
     HessianImageType::Pointer hessianImage = HessianImageType::New();
     HessianImageType::RegionType region;
     HessianImageType::IndexType start;
-    start[0] = 0;
-    start[1] = 0;
+    for (int i = 0; i < dimension; i++)
+        start[i] = 0;
 
     HessianImageType::SizeType size;
-    size[0] = imagePointer->GetRequestedRegion().GetSize()[0];
-    size[1] = imagePointer->GetRequestedRegion().GetSize()[1];
-
+    for (int i = 0; i < dimension; i++) {
+        size[i] = imagePointer->GetRequestedRegion().GetSize()[i];
+    }
     region.SetSize(size);
     region.SetIndex(start);
     hessianImage->SetRegions(region);
@@ -156,30 +156,17 @@ int main(int argc, char **argv) {
     for (const auto &p : image.domain()) {
         EigenValues eigenValues;
         ITKPoint itkP;
-        itkP[0] = p[0];
-        itkP[1] = p[1];
-//        IndexType index = it.GetIndex();
-//        imagePointer->TransformIndexToPhysicalPoint(index, itkP);
-//        DGtal::trace.info() << index << std::endl;
-        //Z2i::Point p(itkP[0], itkP[1]);
+        HessianImageType::IndexType index;
+
+        for (int i = 0; i < dimension; i++) {
+            itkP[i] = p[i];
+            index[i] = p[i];
+        }
         const double distanceP = delta.distance(p);
         HessianFilterType::Pointer hessianFilter = hessianFiltersVector[(int) distanceP];
-//        hessianFilter->SetSigma(distanceP);
-//        hessianFilter->Initialize();
         auto hessian = hessianFilter->Evaluate(itkP);
         hessian.ComputeEigenValues(eigenValues);
-        HessianImageType::IndexType index;
-        index[0] = p[0];
-        index[1] = p[1];
         hessianImage->SetPixel(index, hessian);
-//        double max = *std::max_element(eigenValues.Begin(), eigenValues.End(), [&](const double &first, const double &second) {
-//            return std::abs(first) < std::abs(second);
-//        });
-//        double min = *std::min_element(eigenValues.Begin(), eigenValues.End(), [&](const double &first, const double &second) {
-//            return std::abs(first) < std::abs(second);
-//        });
-//        double max2 = std::abs(min) / std::abs(max);
-//        pToValues[p] = max2;
     }
 
     typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType>
@@ -205,19 +192,13 @@ int main(int argc, char **argv) {
         if (value > max)
             max = value;
         OutputImageType::IndexType itkP = it.GetIndex();
-        Point p(itkP[0], itkP[1]);
+        Point p;
+        for (int i = 0; i < dimension; i++) {
+            p[i] = itkP[i];
+        }
         pToValues[p] = value;
         ++it;
     }
-//    double min = std::min_element(pToValues.begin(), pToValues.end(), [&](const std::pair<Z2i::Point, double> &p1,
-//                                                                          const std::pair<Z2i::Point, double> &p2) {
-//        return p1.second < p2.second;
-//    })->second;
-//
-//    double max = std::max_element(pToValues.begin(), pToValues.end(), [&](const std::pair<Z2i::Point, double> &p1,
-//                                                                          const std::pair<Z2i::Point, double> &p2) {
-//        return p1.second < p2.second;
-//    })->second;
     DGtal::trace.info() << min << " " << max << std::endl;
     GradientColorMap<float> cmap_grad(min, max);
 
@@ -230,25 +211,41 @@ int main(int argc, char **argv) {
 
 
     for (const auto &pair : pToValues) {
-        Z2i::Point p = pair.first;
+        Point p = pair.first;
         double value = pair.second;
-        Z3i::Point p3D(p[0], p[1], 0);
+        Z3i::Point p3D;
+        for (int i = 0; i < dimension; i++) {
+            p3D[i] = p[i];
+        }
         Color currentColor = cmap_grad(value);
+        currentColor.alpha(value * 255);
         viewer << CustomColors3D(currentColor, currentColor) << p3D;
     }
 
-    GrayLevelImage2D out(img.domain());
+    GrayLevelImage out(img.domain());
     for (const auto &pair : pToValues) {
-        Z2i::Point p = pair.first;
+        Point p = pair.first;
         unsigned char value = pair.second * 255 / max;
         out.setValue(p, value);
     }
 
 
-    ITKWriter<GrayLevelImage2D>::exportITK(outname, out);
+    double maxRadius = delta.distance(*std::max_element(domain.begin(), domain.end(), [&](const Point &one,
+                                                                                          const Point &two) {
+        return delta.distance(one) < delta.distance(two);
+    }));
 
+    GrayLevelImage outRadius(img.domain());
+    for (const Point &p : domain) {
+        unsigned char value = delta.distance(p) * 255 / maxRadius;
+        outRadius.setValue(p, value);
+    }
+
+    ITKWriter<GrayLevelImage>::exportITK(outname, out);
+    ITKWriter<GrayLevelImage>::exportITK(outRadiusName, outRadius);
     viewer << Viewer3D<>::updateDisplay;
     app.exec();
 
     return 0;
 }
+
