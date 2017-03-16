@@ -591,7 +591,7 @@ isValid() const {
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Implementation of inline functions                                        //
+// Implementation of inline itktools                                        //
 
 template<typename TDigitalSurfaceContainer, typename TSeparableMetric, typename TKernelFunction>
 inline

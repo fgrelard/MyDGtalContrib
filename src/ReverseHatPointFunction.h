@@ -83,7 +83,7 @@ namespace DGtal {
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Includes inline functions.
+// Includes inline itktools.
 #include "DGtal/kernel/Point2ScalarFunctors.ih"
 
 //                                                                           //

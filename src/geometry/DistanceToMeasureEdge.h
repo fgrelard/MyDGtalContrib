@@ -8,7 +8,7 @@
 #include "geometry/DistanceToPointFunctor.h"
 #include "PointUtil.h"
 #include "CurveProcessor.h"
-
+#include <omp.h>
 
 template<typename ImageFct>
 class DistanceToMeasureEdge {
@@ -24,26 +24,31 @@ public:
 
 public:
 
-    DistanceToMeasureEdge(Value m0, const ImageFct &measure, Value rmax = 10.0, bool initialize = true)
+    DistanceToMeasureEdge(Value m0, const ImageFct &measure, Value rmax = 10.0, Value mask = 1.1, bool initialize =
+    true)
             : myMass(m0), myMeasure(measure), myDistance2(myMeasure.domain()),
-              myR2Max(rmax * rmax) {
+              myR2Max(rmax * rmax), myMask(mask) {
         if (initialize)
             init();
     }
 
 
     DistanceToMeasureEdge(const DistanceToMeasureEdge &other) : myMass(other.myMass), myMeasure(other.myMeasure),
-                                                                myDistance2(other.myDistance2), myR2Max(other.myR2Max) {
+                                                                myDistance2(other.myDistance2), myR2Max(other.myR2Max),
+                                                                myMask(other.myMask) {
     }
 
     virtual void init() {
-        double nb = myDistance2.domain().size();
-        unsigned int i = 0;
-
-        for (typename Domain::ConstIterator it = myDistance2.domain().begin(),
-                     itE = myDistance2.domain().end(); it != itE; ++it, ++i) {
+        int nb = myDistance2.domain().size();
+        Domain domain = myMeasure.domain();
+        int i = 0;
+        for (typename Domain::Iterator it = domain.begin(), ite = domain.end(); it != ite; ++it, ++i) {
             DGtal::trace.progressBar(i, nb);
-            myDistance2.setValue(*it, computeDistance2(*it));
+            Point current = *it;
+            if (myMeasure(current) != myMask)
+                myDistance2.setValue(current, computeDistance2(current));
+            else
+                myDistance2.setValue(current, 0);
         }
     }
 
@@ -132,28 +137,20 @@ public:
         typedef DGtal::DistanceBreadthFirstVisitor<Adjacency, DistanceToPoint, std::set<Point> >
                 DistanceVisitor;
         typedef typename DistanceVisitor::Node MyNode;
-        typedef DGtal::MetricAdjacency<Space, 1> Adj6;
-        typedef DGtal::MetricAdjacency<Space, 3> Adj26;
-        typedef DGtal::DigitalTopology<Adj26, Adj6> Topology;
-        typedef typename DGtal::DigitalSetSelector<Domain, DGtal::BIG_DS + DGtal::HIGH_BEL_DS>::Type DigitalSet;
-        typedef DGtal::Object<Topology, DigitalSet> ObjectType;
 
-        Adj26 adj26;
-        Adj6 adj6;
-        Topology dt26_6(adj26, adj6, DGtal::JORDAN_DT);
 
         Value m = DGtal::NumberTraits<Value>::ZERO;
-        Value d2 = DGtal::NumberTraits<Value>::ZERO;
         Adjacency graph;
         Distance l2;
         DistanceToPoint d2pfct(l2, p);
         DistanceVisitor visitor(graph, d2pfct, p);
-
         Value last = d2pfct(p);
         MyNode node;
         Value firstMass = myMeasure(p);
         DGtal::Statistic<Value> stat(true);
         stat.addValue(firstMass);
+
+        bool flagIsMask = false;
         while (!visitor.finished()) {
             node = visitor.current();
             std::vector<MyNode> vec;
@@ -162,6 +159,7 @@ public:
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
+                //if (currentColor == myMask) flagIsMask = true;
                 stat.addValue(currentColor);
             }
             firstMass = stat.median();
@@ -170,22 +168,20 @@ public:
                 m += v - firstMass;
             }
 
-            if (node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
-                node.second = myR2Max;
+            if (flagIsMask ||
+                node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
+                node.second = 0;
                 break;
             }
-            if (m >= myMass) {
-                break;
-            }
-            if (node.second > std::sqrt(myR2Max)) {
-                d2 = m * myR2Max;
+            if (m >= myMass ||
+                node.second > std::sqrt(myR2Max)) {
                 break;
             }
             visitor.expandLayer();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return 0.0;
-        if (node.second == myR2Max && m < myMass)
+        if (node.second >= std::sqrt(myR2Max) && m < myMass)
             return 0.0;
         return node.second * node.second;
     }
@@ -194,6 +190,7 @@ public:
 
 protected:
     Value myMass;
+    Value myMask;
     const ImageFct &myMeasure;
     ImageFct myDistance2;
     Value myR2Max;
