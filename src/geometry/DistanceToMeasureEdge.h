@@ -6,6 +6,7 @@
 #include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "geometry/DistanceToPointFunctor.h"
+#include "DGtal/math/Statistic.h"
 #include "PointUtil.h"
 #include "CurveProcessor.h"
 #include <omp.h>
@@ -150,26 +151,26 @@ public:
         DGtal::Statistic<Value> stat(true);
         stat.addValue(firstMass);
 
-        bool flagIsMask = false;
         while (!visitor.finished()) {
             node = visitor.current();
+
             std::vector<MyNode> vec;
             visitor.getCurrentLayer(vec);
 
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
-                //if (currentColor == myMask) flagIsMask = true;
+                if (currentColor == myMask) continue;
                 stat.addValue(currentColor);
             }
-            firstMass = stat.median();
-            m = DGtal::NumberTraits<Value>::ZERO;
-            for (const Value &v : stat) {
-                m += v - firstMass;
-            }
 
-            if (flagIsMask ||
-                node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
+//            firstMass = stat.median();
+//            m = DGtal::NumberTraits<Value>::ZERO;
+//            for (const Value &v : stat) {
+//                m += v - firstMass;
+//            }
+            m = std::sqrt(stat.variance());
+            if (node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
                 node.second = 0;
                 break;
             }
@@ -177,6 +178,7 @@ public:
                 node.second > std::sqrt(myR2Max)) {
                 break;
             }
+            //Next layer
             visitor.expandLayer();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)

@@ -68,21 +68,25 @@ int main(int argc, char **argv) {
     typedef ImageContainerByITKImage<Domain, float> ITKImageFloat;
     typedef itk::SymmetricSecondRankTensor<double, 3> HessianPixelType;
     typedef itk::Image<HessianPixelType, 3> HessianImageType;
-    //typedef itk::MultiScaleHessianBasedMeasureImageFilter<InputImageType, HessianImageType, OutputImageType>
-    //        MultiVesselnessType;
+    typedef itk::MultiScaleHessianBasedMeasureImageFilter<InputImageType, HessianImageType, OutputImageType>
+            MultiVesselnessType;
+
+    //Frangi
+    typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType> ObjectnessFilterType;
 
     // Sato
-    //typedef itk::Hessian3DToVesselnessMeasureImageFilter< OutputPixelType >
-    //        ObjectnessFilterType;
+//    typedef itk::Hessian3DToVesselnessMeasureImageFilter< OutputPixelType >
+//            ObjectnessFilterType;
 
     // Krissian
-    typedef itk::ModifiedKrissianVesselnessImageFilter<HessianImageType, OutputImageType>
-            ObjectnessFilterType;
-    typedef itk::MultiScaleGaussianEnhancementImageFilter<InputImageType, OutputImageType>
-            MultiVesselnessType;
+//    typedef itk::ModifiedKrissianVesselnessImageFilter<HessianImageType, OutputImageType>
+//            ObjectnessFilterType;
+//    typedef itk::MultiScaleGaussianEnhancementImageFilter<InputImageType, OutputImageType>
+//            MultiVesselnessType;
+
     typedef typename MultiVesselnessType::ScalesImageType ScaleImageType;
-    typedef typename MultiVesselnessType::EigenValueArrayType EigenValueArrayType;
-    typedef itk::Functor::ModifiedKrissianVesselnessFunctor<EigenValueArrayType, OutputPixelType> KrissianFunctor;
+//    typedef typename MultiVesselnessType::EigenValueArrayType EigenValueArrayType;
+//    typedef itk::Functor::ModifiedKrissianVesselnessFunctor<EigenValueArrayType, OutputPixelType> KrissianFunctor;
 
     typedef itk::HessianRecursiveGaussianImageFilter<InputImageType, HessianImageType> HessianFilter;
 
@@ -135,33 +139,33 @@ int main(int argc, char **argv) {
 
     float maxSigma = 5.0;
     ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
-    objectnessFilter->SetBrightObject(true);
 
     // Frangi
-//        objectnessFilter->SetBrightObject(true);
-//        objectnessFilter->SetScaleObjectnessMeasure(false);
-//        objectnessFilter->SetAlpha(0.5);
-//        objectnessFilter->SetBeta(1.0);
-//        objectnessFilter->SetGamma(5.0);
+    objectnessFilter->SetBrightObject(true);
+    objectnessFilter->SetScaleObjectnessMeasure(false);
+    objectnessFilter->SetAlpha(0.5);
+    objectnessFilter->SetBeta(1.0);
+    objectnessFilter->SetGamma(5.0);
 
     // Sato
-//        objectnessFilter->SetAlpha1(0.5);
-//        objectnessFilter->SetAlpha2(2.0);
+//    objectnessFilter->SetAlpha1(0.5);
+//    objectnessFilter->SetAlpha2(2.0);
 
-    typename KrissianFunctor::Pointer functor = KrissianFunctor::New();
-    functor->SetBrightObject(true);
+    //Krissian
+//    typename KrissianFunctor::Pointer functor = KrissianFunctor::New();
+//    functor->SetBrightObject(true);
 
     MultiVesselnessType::Pointer vesselnessType = MultiVesselnessType::New();
 
-    //Krissian
-    vesselnessType->SetUnaryFunctor(functor);
-
-    vesselnessType->SetInput(imagePointer);
-    vesselnessType->SetNonNegativeHessianBasedMeasure(true);
+    // Krissian
+//    vesselnessType->SetUnaryFunctor(functor);
 
     //Sato+Frangi
-    //vesselnessType->SetHessianToMeasureFilter(objectnessFilter);
+    vesselnessType->SetHessianToMeasureFilter(objectnessFilter);
 
+    //All
+    vesselnessType->SetInput(imagePointer);
+    vesselnessType->SetNonNegativeHessianBasedMeasure(true);
     vesselnessType->SetGenerateScalesOutput(true);
     vesselnessType->SetSigmaMinimum(0.1);
     vesselnessType->SetSigmaMaximum(5.0);
@@ -181,23 +185,24 @@ int main(int argc, char **argv) {
 
 
     ScaleImageType::ConstPointer outScaleObject = vesselnessType->GetScalesOutput();
-    DGtal::trace.info() << outScaleObject->GetLargestPossibleRegion().GetSize() << std::endl;
     typedef itk::ImageDuplicator<ScaleImageType> DuplicatorType;
     DuplicatorType::Pointer duplicator = DuplicatorType::New();
     duplicator->SetInputImage(outScaleObject);
     duplicator->Update();
     ScaleImageType::Pointer copy = duplicator->GetOutput();
-    DGtal::trace.info() << copy->GetLargestPossibleRegion().GetSize() << std::endl;
-    ITKImageDouble outScaleDouble(copy);
-    ITKImageFloat outScaleFloat(outScaleDouble.domain());
-    for (const Point &p : outScaleDouble.domain()) {
-        outScaleFloat.setValue(p, (float) outScaleDouble(p));
-    }
+
+    //Frangi+Sato
+    ITKImageFloat outScaleFloat(copy);
+
+    // Krissian
+//    ITKImageDouble outScaleDouble(copy);
+//    ITKImageFloat outScaleFloat(outScaleDouble.domain());
+//    for (const Point &p : outScaleDouble.domain()) {
+//        outScaleFloat.setValue(p, (float) outScaleDouble(p));
+//    }
     string outScaleName = outname.substr(0, lastindex) + "_scale" + extension;
     ITKWriter<ITKImageFloat>::exportITK(outScaleName, outScaleFloat);
 
-
-    DGtal::trace.endBlock();
 
     viewer << Viewer3D<>::updateDisplay;
     app.exec();

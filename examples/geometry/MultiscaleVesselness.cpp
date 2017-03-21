@@ -67,7 +67,8 @@ int main(int argc, char **argv) {
     typedef itk::SymmetricSecondRankTensor<double, 3> HessianPixelType;
     typedef itk::Image<HessianPixelType, 3> HessianImageType;
 
-
+    //Frangi
+//    typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType> ObjectnessFilterType;
 
     // Sato
     typedef itk::Hessian3DToVesselnessMeasureImageFilter<OutputPixelType>

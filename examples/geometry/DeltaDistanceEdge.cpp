@@ -4,18 +4,14 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <DGtal/io/writers/ITKWriter.h>
 
-#include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
-#include "DGtal/base/ConstAlias.h"
-#include "DGtal/base/CountedConstPtrOrConstPtr.h"
-#include "DGtal/geometry/volumes/distance/ExactPredicateLpSeparableMetric.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
 #include "DGtal/images/ImageContainerBySTLVector.h"
 #include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
-#include "DGtal/io/colormaps/GradientColorMap.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "geometry/DistanceToMeasureEdge.h"
 
@@ -27,16 +23,17 @@ namespace po = boost::program_options;
 int main( int argc, char** argv )
 {
         using namespace DGtal;
-        using namespace DGtal::Z2i;
+    using namespace DGtal::Z3i;
 
-        typedef ImageContainerBySTLVector<Domain,unsigned char> GrayLevelImage2D;
-        typedef ImageContainerBySTLVector<Domain,float>         FloatImage2D;
-        typedef DistanceToMeasureEdge<FloatImage2D>                 Distance;
+    typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
+    typedef ImageContainerBySTLVector<Domain, float> FloatImage;
+    typedef DistanceToMeasureEdge<FloatImage> Distance;
 
         po::options_description general_opt("Allowed options are: ");
         general_opt.add_options()
                 ("help,h", "display this message")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+                ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
                 ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
                 ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
@@ -65,22 +62,23 @@ int main( int argc, char** argv )
         }
 
         string inputFilename = vm["input"].as<std::string>();
+    string outname = vm["output"].as<std::string>();
         int thresholdMax = vm["thresholdMax"].as<int>();
         double mass = vm["mass"].as<double>();
         double rmax = vm["rmax"].as<double>();
 
-        GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( inputFilename );
+    GrayLevelImage img = ITKReader<GrayLevelImage>::importITK(inputFilename);
         auto domain = img.domain();
-        FloatImage2D     fimg( img.domain() );
-        FloatImage2D::Iterator outIt = fimg.begin();
-        for ( GrayLevelImage2D::ConstIterator it = img.begin(), itE = img.end();
+    FloatImage fimg(img.domain());
+    FloatImage::Iterator outIt = fimg.begin();
+    for (GrayLevelImage::ConstIterator it = img.begin(), itE = img.end();
               it != itE; ++it )
         {
                 float v = ((float)*it) * 1.0 / thresholdMax;
                 *outIt++ = v;
         }
         trace.beginBlock( "Computing delta-distance." );
-        Distance     delta( mass, fimg, rmax );
+    Distance delta(mass, fimg, rmax, 1.0);
         trace.endBlock();
 
         float m = 0.0f;
@@ -109,26 +107,35 @@ int main( int argc, char** argv )
         Viewer3D<> viewer;
         viewer.show();
 
-        for ( typename Domain::ConstIterator it = delta.domain().begin(),
-                      itE = delta.domain().end(); it != itE; ++it )
-        {
-                Point p = *it;
-                Z3i::Point c(p[0], p[1], 0);
-                float v = sqrt( delta.distance2( p ) );
-                v = std::min( (float)m, std::max( v, 0.0f ) );
-                RealVector grad = delta.projection( p );
-                Z3i::RealVector grad3D(grad[0], grad[1], 0);
-                // board <<  CustomStyle( p.className(),
-                //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
-                //         Point(p[0] + grad[0], p[1] + grad[1]);
-                Color currentColor = cmap_grad( v );
-                currentColor.alpha(255);
-                viewer << CustomColors3D( Color::Black, currentColor )
-                       << c;
-                if (grad3D.norm() < 20)
-                        viewer.addLine( c, c+grad3D );
+//        for ( typename Domain::ConstIterator it = delta.domain().begin(),
+//                      itE = delta.domain().end(); it != itE; ++it )
+//        {
+//                Point p = *it;
+//                Z3i::Point c(p[0], p[1], 0);
+//                float v = sqrt( delta.distance2( p ) );
+//                v = std::min( (float)m, std::max( v, 0.0f ) );
+//                RealVector grad = delta.projection( p );
+//                Z3i::RealVector grad3D(grad[0], grad[1], 0);
+//                // board <<  CustomStyle( p.className(),
+//                //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
+//                //         Point(p[0] + grad[0], p[1] + grad[1]);
+//                Color currentColor = cmap_grad( v );
+//                currentColor.alpha(255);
+//                viewer << CustomColors3D( Color::Black, currentColor )
+//                       << c;
+//                if (grad3D.norm() < 20)
+//                        viewer.addLine( c, c+grad3D );
+//
+//        }
 
-        }
+
+    FloatImage outDistance(img.domain());
+    for (const Point &p : domain) {
+        float value = delta.distance(p);
+        //float value = 1.0;
+        outDistance.setValue(p, value);
+    }
+    ITKWriter<FloatImage>::exportITK(outname, outDistance);
         viewer << Viewer3D<>::updateDisplay;
         app.exec();
 

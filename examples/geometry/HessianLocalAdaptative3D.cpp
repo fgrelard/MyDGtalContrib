@@ -121,7 +121,6 @@ int main(int argc, char **argv) {
     ITKImage image = DGtal::ITKReader<ITKImage>::importITK(inputFilename);
 
     ITKImage::ITKImagePointer imagePointer = image.getITKImagePointer();
-    HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
     HessianImageType::Pointer hessianImage = HessianImageType::New();
     HessianImageType::RegionType region;
     HessianImageType::IndexType start;
@@ -143,16 +142,17 @@ int main(int argc, char **argv) {
                 return delta.distance(p1) < delta.distance(p2);
             }));
 //    double maxDistance = 1.0;
-
-    DGtal::trace.info() << "Max distance= " << maxDistance << std::endl;
     std::vector<HessianImageType::Pointer> hessianFiltersVector;
 
+    DGtal::trace.info() << "Max distance= " << maxDistance << std::endl;
+
     DGtal::trace.beginBlock("Multiscale hessian");
-    hessianFilter = HessianFilterType::New();
-    hessianFilter->SetInput(imagePointer);
-    hessianFilter->SetNormalizeAcrossScale(true);
+
     for (int i = 0; i <= maxDistance; i++) {
         DGtal::trace.progressBar(i, maxDistance);
+        HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
+        hessianFilter->SetInput(imagePointer);
+        hessianFilter->SetNormalizeAcrossScale(true);
         hessianFilter->SetSigma(i + 1);
         hessianFilter->ResetPipeline();
         hessianFilter->Update();
