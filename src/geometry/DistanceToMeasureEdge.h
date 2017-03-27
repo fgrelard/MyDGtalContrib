@@ -170,10 +170,6 @@ public:
 //                m += v - firstMass;
 //            }
             m = std::sqrt(stat.variance());
-            if (node.second >= std::sqrt(myR2Max) / 2 && m < 0) {
-                node.second = 0;
-                break;
-            }
             if (m >= myMass ||
                 node.second > std::sqrt(myR2Max)) {
                 break;
