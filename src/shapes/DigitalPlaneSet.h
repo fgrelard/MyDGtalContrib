@@ -3,28 +3,32 @@
 
 #include "DigitalPlane.h"
 
-template <typename TSpace>
+template<typename TSpace>
 class DigitalPlaneSet {
 public:
-        typedef DigitalPlane<TSpace> Plane;
-        typedef typename Plane::DigitalSet DigitalSet;
-        typedef typename Plane::Domain Domain;
-        typedef typename Plane::Point Point;
+    typedef DigitalPlane<TSpace> Plane;
+    typedef typename Plane::DigitalSet DigitalSet;
+    typedef typename Plane::Domain Domain;
+    typedef typename Plane::Point Point;
 public:
-        DigitalPlaneSet() : myDigitalSet(Domain(Point::zero, Point::zero)) {}
+    DigitalPlaneSet() : myDigitalSet(Domain(Point::zero, Point::zero)) {}
 
-        DigitalPlaneSet(const Plane& digitalPlane,
-                        const DigitalSet& aDigitalSet) : myDigitalPlane(digitalPlane),
-                                                       myDigitalSet(aDigitalSet) {}
+    DigitalPlaneSet(const Plane &digitalPlane,
+                    const DigitalSet &aDigitalSet) : myDigitalPlane(digitalPlane),
+                                                     myDigitalSet(aDigitalSet) {}
 
-        DigitalPlaneSet(const DigitalPlaneSet& other) : myDigitalPlane(other.myDigitalPlane), myDigitalSet(other.myDigitalSet) {}
+    DigitalPlaneSet(const DigitalPlaneSet &other) : myDigitalPlane(other.myDigitalPlane),
+                                                    myDigitalSet(other.myDigitalSet) {}
 
-        DigitalSet pointSet() const { return myDigitalSet; }
-        Plane digitalPlane() const { return myDigitalPlane; }
-        bool isDefined() { return myDigitalSet.size() != 0; }
+    DigitalSet pointSet() const { return myDigitalSet; }
+
+    Plane digitalPlane() const { return myDigitalPlane; }
+
+    bool isDefined() { return myDigitalSet.size() != 0; }
+
 private:
-        Plane myDigitalPlane;
-        DigitalSet myDigitalSet;
+    Plane myDigitalPlane;
+    DigitalSet myDigitalSet;
 };
 
 #endif

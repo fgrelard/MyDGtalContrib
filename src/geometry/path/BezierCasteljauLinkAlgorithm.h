@@ -10,38 +10,42 @@
 #include "shapes/Polygon.h"
 #include "DGtal/kernel/PointVector.h"
 
-template <typename Point>
+template<typename Point>
 class BezierCasteljauLinkAlgorithm : public BezierLinkAlgorithm<Point> {
 public:
     typedef DGtal::PointVector<Point::dimension, double> RealVector;
 public:
     BezierCasteljauLinkAlgorithm() {};
 
-    BezierCasteljauLinkAlgorithm(const Point& source,
-                                 const Point& destination,
-                                 const Point& controlPoint1,
-                                 const Point& controlPoint2) : BezierLinkAlgorithm<Point>(source, destination, controlPoint1, controlPoint2) {}
+    BezierCasteljauLinkAlgorithm(const Point &source,
+                                 const Point &destination,
+                                 const Point &controlPoint1,
+                                 const Point &controlPoint2) : BezierLinkAlgorithm<Point>(source, destination,
+                                                                                          controlPoint1,
+                                                                                          controlPoint2) {}
 
-    BezierCasteljauLinkAlgorithm(const BezierCasteljauLinkAlgorithm& other) : BezierCasteljauLinkAlgorithm<Point>(other) {}
+    BezierCasteljauLinkAlgorithm(const BezierCasteljauLinkAlgorithm &other) : BezierCasteljauLinkAlgorithm<Point>(
+            other) {}
 
     virtual typename LinkPointAlgorithm<Point>::Path linkPoints();
 
 private:
-    std::vector<Polygon<Point> > createPolygonSubdivision(const Polygon<Point>& polygon);
+    std::vector<Polygon<Point> > createPolygonSubdivision(const Polygon<Point> &polygon);
 
-    void recursivePolygonSubdivisionBezier(const Polygon<Point>& polygon, std::map<Point, Point>& points);
+    void recursivePolygonSubdivisionBezier(const Polygon<Point> &polygon, std::map<Point, Point> &points);
 
-    bool stopRecursivePolygonDecomposition(const Polygon<Point>& polygon);
+    bool stopRecursivePolygonDecomposition(const Polygon<Point> &polygon);
 
-    int computeDiameter(const std::set<int>& equation);
+    int computeDiameter(const std::set<int> &equation);
 
-    std::vector<std::pair<Point, Point> > orderPoints(const std::map<Point, Point>& points);
+    std::vector<std::pair<Point, Point> > orderPoints(const std::map<Point, Point> &points);
 
 
 };
 
-template <typename Point>
-std::vector<Polygon<Point> > BezierCasteljauLinkAlgorithm<Point>::createPolygonSubdivision(const Polygon<Point>& polygon) {
+template<typename Point>
+std::vector<Polygon<Point> >
+BezierCasteljauLinkAlgorithm<Point>::createPolygonSubdivision(const Polygon<Point> &polygon) {
     typedef std::pair<Point, Point> Segment;
 
     Point source = polygon.getPolygon()[0];
@@ -58,17 +62,17 @@ std::vector<Polygon<Point> > BezierCasteljauLinkAlgorithm<Point>::createPolygonS
     std::vector<Point> newPoints;
     while (segments.size() > 0) {
         std::vector<Point> currentPoints;
-        for (const Segment& s : segments) {
+        for (const Segment &s : segments) {
             Point first = s.first;
             Point second = s.second;
-            Point middle = (first + second) * 1/2.;
+            Point middle = (first + second) * 1 / 2.;
             newPoints.push_back(middle);
             currentPoints.push_back(middle);
         }
 
         segments.clear();
         for (int i = 0; i < currentPoints.size() - 1; i++) {
-            Segment s(currentPoints[i], currentPoints[i+1]);
+            Segment s(currentPoints[i], currentPoints[i + 1]);
             segments.push_back(s);
         }
     }
@@ -80,17 +84,17 @@ std::vector<Polygon<Point> > BezierCasteljauLinkAlgorithm<Point>::createPolygonS
 }
 
 
-template <typename Point>
-int BezierCasteljauLinkAlgorithm<Point>::computeDiameter(const std::set<int>& equation) {
+template<typename Point>
+int BezierCasteljauLinkAlgorithm<Point>::computeDiameter(const std::set<int> &equation) {
     return *equation.rbegin() - *equation.begin();
 }
 
-template <typename Point>
-bool BezierCasteljauLinkAlgorithm<Point>::stopRecursivePolygonDecomposition(const Polygon<Point>& polygon) {
+template<typename Point>
+bool BezierCasteljauLinkAlgorithm<Point>::stopRecursivePolygonDecomposition(const Polygon<Point> &polygon) {
     std::vector<Point> points = polygon.getPolygon();
-    Point dirVector = points[3] -points[0];
+    Point dirVector = points[3] - points[0];
     std::set<int> firstEquation, secondEquation;
-    for (const Point& point : points) {
+    for (const Point &point : points) {
         int value = -dirVector[2] * point[0] + dirVector[0] * point[2];
         int secondValue = -dirVector[2] * point[1] + dirVector[1] * point[2];
         firstEquation.insert(value);
@@ -104,8 +108,9 @@ bool BezierCasteljauLinkAlgorithm<Point>::stopRecursivePolygonDecomposition(cons
     return (diameter1 <= valueToCheck && diameter2 <= valueToCheck);
 }
 
-template <typename Point>
-void BezierCasteljauLinkAlgorithm<Point>::recursivePolygonSubdivisionBezier(const Polygon<Point>& polygon, std::map<Point, Point>& points) {
+template<typename Point>
+void BezierCasteljauLinkAlgorithm<Point>::recursivePolygonSubdivisionBezier(const Polygon<Point> &polygon,
+                                                                            std::map<Point, Point> &points) {
     if (!stopRecursivePolygonDecomposition(polygon)) {
         std::vector<Polygon<Point> > polygons = createPolygonSubdivision(polygon);
         this->recursivePolygonSubdivisionBezier(polygons[0], points);
@@ -115,8 +120,9 @@ void BezierCasteljauLinkAlgorithm<Point>::recursivePolygonSubdivisionBezier(cons
     }
 }
 
-template <typename Point>
-std::vector<std::pair<Point, Point> > BezierCasteljauLinkAlgorithm<Point>::orderPoints(const std::map<Point, Point>& points) {
+template<typename Point>
+std::vector<std::pair<Point, Point> >
+BezierCasteljauLinkAlgorithm<Point>::orderPoints(const std::map<Point, Point> &points) {
     Point next = this->mySource;
     std::vector<std::pair<Point, Point>> orderedPoints;
     while (next != this->myDestination) {
@@ -124,13 +130,13 @@ std::vector<std::pair<Point, Point> > BezierCasteljauLinkAlgorithm<Point>::order
         auto iterator = points.find(next);
         if (iterator == points.end()) break;
         next = iterator->second;
-        orderedPoints.push_back(make_pair(current,  next));
+        orderedPoints.push_back(make_pair(current, next));
     }
     return orderedPoints;
 }
 
 
-template <typename Point>
+template<typename Point>
 typename LinkPointAlgorithm<Point>::Path
 BezierCasteljauLinkAlgorithm<Point>::linkPoints() {
     Polygon<Point> polygon{this->mySource, this->myControlPoint1, this->myControlPoint2, this->myDestination};
@@ -138,7 +144,7 @@ BezierCasteljauLinkAlgorithm<Point>::linkPoints() {
     recursivePolygonSubdivisionBezier(polygon, points);
     std::vector<std::pair<Point, Point> > orderedPoints = this->orderPoints(points);
     std::vector<Point> linkPoints;
-    for (const auto & pair : orderedPoints) {
+    for (const auto &pair : orderedPoints) {
         BresenhamAlgorithm<Point> bresenhamAlgo(pair.first, pair.second);
         typename LinkPointAlgorithm<Point>::Path curve = bresenhamAlgo.linkPoints();
         if (pair.first != this->mySource && pair.first != this->myDestination)

@@ -45,45 +45,45 @@
 //////////////////////////////////////////////////////////////////////////////
 
 namespace DGtal {
-  namespace functors {
+    namespace functors {
 
-    /**
-    The hat function of value v0 at point 0 with a linear decrease to 0 at distance r.
-    A function Point -> Scalar.
-    */
-    template <typename TPoint, typename TScalar>
-    struct ReverseHatPointFunction {
-      typedef TPoint Point;
-      typedef TScalar Scalar;
-      typedef Point argument_type;
-      typedef Scalar value_type;
+        /**
+        The hat function of value v0 at point 0 with a linear decrease to 0 at distance r.
+        A function Point -> Scalar.
+        */
+        template<typename TPoint, typename TScalar>
+        struct ReverseHatPointFunction {
+            typedef TPoint Point;
+            typedef TScalar Scalar;
+            typedef Point argument_type;
+            typedef Scalar value_type;
 
-      Scalar myV0;
-      Scalar myV0OverR;
-      Scalar myR;
-      Scalar myR2;
+            Scalar myV0;
+            Scalar myV0OverR;
+            Scalar myR;
+            Scalar myR2;
 
-    public:
-      ReverseHatPointFunction( Scalar v0, Scalar r ) 
-        : myV0( v0 ), myV0OverR( v0 / r ), myR( r ), myR2( r*r ) {}
-      Scalar operator()( const Point& p ) const
-      {
-        Scalar d = 0;
-        for ( typename Point::ConstIterator it = p.begin(), itE = p.end(); it != itE; ++it )
-          d += functions::square( (Scalar) *it );
-        if ( d >= myR2 ) return 0.0;
-        d = sqrt( d );
-        return myV0 + myV0OverR * d;
-      }
-    };
+        public:
+            ReverseHatPointFunction(Scalar v0, Scalar r)
+                    : myV0(v0), myV0OverR(v0 / r), myR(r), myR2(r * r) {}
+
+            Scalar operator()(const Point &p) const {
+                Scalar d = 0;
+                for (typename Point::ConstIterator it = p.begin(), itE = p.end(); it != itE; ++it)
+                    d += functions::square((Scalar) *it);
+                if (d >= myR2) return 0.0;
+                d = sqrt(d);
+                return myV0 + myV0OverR * d;
+            }
+        };
 
 
-  } // namespace functors
+    } // namespace functors
 } // namespace DGtal
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Includes inline functions.
+// Includes inline itktools.
 #include "DGtal/kernel/Point2ScalarFunctors.ih"
 
 //                                                                           //

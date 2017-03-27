@@ -4,6 +4,8 @@ SET(DGTAL_CONTRIB_EXAMPLES
   PruningSkeletonOrthogonalPlanes
   SkeletonOrthogonalPlanes
   RecenterSkeletonPoints
+  VisuSlicesFromSkeleton
+  DeltaVCM
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

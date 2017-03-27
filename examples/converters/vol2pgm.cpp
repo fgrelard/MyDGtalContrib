@@ -16,9 +16,9 @@ int main(int argc, char** argv) {
 
 	po::options_description general_opt("Allowed options are: ");
 	general_opt.add_options()
-		("help,h", "display this message")
-		("input,i", po::value<std::string>(), "vol file (.vol) , pgm3d (.p3d or .pgm3d, pgm (with 3 dims)) file or sdp (sequence of discrete points)" )
-		("output,o",  po::value<std::string>(), "output itk file" ) ; 
+			("help,h", "display this message")
+			("input,i", po::value<std::string>(), "vol file (.vol) , pgm3d (.p3d or .pgm3d, pgm (with 3 dims)) file or sdp (sequence of discrete points)" )
+			("output,o",  po::value<std::string>(), "output itk file" ) ;
 
 	bool parseOK=true;
 	po::variables_map vm;
@@ -49,6 +49,6 @@ int main(int argc, char** argv) {
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
 	
 	Image image = VolReader<Image>::importVol(inputFilename);
-    PGMWriter<Image>::exportPGM3D(outputFilename, image);
+	PGMWriter<Image>::exportPGM3D(outputFilename, image);
 	return 0;
 }

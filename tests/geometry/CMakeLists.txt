@@ -1,17 +1,20 @@
 add_subdirectory(path)
 
 SET(DGTAL_CONTRIB_TESTS
-  testCurve
-  testCurveProcessor
-  testCurveDecomposition
-  testMedialAxis
-  testDigitalPlaneProcessor
-  testMorphomaths
-  testSphericalShellIntersection
-  testSetProcessor
-  testPointUtil
-  testMultiPathThinner
-  )
+        testCurve
+        testCurveProcessor
+        testCurveDecomposition
+        testMedialAxis
+        testDigitalPlaneProcessor
+        testMorphomaths
+        testSphericalShellIntersection
+        testSetProcessor
+        testPointUtil
+        testMultiPathThinner
+        testDistanceToMeasure
+        testDistanceToMeasureEdge
+        testPolygon
+        )
 
 FOREACH(FILE ${DGTAL_CONTRIB_TESTS})
   add_executable(${FILE} ${FILE})

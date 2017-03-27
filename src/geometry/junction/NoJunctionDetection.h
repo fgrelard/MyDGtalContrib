@@ -4,19 +4,19 @@
 class NoJunctionDetection {
 
 public:
-        NoJunctionDetection() {}
+    NoJunctionDetection() {}
 
 public:
-        template <typename Point>
-        bool isInJunction(const Point& p, double radius, double noise = 0);
+    template<typename Point>
+    bool isInJunction(const Point &p, double radius, double noise = 0);
 
 };
 
-template <typename Point>
+template<typename Point>
 bool
 NoJunctionDetection::
-isInJunction(const Point& p, double radius, double noise) {
-        return false;
+isInJunction(const Point &p, double radius, double noise) {
+    return false;
 }
 
 
