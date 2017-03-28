@@ -2,6 +2,9 @@ add_subdirectory(clustering)
 add_subdirectory(geometry)
 add_subdirectory(shapes)
 add_subdirectory(vcm)
+add_subdirectory(hessian)
+
+include_directories(${CMAKE_SOURCE_DIR}/)
 
 SET(DGTAL_CONTRIB_TESTS
   testShapeDescriptor
