@@ -72,7 +72,7 @@ namespace DGtal {
         GaussianDerivativeOperator() {
             myNormalizeAcrossScale = true;
             myOrder = 1;
-            myVariance = 1.0;
+            mySigma = 1.0;
         }
 
         /**
@@ -80,8 +80,8 @@ namespace DGtal {
          */
         ~GaussianDerivativeOperator() = default;
 
-        GaussianDerivativeOperator(unsigned int anOrder, bool aNormalizeAcrossScale, double aVariance = 1.0) : myOrder(
-                anOrder), myNormalizeAcrossScale(aNormalizeAcrossScale), myVariance(aVariance) {}
+        GaussianDerivativeOperator(double aSigma, unsigned int anOrder, bool aNormalizeAcrossScale = true) : mySigma(
+                aSigma), myOrder(anOrder), myNormalizeAcrossScale(aNormalizeAcrossScale) {}
 
         /**
          * Copy constructor.
@@ -126,9 +126,9 @@ namespace DGtal {
          */
         bool isValid() const;
 
-        void setVariance(double variance);
+        void setSigma(double sigma);
 
-        double getVariance() const;
+        double getSigma() const;
 
         void setOrder(unsigned int anOrder);
 
@@ -144,9 +144,10 @@ namespace DGtal {
 
         // ------------------------- Private Datas --------------------------------
     private:
+        double mySigma;
         unsigned int myOrder;
         bool myNormalizeAcrossScale;
-        double myVariance;
+
 
         // ------------------------- Hidden services ------------------------------
     protected:
@@ -174,10 +175,28 @@ namespace DGtal {
      */
     template <typename TValue>
     std::ostream &
-    operator<<(std::ostream &out, const GaussianDerivativeOperator<TValue> &object);
+    operator<<(std::ostream &out, const GaussianDerivativeOperator<TValue> &object) {
+        object.selfDisplay(out);
+        return out;
+    }
 
 
 } // namespace DGtal
+
+template <typename TValue>
+void
+DGtal::GaussianDerivativeOperator<TValue>::
+selfDisplay(std::ostream &out) const {
+    out << "[GaussianDerivativeOperator] sigma=" << mySigma << ", order=" << myOrder << ", normalize="
+        << (myNormalizeAcrossScale ? "true" : "false");
+}
+
+template <typename TValue>
+bool
+DGtal::GaussianDerivativeOperator<TValue>::
+isValid() const {
+    return true;
+}
 
 template <typename TValue>
 typename DGtal::GaussianDerivativeOperator<TValue>::CoefficientVector
@@ -195,7 +214,7 @@ computeCoefficients() {
     // Calculate scale-space normalization factor for derivatives
     double norm;
     if (myNormalizeAcrossScale && myOrder) {
-        norm = std::pow(myVariance, myOrder / 2.0);
+        norm = std::pow(mySigma * mySigma, myOrder / 2.0);
     } else {
         norm = 1.0;
     }
@@ -214,7 +233,7 @@ computeCoefficients() {
     // copy the gaussian operator adding clamped boundary condition
     CoefficientVector paddedCoeff(coeff.size() + 4 * N - 2);
 
-    // copy the whole gaussuan operator in coeff to paddedCoef
+    // copy the whole gaussian operator in coeff to paddedCoef
     // starting after the padding
     std::copy(coeff.begin(), coeff.end(), paddedCoeff.begin() + 2 * N - 1);
 
@@ -252,7 +271,7 @@ computeGaussianCoefficients() const {
     CoefficientVector coeff;
 
     // Use image spacing to modify variance
-    const double pixelVariance = myVariance;
+    const double pixelVariance = mySigma * mySigma;
 
     // Now create coefficients as if they were zero order coeffs
     const double et = std::exp(-pixelVariance);
@@ -295,15 +314,15 @@ computeGaussianCoefficients() const {
 template <typename TValue>
 void
 DGtal::GaussianDerivativeOperator<TValue>::
-setVariance(double variance) {
-    myVariance = variance;
+setSigma(double sigma) {
+    mySigma = sigma;
 }
 
 template <typename TValue>
 double
 DGtal::GaussianDerivativeOperator<TValue>::
-getVariance() const {
-    return myVariance;
+getSigma() const {
+    return mySigma;
 }
 
 template <typename TValue>

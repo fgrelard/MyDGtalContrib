@@ -50,7 +50,7 @@ TEST_CASE("Testing GaussianDerivativeOperator") {
 
     typedef std::vector<double> CoefficientVector;
     typedef DGtal::GaussianDerivativeOperator<double> GaussianDer;
-
+    typedef itk::GaussianDerivativeOperator<double, 2> Derivative;
     SECTION("Testing feature computeGaussianCoefficients() for order 0 of GaussianDerivativeOperator") {
 
         GaussianDer gd;
@@ -65,9 +65,23 @@ TEST_CASE("Testing GaussianDerivativeOperator") {
     SECTION("Testing feature computeCoefficients() for order > 0 of GaussianDerivativeOperator") {
 
         GaussianDer gd;
+        GaussianDer gdr2(3.0, 0);
+        Derivative der;
+        itk::Size<2> radius;
+        radius.Fill(1);
+        der.SetOrder(0);
+        der.CreateToRadius(radius);
+        CoefficientVector c(der.Begin(), der.End());
 
-        gd.setOrder(1);
+
+        gd.setOrder(0);
         CoefficientVector coeff1 = gd.computeCoefficients();
+
+        for (int i = 0; i < 9; i++)
+            DGtal::trace.info() << c[i] << std::endl;
+        for (int i = 0; i < coeff1.size(); i++) {
+            DGtal::trace.info() << coeff1[i] << std::endl;
+        }
 
         gd.setOrder(2);
         CoefficientVector coeff2 = gd.computeCoefficients();
