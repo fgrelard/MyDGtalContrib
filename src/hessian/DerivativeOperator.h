@@ -17,7 +17,7 @@
 #pragma once
 
 /**
- * @file
+ * @file DerivativeOperator.h
  * @author Florent Grelard (\c florent.grelard@u-bordeaux.fr )
  * LaBRI, Bordeaux University
  *

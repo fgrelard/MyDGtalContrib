@@ -23,17 +23,19 @@
  *
  * @date 2017/03/28
  *
- * Functions for testing class DerivativeOperator
+ * Functions for testing class GaussianDerivativeOperator
  *
  * This file is part of the DGtal library.
  */
 
 #define CATCH_CONFIG_MAIN
 
-#include "catch.hpp"
 ///////////////////////////////////////////////////////////////////////////////
-#include <hessian/DerivativeOperator.h>
+#include <iostream>
 #include "DGtal/base/Common.h"
+#include <catch.hpp>
+#include <itkGaussianDerivativeOperator.h>
+#include <hessian/GaussianDerivativeOperator.h>
 #include "DGtal/helpers/StdDefs.h"
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -41,35 +43,39 @@ using namespace std;
 using namespace DGtal;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Functions for testing class DerivativeOperator.
+// Functions for testing class GaussianDerivativeOperator.
 ///////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("Testing DerivativeOperator") {
+TEST_CASE("Testing GaussianDerivativeOperator") {
 
-    typedef DGtal::DerivativeOperator<double> Derivative;
-    typedef Derivative::CoefficientVector Coefficients;
+    typedef std::vector<double> CoefficientVector;
+    typedef DGtal::GaussianDerivativeOperator<double> GaussianDer;
 
-    SECTION("Testing feature computeCoefficients() of DerivativeOperator") {
-        Derivative d0(0);
-        Derivative d1(1);
-        Derivative d2(2);
+    SECTION("Testing feature computeGaussianCoefficients() for order 0 of GaussianDerivativeOperator") {
 
-
-        Coefficients coeff0 = d0.computeCoefficients();
-        Coefficients coeff1 = d1.computeCoefficients();
-        Coefficients coeff2 = d2.computeCoefficients();
-
-        Coefficients expectedCoeff1({0.5, 0, -0.5});
-        Coefficients expectedCoeff2({1, -2, 1});
+        GaussianDer gd;
+        gd.setOrder(0);
+        CoefficientVector coeff0 = gd.computeCoefficients();
 
 
-        REQUIRE((coeff0.size() == 1));
-        REQUIRE((coeff1.size() == 3));
-        REQUIRE((coeff2.size() == 3));
+        REQUIRE((coeff0.size() == 7));
+        REQUIRE((coeff0[3] == Approx(0.466801)));
+    }
 
-        REQUIRE((coeff0[0] == 1));
-        REQUIRE((coeff1 == expectedCoeff1));
-        REQUIRE((coeff2 == expectedCoeff2));
+    SECTION("Testing feature computeCoefficients() for order > 0 of GaussianDerivativeOperator") {
+
+        GaussianDer gd;
+
+        gd.setOrder(1);
+        CoefficientVector coeff1 = gd.computeCoefficients();
+
+        gd.setOrder(2);
+        CoefficientVector coeff2 = gd.computeCoefficients();
+
+        REQUIRE((coeff1.size() == 7));
+        REQUIRE((coeff2.size() == 7));
+        REQUIRE((coeff1[3] == 0));
+        REQUIRE((coeff2[3] == Approx(-0.516852)));
     }
 
 }
