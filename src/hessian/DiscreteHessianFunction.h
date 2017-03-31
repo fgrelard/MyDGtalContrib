@@ -60,11 +60,14 @@ namespace DGtal {
         typedef typename Image::Dimension Dimension;
         typedef typename Image::Point Point;
         typedef double HessianValue;
-        typedef GaussianDerivativeOperator<HessianValue> GaussianDerivative;
-        typedef ImageContainerBySTLVector<HessianValue, Domain::dimension> OutputImage;
+        typedef std::vector<HessianValue> HessianMatrix;
 
-    public:
-        static Domain emptyDomain(Point::zero, Point::zero);
+        typedef GaussianDerivativeOperator<HessianValue> GaussianDerivative;
+        typedef typename GaussianDerivative::CoefficientVector CoefficientVector;
+
+        typedef ImageContainerBySTLVector<Domain, HessianValue> KernelImage;
+        typedef ImageContainerBySTLVector<Domain, HessianMatrix> OutputImage;
+
 
         // ----------------------- Standard services ------------------------------
     public:
@@ -115,8 +118,10 @@ namespace DGtal {
 
         // ----------------------- Interface --------------------------------------
     public:
-
         OutputImage computeHessian();
+
+        HessianMatrix hessianAtPoint(const Point &p);
+
 
         /**
          * Writes/Displays the object on an output stream.
@@ -138,6 +143,16 @@ namespace DGtal {
 
         bool getNormalizeAcrossScale() const;
 
+        // ------------------------- Hidden services ------------------------------
+    protected:
+        void computeKernels();
+
+        KernelImage uniqueKernelFromMultipleDirections(const std::vector<CoefficientVector> &coeff, int size);
+
+        HessianValue convolve(const Point &currentPoint,
+                              const Domain &region,
+                              const KernelImage &kernel);
+
         // ------------------------- Protected Datas ------------------------------
     protected:
 
@@ -148,12 +163,10 @@ namespace DGtal {
         bool myNormalizeAcrossScale;
 
 
-
-        // ------------------------- Hidden services ------------------------------
-    protected:
-
         // ------------------------- Internals ------------------------------------
     private:
+        std::vector<KernelImage> myKernels;
+
 
     }; // end of class DiscreteHessianFunction
 
@@ -188,7 +201,7 @@ selfDisplay(std::ostream &out) const {
  * Checks the validity/consistency of the object.
  * @return 'true' if the object is valid, 'false' otherwise.
  */
-template <typename TImagiane>
+template <typename TImage>
 bool
 DGtal::DiscreteHessianFunction<TImage>::
 isValid() const {
@@ -199,28 +212,60 @@ template <typename TImage>
 typename DGtal::DiscreteHessianFunction<TImage>::OutputImage
 DGtal::DiscreteHessianFunction<TImage>::
 computeHessian() {
+    OutputImage out(myImage.domain());
+    for (const Point &p : out.domain()) {
+        HessianMatrix value = hessianAtPoint(p);
+        out.setValue(p, value);
+    }
+    return out;
+}
+
+template <typename TImage>
+typename DGtal::DiscreteHessianFunction<TImage>::HessianMatrix
+DGtal::DiscreteHessianFunction<TImage>::
+hessianAtPoint(const Point &p) {
+    if (myKernels.size() == 0)
+        computeKernels();
+    HessianMatrix hessian(Domain::dimension * (Domain::dimension + 1) / 2);
+
+    if (!myImage.domain().isInside(p))
+        return hessian;
+
+    for (unsigned int i = 0; i < myKernels.size(); i++) {
+        KernelImage currentKernel = myKernels[i];
+        Domain domain(p + currentKernel.domain().lowerBound(),
+                      p + currentKernel.domain().upperBound());
+        HessianValue value = convolve(p, domain, currentKernel);
+        hessian[i] = value;
+    }
+
+    return hessian;
+}
+
+template <typename TImage>
+void
+DGtal::DiscreteHessianFunction<TImage>::
+computeKernels() {
     /* Create 3*N operators (N=ImageDimension) where the
  * first N are zero-order, the second N are first-order
  * and the third N are second order */
-    typedef typename GaussianDerivative::CoefficientVector CoefficientVector;
     Dimension dimension = Domain::dimension;
     typedef unsigned int OrderArrayType[dimension];
 
     unsigned int idx;
     unsigned int maxRadius = 0;
-
+    DGtal::trace.info() << "DGtal" << std::endl;
     std::vector<CoefficientVector> operators(3 * dimension);
     for (unsigned int direction = 0; direction < dimension; direction++) {
         for (unsigned int order = 0; order <= 2; ++order) {
             idx = dimension * order + direction;
             GaussianDerivative g(mySigma, order, myNormalizeAcrossScale);
             CoefficientVector coeff = g.computeCoefficients();
-            operators.push_back(coeff);
+            operators[idx] = coeff;
             if (coeff.size() > maxRadius)
                 maxRadius = coeff.size();
         }
     }
-
 
 // Now precompute the N-dimensional kernel. This fastest as we don't
 // have to perform N convolutions for each point we calculate but
@@ -228,14 +273,7 @@ computeHessian() {
 
     Domain kernelDomain(Point::zero - Point::diagonal(2 * maxRadius),
                         Point::zero + Point::diagonal(2 * maxRadius));
-    OutputImage kernelImage(kernelDomain);
-    for (const Point &p : kernelDomain)
-        kernelImage.setValue(p, DGtal::NumberTraits<HessianValue>::ZERO);
 
-
-    OutputImage zeroKernel = kernelImage;
-    Domain kernelRegion(Point::zero - Point::diagonal(maxRadius),
-                        Point::zero + Point::diagonal(maxRadius));
 
 
     // Precalculate compound derivative kernels (n-dimensional)
@@ -248,41 +286,65 @@ computeHessian() {
         for (unsigned int j = i; j < dimension; ++j) {
             OrderArrayType orderArray;
             for (unsigned int k = 0; k < dimension; k++) {
-                orderArray[i] = 0;
+                orderArray[k] = 0;
             }
             ++orderArray[i];
             ++orderArray[j];
 
-            // Reset kernel image
-            kernelImage = zeroKernel;
-            kernelImage.setValue(Point::zero, DGtal::NumberTraits<HessianValue>::ONE);
 
+            std::vector<CoefficientVector> coeffs;
+            int maxIndex = 0;
             for (unsigned int direction = 0; direction < dimension; ++direction) {
                 opidx = dimension * orderArray[direction] + direction;
-                convolutionFilter->SetInput(kernelImage);
-                convolutionFilter->SetOperator(operators[opidx]);
-                convolutionFilter->Update();
-                kernelImage = convolutionFilter->GetOutput();
-
+                CoefficientVector coeff = operators[opidx];
+                int indexFirst = coeff.size() / 2;
+                if (indexFirst > maxIndex) {
+                    maxIndex = indexFirst;
+                }
+                coeffs.push_back(coeff);
             }
 
-            // Set the size of the current kernel
-            m_KernelArray[kernelidx].SetRadius(maxRadius);
-
-            // Copy kernel image to neighborhood. Do not copy boundaries.
-            ImageRegionConstIterator <KernelImageType> it(kernelImage, kernelRegion);
-            it.GoToBegin();
-            idx = 0;
-
-            while (!it.IsAtEnd()) {
-                m_KernelArray[kernelidx][idx] = it.Get();
-                ++idx;
-                ++it;
-            }
-            kernelidx++;
+            KernelImage kernelImage = uniqueKernelFromMultipleDirections(coeffs, maxIndex);
+            myKernels.push_back(kernelImage);
         }
     }
 }
+
+
+template <typename TImage>
+typename DGtal::DiscreteHessianFunction<TImage>::HessianValue
+DGtal::DiscreteHessianFunction<TImage>::
+convolve(const Point &currentPoint, const Domain &region, const KernelImage &kernel) {
+    HessianValue innerProduct = DGtal::NumberTraits<HessianValue>::ZERO;
+    for (const Point &p : region) {
+        if (!myImage.domain().isInside(p)) continue;
+        innerProduct += myImage(p) * kernel(p - currentPoint);
+    }
+    return innerProduct;
+}
+
+
+template <typename TImage>
+typename DGtal::DiscreteHessianFunction<TImage>::KernelImage
+DGtal::DiscreteHessianFunction<TImage>::
+uniqueKernelFromMultipleDirections(const std::vector<CoefficientVector> &coeff, int radius) {
+
+    Domain domain(Point::zero - Point::diagonal(radius),
+                  Point::zero + Point::diagonal(radius));
+    KernelImage out(domain);
+
+    int previous = 1000;
+    for (const Point &p : domain) {
+        double value = 1.0;
+        for (unsigned int i = 0; i < Domain::dimension; i++) {
+            //flip axis
+            value *= coeff[i][2 * radius - (p[i] + radius)];
+        }
+        if (std::abs(value - 0.0) < std::numeric_limits<double>::epsilon())
+            value = 0.0;
+        out.setValue(p, value);
+    }
+    return out;
 
 }
 
@@ -291,6 +353,8 @@ void
 DGtal::DiscreteHessianFunction<TImage>::
 setSigma(double sigma) {
     mySigma = sigma;
+    myKernels.clear();
+    computeKernels();
 }
 
 template <typename TImage>
@@ -305,6 +369,8 @@ void
 DGtal::DiscreteHessianFunction<TImage>::
 setNormalizeAcrossScale(bool normalize) {
     myNormalizeAcrossScale = normalize;
+    myKernels.clear();
+    computeKernels();
 }
 
 template <typename TImage>

@@ -1,6 +1,7 @@
 SET(DGTAL_CONTRIB_TESTS
         testDerivativeOperator
         testGaussianDerivativeOperator
+        testDiscreteHessianFunction
         )
 
 FOREACH (FILE ${DGTAL_CONTRIB_TESTS})
