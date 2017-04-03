@@ -65,9 +65,8 @@ TEST_CASE("Testing DiscreteHessianFunction 2D") {
         Z2i::Point pointTube(5, 2);
         typename Hessian2D::HessianMatrix matTube = im(pointTube);
 
-        REQUIRE((mat[0] == 0.0));
-
-        REQUIRE((matTube[0] == Approx(-61.5153) && matTube[1] == Approx(0) && matTube[2] == Approx(-2.34578)));
+        REQUIRE((mat(0, 0) == 0.0));
+        REQUIRE((matTube(0, 0) == Approx(-61.5153) && matTube(0, 1) == Approx(0) && matTube(1, 1) == Approx(-2.34578)));
     }
 
     SECTION("Changing sigma") {
@@ -78,20 +77,22 @@ TEST_CASE("Testing DiscreteHessianFunction 2D") {
         hessian2D.setSigma(0.5);
         typename Hessian2D::OutputImage imAfter = hessian2D.computeHessian();
         typename Hessian2D::HessianMatrix matAfter = imAfter(pointTube);
-        REQUIRE((matBefore[0] != matAfter[0] || matBefore[1] != matAfter[1] || matBefore[2] != matAfter[2]));
+        REQUIRE((matBefore(0, 0) != matAfter(0, 0) || matBefore(0, 1) != matAfter(0, 1) ||
+                 matBefore(1, 0) != matAfter(1, 1)));
 
     }
 
     SECTION("Evaluating hessian at point inside domain") {
         Z2i::Point pointTube(5, 2);
         typename Hessian2D::HessianMatrix matInside = hessian2D.hessianAtPoint(pointTube);
-        REQUIRE((matInside[0] == Approx(-61.5153) && matInside[1] == Approx(0) && matInside[2] == Approx(-2.34578)));
+        REQUIRE((matInside(0, 0) == Approx(-61.5153) && matInside(0, 1) == Approx(0) &&
+                 matInside(1, 1) == Approx(-2.34578)));
     }
 
     SECTION("Evaluating hessian at point outside domain") {
         Z2i::Point pointTube(11, 2);
         typename Hessian2D::HessianMatrix matOutside = hessian2D.hessianAtPoint(pointTube);
-        REQUIRE((matOutside[0] == Approx(0) && matOutside[1] == Approx(0) && matOutside[2] == Approx(0)));
+        REQUIRE((matOutside(0, 0) == Approx(0) && matOutside(0, 1) == Approx(0) && matOutside(1, 1) == Approx(0)));
     }
 
 
@@ -129,12 +130,12 @@ TEST_CASE("Testing DiscreteHessianFunction 3D") {
         typename Hessian3D::OutputImage im = hessian3D.computeHessian();
         Z3i::Point pointTube(6, 6, 2);
         typename Hessian3D::HessianMatrix matTube = im(pointTube);
-        REQUIRE((matTube[0] == Approx(-25.9277) &&
-                 matTube[1] == Approx(-4.38875) &&
-                 matTube[2] == Approx(-10.7856) &&
-                 matTube[3] == Approx(-25.9277) &&
-                 matTube[4] == Approx(-10.7856) &&
-                 matTube[5] == Approx(-45.3415)));
+        REQUIRE((matTube(0, 0) == Approx(-25.9277) &&
+                 matTube(0, 1) == Approx(-4.38875) &&
+                 matTube(0, 2) == Approx(-10.7856) &&
+                 matTube(1, 1) == Approx(-25.9277) &&
+                 matTube(1, 2) == Approx(-10.7856) &&
+                 matTube(2, 2) == Approx(-45.3415)));
     }
 
     SECTION("Changing sigma") {
@@ -145,7 +146,8 @@ TEST_CASE("Testing DiscreteHessianFunction 3D") {
         hessian3D.setSigma(0.5);
         typename Hessian3D::OutputImage imAfter = hessian3D.computeHessian();
         typename Hessian3D::HessianMatrix matAfter = imAfter(pointTube);
-        REQUIRE((matBefore[0] != matAfter[0] || matBefore[1] != matAfter[1] || matBefore[2] != matAfter[2]));
+        REQUIRE((matBefore(0, 0) != matAfter(0, 0) || matBefore(0, 1) != matAfter(0, 1) ||
+                 matBefore(1, 0) != matAfter(1, 1)));
 
     }
 
@@ -153,12 +155,12 @@ TEST_CASE("Testing DiscreteHessianFunction 3D") {
 
         Z3i::Point pointTube(6, 6, 2);
         typename Hessian3D::HessianMatrix matTube = hessian3D.hessianAtPoint(pointTube);
-        REQUIRE((matTube[0] == Approx(-25.9277) &&
-                 matTube[1] == Approx(-4.38875) &&
-                 matTube[2] == Approx(-10.7856) &&
-                 matTube[3] == Approx(-25.9277) &&
-                 matTube[4] == Approx(-10.7856) &&
-                 matTube[5] == Approx(-45.3415)));
+        REQUIRE((matTube(0, 0) == Approx(-25.9277) &&
+                 matTube(0, 1) == Approx(-4.38875) &&
+                 matTube(0, 2) == Approx(-10.7856) &&
+                 matTube(1, 1) == Approx(-25.9277) &&
+                 matTube(1, 2) == Approx(-10.7856) &&
+                 matTube(2, 2) == Approx(-45.3415)));
 
 
     }
@@ -166,7 +168,7 @@ TEST_CASE("Testing DiscreteHessianFunction 3D") {
     SECTION("Evaluating hessian at point outside domain") {
         Z3i::Point pointTube(11, 2, 2);
         typename Hessian3D::HessianMatrix matOutside = hessian3D.hessianAtPoint(pointTube);
-        REQUIRE((matOutside[0] == Approx(0) && matOutside[1] == Approx(0) && matOutside[2] == Approx(0)));
+        REQUIRE((matOutside(0, 0) == Approx(0) && matOutside(0, 1) == Approx(0) && matOutside(0, 2) == Approx(0)));
     }
 
 }

@@ -41,10 +41,13 @@
 // Inclusions
 #include <iostream>
 #include <DGtal/images/ImageContainerBySTLVector.h>
+#include <DGtal/math/linalg/SimpleMatrix.h>
 #include "GaussianDerivativeOperator.h"
 //////////////////////////////////////////////////////////////////////////////
 
 namespace DGtal {
+
+
 
     /////////////////////////////////////////////////////////////////////////////
     // template class DiscreteHessianFunction
@@ -60,7 +63,9 @@ namespace DGtal {
         typedef typename Image::Dimension Dimension;
         typedef typename Image::Point Point;
         typedef double HessianValue;
-        typedef std::vector<HessianValue> HessianMatrix;
+        typedef DGtal::SimpleMatrix<HessianValue, Domain::dimension,
+                Domain::dimension> HessianMatrix;
+//        typedef std::vector<HessianValue> HessianMatrix;
 
         typedef GaussianDerivativeOperator<HessianValue> GaussianDerivative;
         typedef typename GaussianDerivative::CoefficientVector CoefficientVector;
@@ -147,6 +152,8 @@ namespace DGtal {
     protected:
         void computeKernels();
 
+        HessianMatrix convertSymmetricToSquareMatrix(const std::vector<HessianValue> &values);
+
         KernelImage uniqueKernelFromMultipleDirections(const std::vector<CoefficientVector> &coeff, int size);
 
         HessianValue convolve(const Point &currentPoint,
@@ -184,6 +191,14 @@ namespace DGtal {
         return out;
     }
 
+    /*
+     * Workaround for DGtal simple matrix
+     */
+    template <typename Scalar, DGtal::Dimension TM, DGtal::Dimension TN>
+    bool operator!=(const DGtal::SimpleMatrix<Scalar, TM,
+            TN> &m1,
+                    const DGtal::SimpleMatrix<Scalar, TM, TN> &m2) { return !(m1 == m2); }
+
 } // namespace DGtal
 
 
@@ -213,10 +228,21 @@ typename DGtal::DiscreteHessianFunction<TImage>::OutputImage
 DGtal::DiscreteHessianFunction<TImage>::
 computeHessian() {
     OutputImage out(myImage.domain());
-    for (const Point &p : out.domain()) {
-        HessianMatrix value = hessianAtPoint(p);
-        out.setValue(p, value);
+    unsigned int size = out.domain().size();
+    unsigned int i = 0;
+
+#pragma omp parallel
+#pragma omp single nowait
+    {
+        for (auto it = out.domain().begin(), ite = out.domain().end(); it != ite; ++it) {
+#pragma omp task firstprivate(it)
+            {
+                HessianMatrix value = hessianAtPoint(*it);
+                out.setValue(*it, value);
+            }
+        }
     }
+
     return out;
 }
 
@@ -226,20 +252,39 @@ DGtal::DiscreteHessianFunction<TImage>::
 hessianAtPoint(const Point &p) {
     if (myKernels.size() == 0)
         computeKernels();
-    HessianMatrix hessian(Domain::dimension * (Domain::dimension + 1) / 2);
 
+    HessianMatrix hessian;
     if (!myImage.domain().isInside(p))
         return hessian;
 
+    std::vector<HessianValue> symmetricMatrix(Domain::dimension * (Domain::dimension + 1) / 2);
     for (unsigned int i = 0; i < myKernels.size(); i++) {
         KernelImage currentKernel = myKernels[i];
         Domain domain(p + currentKernel.domain().lowerBound(),
                       p + currentKernel.domain().upperBound());
         HessianValue value = convolve(p, domain, currentKernel);
-        hessian[i] = value;
+        symmetricMatrix[i] = value;
     }
 
+    hessian = convertSymmetricToSquareMatrix(symmetricMatrix);
+
     return hessian;
+}
+
+template <typename TImage>
+typename DGtal::DiscreteHessianFunction<TImage>::HessianMatrix
+DGtal::DiscreteHessianFunction<TImage>::
+convertSymmetricToSquareMatrix(const std::vector<HessianValue> &values) {
+    HessianMatrix m;
+    for (int i = 0; i < Domain::dimension; i++) {
+        for (int j = i; j < Domain::dimension; j++) {
+            unsigned int index = j + (Domain::dimension - 1) * i - i * (i - 1) / 2;
+            HessianValue value = values[index];
+            m.setComponent(i, j, value);
+            m.setComponent(j, i, value);
+        }
+    }
+    return m;
 }
 
 template <typename TImage>
@@ -254,7 +299,6 @@ computeKernels() {
 
     unsigned int idx;
     unsigned int maxRadius = 0;
-    DGtal::trace.info() << "DGtal" << std::endl;
     std::vector<CoefficientVector> operators(3 * dimension);
     for (unsigned int direction = 0; direction < dimension; direction++) {
         for (unsigned int order = 0; order <= 2; ++order) {
