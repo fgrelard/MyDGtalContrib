@@ -232,7 +232,7 @@ computeHessian() {
     unsigned int i = 0;
 
 #pragma omp parallel
-#pragma omp single nowait
+#pragma omp single
     {
         for (auto it = out.domain().begin(), ite = out.domain().end(); it != ite; ++it) {
 #pragma omp task firstprivate(it)
@@ -240,6 +240,7 @@ computeHessian() {
                 HessianMatrix value = hessianAtPoint(*it);
                 out.setValue(*it, value);
             }
+#pragma omp taskwait
         }
     }
 

@@ -12,10 +12,10 @@
 #include <geometry/DistanceToMeasure.h>
 #include <viewer/ViewerDistanceBall.h>
 #include <itkHessianRecursiveGaussianImageFilter.h>
-#include "hessian/itkDiscreteHessianGaussianImageFunction.h"
 #include <DGtal/io/writers/ITKWriter.h>
 #include <itkHessianToObjectnessMeasureImageFilter.h>
 #include <hessian/DiscreteHessianFunction.h>
+#include <itkDiscreteHessianGaussianImageFunction.h>
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
 #include "geometry/DistanceToMeasureEdge.h"
