@@ -219,33 +219,39 @@ template <typename THessianImage>
 typename DGtal::FrangiVesselness<THessianImage>::VesselnessValue
 DGtal::FrangiVesselness<THessianImage>::
 eigenValueCombination(const RealVector &eigval) {
-    if (eigval.size() == 0 || eigval[1] > 0 || eigval[2] > 0)
-        return DGtal::NumberTraits<VesselnessValue>::ZERO;
-
-    HessianValue l1 = std::abs(eigval[0]);
-    HessianValue l2 = std::abs(eigval[1]);
+    RealVector sortedEigVal = eigval;
+    std::sort(sortedEigVal.begin(), sortedEigVal.end(), [&](HessianValue h1, HessianValue h2) {
+        return std::abs(h1) < std::abs(h2);
+    });
+    HessianValue l1 = std::abs(sortedEigVal[0]);
+    HessianValue l2 = std::abs(sortedEigVal[1]);
 
     switch (Domain::dimension) {
         case 2: {
+            if (sortedEigVal[1] > DGtal::NumberTraits<HessianValue>::ZERO)
+                return DGtal::NumberTraits<VesselnessValue>::ZERO;
             VesselnessValue rb = l1 / l2;
             VesselnessValue s = std::sqrt(l1 * l1 + l2 * l2);
             VesselnessValue frangi = std::exp(-(rb * rb) / (2.0 * myBeta * myBeta));
-            frangi *= 1.0 - std::exp(-(s * s) / 2.0 * myGamma * myGamma);
+            frangi *= 1.0 - std::exp(-(s * s) / (2.0 * myGamma * myGamma));
             return frangi;
         }
 
         case 3: {
-            HessianValue l3 = std::abs(eigval[2]);
+            if (sortedEigVal[1] > DGtal::NumberTraits<HessianValue>::ZERO ||
+                sortedEigVal[2] > DGtal::NumberTraits<HessianValue>::ZERO)
+                return DGtal::NumberTraits<VesselnessValue>::ZERO;
+            HessianValue l3 = std::abs(sortedEigVal[2]);
             VesselnessValue ra = l2 / l3;
             VesselnessValue rb = l1 / std::sqrt(l2 * l3);
             VesselnessValue s = std::sqrt(l1 * l1 + l2 * l2 + l3 * l3);
             VesselnessValue frangi = 1.0 - std::exp(-(ra * ra) / (2.0 * myAlpha * myAlpha));
             frangi *= std::exp(-(rb * rb) / (2.0 * myBeta * myBeta));
-            frangi *= 1.0 - std::exp(-(s * s) / 2.0 * myGamma * myGamma);
+            frangi *= 1.0 - std::exp(-(s * s) / (2.0 * myGamma * myGamma));
             return frangi;
         }
         default:
-            return 0.0;
+            return DGtal::NumberTraits<VesselnessValue>::ZERO;
     }
 
 }

@@ -10,10 +10,10 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
-#include <hessian/DiscreteHessianFunction.h>
 #include <DGtal/io/readers/GenericReader.h>
 #include <hessian/FrangiVesselness.h>
 #include <DGtal/io/writers/ITKWriter.h>
+#include <hessian/HessianRecursiveGaussian.h>
 
 
 using namespace std;
@@ -30,7 +30,7 @@ struct DoubleToFloatFunctor {
 int main(int argc, char **argv) {
     typedef ImageContainerBySTLVector<Z3i::Domain, unsigned char> Image;
     typedef DGtal::ImageContainerByITKImage<Z3i::Domain, unsigned char> DGtalITKImage;
-    typedef DiscreteHessianFunction<DGtalITKImage> Hessian;
+    typedef HessianRecursiveGaussian<Image> Hessian;
     typedef typename Hessian::OutputImage HessianImage;
     typedef DGtal::FrangiVesselness<HessianImage> Vesselness;
     typedef typename Vesselness::OutputImage VesselnessImage;
@@ -66,10 +66,10 @@ int main(int argc, char **argv) {
     string inputFilename = vm["input"].as<std::string>();
     string outputFilename = vm["output"].as<std::string>();
 
-    DGtalITKImage volume = DGtal::ITKReader<DGtalITKImage>::importITK(inputFilename);
+    Image volume = DGtal::ITKReader<Image>::importITK(inputFilename);
 
 
-    Hessian hessian(volume, 1.0);
+    Hessian hessian(volume, 1.0, false);
     DGtal::trace.beginBlock("Computing hessian");
     Hessian::OutputImage hessianImage = hessian.computeHessian();
     DGtal::trace.endBlock();

@@ -80,7 +80,7 @@ namespace DGtal {
         /**
          * Default constructor.
          */
-        DiscreteHessianFunction() = delete;
+        DiscreteHessianFunction();
 
         DiscreteHessianFunction(const Image &image) : myImage(image), mySigma(1.0), myNormalizeAcrossScale(true) {}
 

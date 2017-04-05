@@ -58,9 +58,11 @@ namespace DGtal {
     public:
         typedef TInputImage InputImage;
         typedef typename InputImage::Domain Domain;
+        typedef typename Domain::Dimension Dimension;
+        typedef typename Domain::ConstSubRange SubRange;
         typedef typename Domain::Point Point;
         typedef double Scalar;
-        typedef InputImage OutputImage;
+        typedef ImageContainerBySTLVector <Domain, Scalar> OutputImage;
 
 
         // ----------------------- Standard services ------------------------------
@@ -69,7 +71,9 @@ namespace DGtal {
         /**
          * Default constructor.
          */
-        RecursiveGaussianDerivativeOperator() = delete;
+        RecursiveGaussianDerivativeOperator() : myImage(Domain(Point::zero, Point::zero)), mySigma(1.0), myOrder(0) {
+            initialize();
+        }
 
         /**
          * Destructor.
@@ -77,38 +81,44 @@ namespace DGtal {
         ~RecursiveGaussianDerivativeOperator() = default;
 
         RecursiveGaussianDerivativeOperator(const InputImage &anImage) : myImage(anImage), mySigma(1.0), myOrder(0),
-                                                                         myNormalizeAcrossScale(true) {}
+                                                                         myNormalizeAcrossScale(true) {
+            initialize();
+        }
 
         RecursiveGaussianDerivativeOperator(const InputImage &anImage, double sigma, unsigned int anOrder,
                                             bool normalize = true) : myImage(anImage), mySigma(sigma), myOrder(anOrder),
-                                                                     myNormalizeAcrossScale(normalize) {}
+                                                                     myNormalizeAcrossScale(normalize) {
+            initialize();
+        }
 
 
         /**
          * Copy constructor.
          * @param other the object to clone.
          */
-        RecursiveGaussianDerivativeOperator(const RecursiveGaussianDerivativeOperator &other) = default;
+        RecursiveGaussianDerivativeOperator(const RecursiveGaussianDerivativeOperator &other) : myImage(other.myImage),
+                                                                                                mySigma(other.mySigma),
+                                                                                                myOrder(other.myOrder),
+                                                                                                myRange(other.myRange),
+                                                                                                myDirection(
+                                                                                                        other.myDirection) {
+        }
 
-        /**
-         * Move constructor.
-         * @param other the object to move.
-         */
-        RecursiveGaussianDerivativeOperator(RecursiveGaussianDerivativeOperator &&other) = delete;
 
         /**
          * Copy assignment operator.
          * @param other the object to copy.
          * @return a reference on 'this'.
          */
-        RecursiveGaussianDerivativeOperator &operator=(const RecursiveGaussianDerivativeOperator &other) = delete;
+        RecursiveGaussianDerivativeOperator &operator=(const RecursiveGaussianDerivativeOperator &other) {
+            setImage(other.myImage);
+            mySigma = other.mySigma;
+            myOrder = other.myOrder;
+            myNormalizeAcrossScale = other.myNormalizeAcrossScale;
+            myDirection = other.myDirection;
+            myRange = other.myRange;
+        }
 
-        /**
-         * Move assignment operator.
-         * @param other the object to move.
-         * @return a reference on 'this'.
-         */
-        RecursiveGaussianDerivativeOperator &operator=(RecursiveGaussianDerivativeOperator &&other) = delete;
 
         // ----------------------- Interface --------------------------------------
     public:
@@ -127,6 +137,11 @@ namespace DGtal {
          * Checks the validity/consistency of the object.
          * @return 'true' if the object is valid, 'false' otherwise.
          */
+
+        void setImage(const InputImage &image);
+
+        void setDirection(Dimension dimension);
+
         bool isValid() const;
 
         void setSigma(double sigma);
@@ -149,6 +164,8 @@ namespace DGtal {
         bool myNormalizeAcrossScale;
         // ------------------------- Hidden services ------------------------------
     protected:
+        void initialize();
+
         void filterDataArray(Scalar *outs, const Scalar *data, Scalar *scratch, size_t ln);
 
         void computeNCoefficients(Scalar sigmad,
@@ -219,6 +236,9 @@ namespace DGtal {
 
         // ------------------------- Internals ------------------------------------
     private:
+        SubRange myRange = Domain(Point::zero, Point::zero).subRange({0, 1});
+        Dimension myDirection = 0;
+
         /** Causal coefficients that multiply the input data. */
         Scalar myN0 = 1.0;
         Scalar myN1 = 1.0;
@@ -288,11 +308,23 @@ isValid() const {
 }
 
 template <typename TInputImage>
+void
+DGtal::RecursiveGaussianDerivativeOperator<TInputImage>::
+initialize() {
+    std::vector<Dimension> dirs;
+    for (Dimension i = 0; i < Domain::dimension; i++) {
+        dirs.push_back(i);
+    }
+    myRange = myImage.domain().subRange(dirs);
+}
+
+
+template <typename TInputImage>
 typename DGtal::RecursiveGaussianDerivativeOperator<TInputImage>::OutputImage
 DGtal::RecursiveGaussianDerivativeOperator<TInputImage>::
 gaussianImage() {
 
-    size_t width = myImage.domain().upperBound()[0] - myImage.domain().lowerBound()[0] + 1;
+    size_t width = myImage.domain().upperBound()[myDirection] - myImage.domain().lowerBound()[myDirection] + 1;
     Domain domain = myImage.domain();
     OutputImage out(domain);
 
@@ -302,15 +334,15 @@ gaussianImage() {
     Scalar *outs = new Scalar[width];
     Scalar *scratch = new Scalar[width];
 
-    Point previous = *domain.begin();
+    Point previous = *myRange.begin();
     int i = 0;
-    for (auto it = domain.begin(), ite = domain.end(); it != ite; ++it) {
+    for (auto it = myRange.begin(), ite = myRange.end(); it != ite; ++it) {
         Point p = *it;
-        if (p[0] - previous[0] < 0) {
+        if (p[myDirection] - previous[myDirection] < 0 || p == *myRange.rbegin()) {
             filterDataArray(outs, inps, scratch, width);
             Point current = previous;
             for (int j = 0; j < width; j++) {
-                current[0] = j;
+                current[myDirection] = j;
                 out.setValue(current, outs[j]);
             }
             i = 0;
@@ -498,7 +530,7 @@ computeCoefficients() {
         }
         case 2: {
             if (myNormalizeAcrossScale) {
-                across_scale_normalization = std::sqrt(mySigma);
+                across_scale_normalization = mySigma * mySigma;
             }
             // Approximation of convolution with the second derivative of a
             // Gaussian.
@@ -638,6 +670,32 @@ DGtal::RecursiveGaussianDerivativeOperator<TInputImage>
     myBM2 = myD2 * SM / SD;
     myBM3 = myD3 * SM / SD;
     myBM4 = myD4 * SM / SD;
+}
+
+
+template <typename TInputImage>
+void
+DGtal::RecursiveGaussianDerivativeOperator<TInputImage>::
+setImage(const InputImage &image) {
+    myImage = image;
+}
+
+template <typename TInputImage>
+void
+DGtal::RecursiveGaussianDerivativeOperator<TInputImage>::
+setDirection(Dimension direction) {
+    if (direction <= Domain::dimension - 1) {
+        myDirection = direction;
+
+        std::vector<Dimension> dirs;
+        dirs.push_back(direction);
+        for (int i = Domain::dimension - 1; i >= 0; i--) {
+            if (i == direction) continue;
+            dirs.push_back(i);
+        }
+
+        myRange = myImage.domain().subRange(dirs);
+    }
 }
 
 template <typename TInputImage>
