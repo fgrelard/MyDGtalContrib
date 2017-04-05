@@ -14,6 +14,7 @@
 #include <hessian/FrangiVesselness.h>
 #include <DGtal/io/writers/ITKWriter.h>
 #include <hessian/HessianRecursiveGaussian.h>
+#include <hessian/MultiscaleVesselnessImage.h>
 
 
 using namespace std;
@@ -53,8 +54,7 @@ int main(int argc, char **argv) {
     }
     po::notify(vm);
     if (!parseOK || vm.count("help") || argc <= 1) {
-        std::cout << "Usage: " <<
-                  argv[0] << " [input]\n"
+        std::cout << "Usage: " << argv[0] << " [input]\n"
                   << "Display volume file as a voxel set by using QGLviewer" << endl
                   << general_opt << "\n";
         return 0;
@@ -71,13 +71,11 @@ int main(int argc, char **argv) {
 
 
     Hessian hessian(volume, 1.0, false);
-    DGtal::trace.beginBlock("Computing hessian");
-    Hessian::OutputImage hessianImage = hessian.computeHessian();
-    DGtal::trace.endBlock();
 
-    DGtal::trace.beginBlock("Computing frangi");
-    Vesselness vesselness(hessianImage);
-    VesselnessImage vesselnessImage = vesselness.computeVesselness();
+    DGtal::trace.beginBlock("Computing multiscale frangi");
+    Vesselness vesselness;
+    MultiscaleVesselness<Hessian, Vesselness> multiVesselness(hessian, vesselness, 0.5, 3.0, 5);
+    VesselnessImage vesselnessImage = multiVesselness.computeMultiscaleVesselness();
     WritableImage out(vesselnessImage.domain());
     for (const Z3i::Point &p : out.domain()) {
         out.setValue(p, (float) vesselnessImage(p));

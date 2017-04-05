@@ -71,7 +71,8 @@ namespace DGtal {
         /**
          * Default constructor.
          */
-        FrangiVesselness() = delete;
+        FrangiVesselness() : myHessianImage(Domain(Point::zero, Point::zero)), myAlpha(0.5), myBeta(1.0),
+                             myGamma(10.0) {}
 
         FrangiVesselness(const HessianImage &aHessianImage) : myHessianImage(aHessianImage), myAlpha(0.5), myBeta(1.0),
                                                               myGamma(10.0) {}
@@ -127,6 +128,10 @@ namespace DGtal {
          * @return 'true' if the object is valid, 'false' otherwise.
          */
         bool isValid() const;
+
+        HessianImage getImage() const;
+
+        void setImage(const HessianImage &image);
 
         void setAlpha(double alpha);
 
@@ -256,6 +261,19 @@ eigenValueCombination(const RealVector &eigval) {
 
 }
 
+template <typename THessianImage>
+void
+DGtal::FrangiVesselness<THessianImage>::
+setImage(const HessianImage &image) {
+    myHessianImage = image;
+}
+
+template <typename THessianImage>
+typename DGtal::FrangiVesselness<THessianImage>::HessianImage
+DGtal::FrangiVesselness<THessianImage>::
+getImage() const {
+    return myHessianImage;
+}
 
 template <typename THessianImage>
 void

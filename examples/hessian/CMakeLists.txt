@@ -1,6 +1,7 @@
 SET(DGTAL_CONTRIB_EXAMPLES
         HessianImage
         FrangiImage
+        MultiscaleVesselnessImage
         )
 
 FOREACH (FILE ${DGTAL_CONTRIB_EXAMPLES})
