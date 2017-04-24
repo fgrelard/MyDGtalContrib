@@ -5,12 +5,8 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/filesystem.hpp>
-#include <ShapeDescriptor.h>
-#include <DGtal/io/writers/PGMWriter.h>
 #include <DGtal/io/writers/PPMWriter.h>
 #include <DGtal/geometry/volumes/distance/VoronoiMap.h>
-#include <geometry/DistanceToMeasure.h>
-#include <viewer/ViewerDistanceBall.h>
 #include <itkHessianRecursiveGaussianImageFilter.h>
 #include <itkDiscreteHessianGaussianImageFunction.h>
 #include <DGtal/io/writers/ITKWriter.h>
@@ -20,10 +16,10 @@
 #include <itktools/itkModifiedKrissianVesselnessImageFilter.h>
 #include <itktools/itkMultiScaleGaussianEnhancementImageFilter.h>
 #include <itkImageDuplicator.h>
+#include <QtGui/QApplication>
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
-#include "geometry/DistanceToMeasureEdge.h"
-
+#include "DGtal/io/viewers/Viewer3D.h"
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
@@ -53,7 +49,6 @@ int main(int argc, char **argv) {
 
     typedef ImageContainerBySTLVector<Domain, double> FloatImage2D;
     typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
-    typedef DistanceToMeasureEdge<FloatImage2D> Distance;
     typedef int InputPixelType;
     typedef double OutputPixelType;
     typedef itk::Image<InputPixelType, 3> InputImageType;
@@ -165,7 +160,7 @@ int main(int argc, char **argv) {
 
     //All
     vesselnessType->SetInput(imagePointer);
-    vesselnessType->SetNonNegativeHessianBasedMeasure(true);
+    vesselnessType->SetNonNegativeHessianBasedMeasure(false);
     vesselnessType->SetGenerateScalesOutput(true);
     vesselnessType->SetSigmaMinimum(0.1);
     vesselnessType->SetSigmaMaximum(5.0);

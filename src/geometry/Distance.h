@@ -33,7 +33,7 @@ namespace Distance {
         double distanceMax = 0;
         for (auto it = first.begin(), ite = first.end(); it != ite; ++it) {
             Point firstP = *it;
-            Point closestPointInTheoretical = *min_element(second.begin(), second.end(),
+            Point closestPointInTheoretical = *std::min_element(second.begin(), second.end(),
                                                            [&](const Point &one, const Point &two) {
                                                                return l2Metric(one, firstP) < l2Metric(two, firstP);
                                                            });
@@ -55,7 +55,7 @@ namespace Distance {
         if (first.size() == 0 || second.size() == 0) return distanceMax;
         for (auto it = first.begin(), ite = first.end(); it != ite; ++it) {
             Point firstP = *it;
-            Point closestPointInTheoretical = *min_element(second.begin(), second.end(),
+            Point closestPointInTheoretical = *std::min_element(second.begin(), second.end(),
                                                            [&](const Point &one, const Point &two) {
                                                                return l2Metric(one, firstP) < l2Metric(two, firstP);
                                                            });

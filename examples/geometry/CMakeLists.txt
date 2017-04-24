@@ -7,6 +7,8 @@ SET(DGTAL_CONTRIB_EXAMPLES
         HessianLocalAdaptative3D
         MultiscaleVesselness
         MultiscaleVesselnessUniqueImage
+        ShapeModelization
+        MyHessianLocalAdaptative3D
         )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

@@ -12,9 +12,10 @@
 #include <geometry/DistanceToMeasure.h>
 #include <viewer/ViewerDistanceBall.h>
 #include <itkHessianRecursiveGaussianImageFilter.h>
-#include <itkDiscreteHessianGaussianImageFunction.h>
 #include <DGtal/io/writers/ITKWriter.h>
 #include <itkHessianToObjectnessMeasureImageFilter.h>
+#include <hessian/DiscreteHessianFunction.h>
+#include <itkDiscreteHessianGaussianImageFunction.h>
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
 #include "geometry/DistanceToMeasureEdge.h"
@@ -53,9 +54,12 @@ int main(int argc, char **argv) {
     typedef itk::Point<InputPixelType, 2> ITKPoint;
     typedef typename InputImageType::IndexType IndexType;
     typedef ImageContainerByITKImage<Domain, int> ITKImage;
+    typedef ImageContainerByITKImage<Domain, double> ITKImageDouble;
+
     typedef HessianFilterType::TensorType::EigenValuesArrayType EigenValues;
     typedef itk::SymmetricSecondRankTensor<double, 2> HessianPixelType;
     typedef itk::Image<HessianPixelType, 2> HessianImageType;
+    typedef DGtal::DiscreteHessianFunction<ITKImage> DiscreteHessian;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -140,10 +144,10 @@ int main(int argc, char **argv) {
                 return delta.distance(p1) < delta.distance(p2);
             }));
 
+    maxDistance = 0;
     std::vector<HessianFilterType::Pointer> hessianFiltersVector;
     for (int i = 0; i <= maxDistance; i++) {
         HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
-
         hessianFilter->SetUseImageSpacing(false);
         hessianFilter->SetInputImage(imagePointer);
         hessianFilter->SetNormalizeAcrossScale(true);
@@ -152,17 +156,16 @@ int main(int argc, char **argv) {
         hessianFiltersVector.push_back(hessianFilter);
     }
 
+    DiscreteHessian hessian(image, 1);
+    typename DiscreteHessian::OutputImage matrix = hessian.computeHessian();
 
     for (const auto &p : image.domain()) {
         EigenValues eigenValues;
         ITKPoint itkP;
         itkP[0] = p[0];
         itkP[1] = p[1];
-//        IndexType index = it.GetIndex();
-//        imagePointer->TransformIndexToPhysicalPoint(index, itkP);
-//        DGtal::trace.info() << index << std::endl;
-        //Z2i::Point p(itkP[0], itkP[1]);
-        const double distanceP = delta.distance(p);
+        double distanceP = delta.distance(p);
+        distanceP = 0;
         HessianFilterType::Pointer hessianFilter = hessianFiltersVector[(int) distanceP];
 //        hessianFilter->SetSigma(distanceP);
 //        hessianFilter->Initialize();
@@ -171,15 +174,22 @@ int main(int argc, char **argv) {
         HessianImageType::IndexType index;
         index[0] = p[0];
         index[1] = p[1];
-        hessianImage->SetPixel(index, hessian);
-//        double max = *std::max_element(eigenValues.Begin(), eigenValues.End(), [&](const double &first, const double &second) {
-//            return std::abs(first) < std::abs(second);
-//        });
-//        double min = *std::min_element(eigenValues.Begin(), eigenValues.End(), [&](const double &first, const double &second) {
-//            return std::abs(first) < std::abs(second);
-//        });
-//        double max2 = std::abs(min) / std::abs(max);
-//        pToValues[p] = max2;
+        std::vector<double> value = matrix(p);
+        DGtal::trace.info() << "ITK= ";
+        for (int i = 0; i < 3; i++) {
+            DGtal::trace.info() << hessian[i] << " ";
+        }
+        DGtal::trace.info() << std::endl;
+
+        DGtal::trace.info() << "DGtal= ";
+        for (const double &d : value) {
+            DGtal::trace.info() << d << " ";
+        }
+        DGtal::trace.info() << std::endl;
+        double *a = &value[0];
+        hessianImage->SetPixel(index, a);
+        //hessianImage->SetPixel(index, hessian);
+
     }
 
     typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType>
