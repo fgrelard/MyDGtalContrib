@@ -5,6 +5,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <DGtal/io/writers/ITKWriter.h>
+#include <geometry/DistanceToMeasure.h>
 
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/graph/DistanceBreadthFirstVisitor.h"
@@ -74,11 +75,11 @@ int main( int argc, char** argv )
     for (GrayLevelImage::ConstIterator it = img.begin(), itE = img.end();
          it != itE; ++it )
     {
-        float v = ((float)*it) * 1.0 / thresholdMax;
+        float v = ((float)*it) * 1.0f / thresholdMax;
         *outIt++ = v;
     }
     trace.beginBlock( "Computing delta-distance." );
-    Distance delta(mass, fimg, rmax, 1.0);
+    Distance delta(mass, fimg, rmax, 0.0);
     trace.endBlock();
 
     float m = 0.0f;

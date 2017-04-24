@@ -17,7 +17,7 @@
 #pragma once
 
 /**
- * @file FrangiVesselness.h
+ * @file VCMVesselness.h
  * @author Florent Grelard (\c florent.grelard@u-bordeaux.fr )
  * LaBRI, Bordeaux University
  *
@@ -27,15 +27,15 @@
  * This file is part of the DGtal library.
  */
 
-#if defined(FrangiVesselness_RECURSES)
-#error Recursive header files inclusion detected in FrangiVesselness.h
-#else // defined(FrangiVesselness_RECURSES)
+#if defined(VCMVesselness_RECURSES)
+#error Recursive header files inclusion detected in VCMVesselness.h
+#else // defined(VCMVesselness_RECURSES)
 /** Prevents recursive inclusion of headers. */
-#define FrangiVesselness_RECURSES
+#define VCMVesselness_RECURSES
 
-#if !defined FrangiVesselness_h
+#if !defined VCMVesselness_h
 /** Prevents repeated inclusion of headers. */
-#define FrangiVesselness_h
+#define VCMVesselness_h
 
 //////////////////////////////////////////////////////////////////////////////
 // Inclusions
@@ -47,13 +47,13 @@
 namespace DGtal {
 
     /////////////////////////////////////////////////////////////////////////////
-    // template class FrangiVesselness
+    // template class VCMVesselness
     /**
-     * Description of template class 'FrangiVesselness' <p>
+     * Description of template class 'VCMVesselness' <p>
      * \brief Aim:
      */
     template <typename THessianImage>
-    class FrangiVesselness {
+    class VCMVesselness {
     public:
         typedef THessianImage HessianImage;
         typedef typename HessianImage::Value HessianMatrix;
@@ -71,45 +71,47 @@ namespace DGtal {
         /**
          * Default constructor.
          */
-        FrangiVesselness() : myHessianImage(Domain(Point::zero, Point::zero)), myAlpha(0.5), myBeta(1.0),
-                             myGamma(10.0) {}
+        VCMVesselness() : myHessianImage(Domain(Point::zero, Point::zero)), myAlpha(0.5), myBeta(1.0),
+                             myGamma(10.0) {
+        }
 
-        FrangiVesselness(const HessianImage &aHessianImage) : myHessianImage(aHessianImage), myAlpha(0.5), myBeta(1.0),
-                                                              myGamma(10.0) {}
+        VCMVesselness(const HessianImage &aHessianImage) : myHessianImage(aHessianImage), myAlpha(0.5), myBeta(1.0),
+                                                              myGamma(10.0) {
+        }
 
-        FrangiVesselness(const HessianImage &aHessianImage, double alpha, double beta, double gamma) : myHessianImage(
-                aHessianImage), myAlpha(alpha), myBeta(beta), myGamma(gamma) {}
+        VCMVesselness(const HessianImage &aHessianImage, double alpha, double beta, double gamma) : myHessianImage(aHessianImage), myAlpha(alpha), myBeta(beta), myGamma(gamma) {
 
-        /**
-         * Destructor.
-         */
-        ~FrangiVesselness() = default;
+        }
+
+        VCMVesselness(std::shared_ptr<HessianImage> aHessianImage, double alpha, double beta, double gamma) : myHessianImage(aHessianImage), myAlpha(alpha), myBeta(beta), myGamma(gamma) {
+        }
+
 
         /**
          * Copy constructor.
          * @param other the object to clone.
          */
-        FrangiVesselness(const FrangiVesselness &other) = default;
+        VCMVesselness(const VCMVesselness &other) = default;
 
         /**
          * Move constructor.
          * @param other the object to move.
          */
-        FrangiVesselness(FrangiVesselness &&other) = delete;
+        VCMVesselness(VCMVesselness &&other) = delete;
 
         /**
          * Copy assignment operator.
          * @param other the object to copy.
          * @return a reference on 'this'.
          */
-        FrangiVesselness &operator=(const FrangiVesselness &other) = default;
+        VCMVesselness &operator=(const VCMVesselness &other) = default;
 
         /**
          * Move assignment operator.
          * @param other the object to move.
          * @return a reference on 'this'.
          */
-        FrangiVesselness &operator=(FrangiVesselness &&other) = delete;
+        VCMVesselness &operator=(VCMVesselness &&other) = delete;
 
         // ----------------------- Interface --------------------------------------
     public:
@@ -151,7 +153,7 @@ namespace DGtal {
 
         // ------------------------- Private Datas --------------------------------
     private:
-        HessianImage myHessianImage;
+        std::shared_ptr<HessianImage> myHessianImage;
         double myAlpha;
         double myBeta;
         double myGamma;
@@ -163,18 +165,18 @@ namespace DGtal {
         // ------------------------- Internals ------------------------------------
     private:
 
-    }; // end of class FrangiVesselness
+    }; // end of class VCMVesselness
 
 
     /**
-     * Overloads 'operator<<' for displaying objects of class 'FrangiVesselness'.
+     * Overloads 'operator<<' for displaying objects of class 'VCMVesselness'.
      * @param out the output stream where the object is written.
-     * @param object the object of class 'FrangiVesselness' to write.
+     * @param object the object of class 'VCMVesselness' to write.
      * @return the output stream after the writing.
      */
     template <typename THessianImage>
     std::ostream &
-    operator<<(std::ostream &out, const FrangiVesselness<THessianImage> &object) {
+    operator<<(std::ostream &out, const VCMVesselness<THessianImage> &object) {
         object.selfDisplay(out);
         return out;
     }
@@ -186,9 +188,9 @@ namespace DGtal {
 // Includes inline functions.
 template <typename THessianImage>
 void
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 selfDisplay(std::ostream &out) const {
-    out << "[FrangiVesselness] image=" << myHessianImage << ", alpha=" << myAlpha << ", beta=" << myBeta << ", gamma="
+    out << "[VCMVesselness] image=" << *myHessianImage << ", alpha=" << myAlpha << ", beta=" << myBeta << ", gamma="
         << myGamma;
 }
 
@@ -199,21 +201,31 @@ selfDisplay(std::ostream &out) const {
  */
 template <typename TImage>
 bool
-DGtal::FrangiVesselness<TImage>::
+DGtal::VCMVesselness<TImage>::
 isValid() const {
     return true;
 }
 
 template <typename THessianImage>
-typename DGtal::FrangiVesselness<THessianImage>::OutputImage
-DGtal::FrangiVesselness<THessianImage>::
+typename DGtal::VCMVesselness<THessianImage>::OutputImage
+DGtal::VCMVesselness<THessianImage>::
 computeVesselness() {
-    OutputImage frangiImage(myHessianImage.domain());
-    for (const Point &p : myHessianImage.domain()) {
-        HessianMatrix hessian = myHessianImage(p);
+    OutputImage frangiImage(myHessianImage->domain());
+    HessianMatrix nil;
+    for (const Point &p : myHessianImage->domain()) {
+
+        HessianMatrix hessian = (*myHessianImage)(p);
+        if (hessian == nil) {
+            frangiImage.setValue(p, 0);
+            continue;
+        }
         HessianMatrix eigvec;
         RealVector eigval;
         LinearAlgebraTool::getEigenDecomposition(hessian, eigvec, eigval);
+        if (eigvec == nil) {
+            frangiImage.setValue(p, 0);
+            continue;
+        }
         VesselnessValue frangiValue = eigenValueCombination(eigval);
         frangiImage.setValue(p, frangiValue);
     }
@@ -221,8 +233,8 @@ computeVesselness() {
 }
 
 template <typename THessianImage>
-typename DGtal::FrangiVesselness<THessianImage>::VesselnessValue
-DGtal::FrangiVesselness<THessianImage>::
+typename DGtal::VCMVesselness<THessianImage>::VesselnessValue
+DGtal::VCMVesselness<THessianImage>::
 eigenValueCombination(const RealVector &eigval) {
     RealVector sortedEigVal = eigval;
     std::sort(sortedEigVal.begin(), sortedEigVal.end(), [&](HessianValue h1, HessianValue h2) {
@@ -235,21 +247,24 @@ eigenValueCombination(const RealVector &eigval) {
         case 2: {
             if (sortedEigVal[1] > DGtal::NumberTraits<HessianValue>::ZERO)
                 return DGtal::NumberTraits<VesselnessValue>::ZERO;
-            VesselnessValue rb = l1 / l2;
+            VesselnessValue rb = l2 / l1;
             VesselnessValue s = std::sqrt(l1 * l1 + l2 * l2);
             VesselnessValue frangi = std::exp(-(rb * rb) / (2.0 * myBeta * myBeta));
+
+
             frangi *= 1.0 - std::exp(-(s * s) / (2.0 * myGamma * myGamma));
             return frangi;
         }
 
         case 3: {
-            if (sortedEigVal[1] > DGtal::NumberTraits<HessianValue>::ZERO ||
-                sortedEigVal[2] > DGtal::NumberTraits<HessianValue>::ZERO)
-                return DGtal::NumberTraits<VesselnessValue>::ZERO;
+            // if (sortedEigVal[1] > DGtal::NumberTraits<HessianValue>::ZERO ||
+            //     sortedEigVal[2] > DGtal::NumberTraits<HessianValue>::ZERO)
+//                return DGtal::NumberTraits<VesselnessValue>::ZERO;
             HessianValue l3 = std::abs(sortedEigVal[2]);
             VesselnessValue ra = l2 / l3;
             VesselnessValue rb = l1 / std::sqrt(l2 * l3);
             VesselnessValue s = std::sqrt(l1 * l1 + l2 * l2 + l3 * l3);
+
             VesselnessValue frangi = 1.0 - std::exp(-(ra * ra) / (2.0 * myAlpha * myAlpha));
             frangi *= std::exp(-(rb * rb) / (2.0 * myBeta * myBeta));
             frangi *= 1.0 - std::exp(-(s * s) / (2.0 * myGamma * myGamma));
@@ -258,61 +273,60 @@ eigenValueCombination(const RealVector &eigval) {
         default:
             return DGtal::NumberTraits<VesselnessValue>::ZERO;
     }
-
 }
 
 template <typename THessianImage>
 void
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 setImage(const HessianImage &image) {
-    myHessianImage = image;
+    myHessianImage = new HessianImage(image);
 }
 
 template <typename THessianImage>
-typename DGtal::FrangiVesselness<THessianImage>::HessianImage
-DGtal::FrangiVesselness<THessianImage>::
+typename DGtal::VCMVesselness<THessianImage>::HessianImage
+DGtal::VCMVesselness<THessianImage>::
 getImage() const {
-    return myHessianImage;
+    return *myHessianImage;
 }
 
 template <typename THessianImage>
 void
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 setAlpha(double alpha) {
     myAlpha = alpha;
 }
 
 template <typename THessianImage>
 double
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 getAlpha() const {
     return myAlpha;
 }
 
 template <typename THessianImage>
 void
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 setBeta(double beta) {
     myBeta = beta;
 }
 
 template <typename THessianImage>
 double
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 getBeta() const {
     return myBeta;
 }
 
 template <typename THessianImage>
 void
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 setGamma(double gamma) {
     myGamma = gamma;
 }
 
 template <typename THessianImage>
 double
-DGtal::FrangiVesselness<THessianImage>::
+DGtal::VCMVesselness<THessianImage>::
 getGamma() {
     return myGamma;
 }
@@ -320,7 +334,7 @@ getGamma() {
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // !defined FrangiVesselness_h
+#endif // !defined VCMVesselness_h
 
-#undef FrangiVesselness_RECURSES
-#endif // else defined(FrangiVesselness_RECURSES)
+#undef VCMVesselness_RECURSES
+#endif // else defined(VCMVesselness_RECURSES)

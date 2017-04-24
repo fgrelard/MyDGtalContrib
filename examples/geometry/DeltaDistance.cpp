@@ -251,13 +251,13 @@ int main( int argc, char **argv )
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
-            ("help,h", "display this message")
-            ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
-            ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
-            ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
-            ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
-            ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
-            ;
+        ("help,h", "display this message")
+        ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+        ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
+        ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
+        ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
+        ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
+        ;
 
 
     bool parseOK=true;

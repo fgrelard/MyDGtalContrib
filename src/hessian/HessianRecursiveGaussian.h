@@ -188,13 +188,6 @@ namespace DGtal {
         return out;
     }
 
-    /*
-     * Workaround for DGtal simple matrix
-     */
-    template <typename Scalar, DGtal::Dimension TM, DGtal::Dimension TN>
-    bool operator!=(const DGtal::SimpleMatrix<Scalar, TM,
-            TN> &m1,
-                    const DGtal::SimpleMatrix<Scalar, TM, TN> &m2) { return !(m1 == m2); }
 
 } // namespace DGtal
 
@@ -333,11 +326,10 @@ initialize() {
     myDerivativeFilterB = DerivativeFilterB(smooth, mySigma, 1, myNormalizeAcrossScale);
 
     if (number > 0) {
-        mySmoothingFilters[0] = GaussianFilter(myDerivativeFilterB.gaussianImage(), mySigma, 0, myNormalizeAcrossScale);
+        mySmoothingFilters[0] = GaussianFilter(myDerivativeFilterB.gaussianImage(), mySigma, 0, false);
     }
     for (unsigned int i = 1; i < number; i++) {
-        mySmoothingFilters[i] = GaussianFilter(mySmoothingFilters[i - 1].gaussianImage(), mySigma, 0,
-                                               myNormalizeAcrossScale);
+        mySmoothingFilters[i] = GaussianFilter(mySmoothingFilters[i - 1].gaussianImage(), mySigma, 0, false);
     }
 }
 
@@ -367,6 +359,8 @@ void
 DGtal::HessianRecursiveGaussian<TInputImage>::
 setNormalizeAcrossScale(bool normalize) {
     myNormalizeAcrossScale = normalize;
+    unsigned int number = NUMBER_OF_FILTERS;
+
 
     myDerivativeFilterA.setNormalizeAcrossScale(normalize);
     myDerivativeFilterB.setNormalizeAcrossScale(normalize);

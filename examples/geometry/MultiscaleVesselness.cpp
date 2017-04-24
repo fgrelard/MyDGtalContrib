@@ -68,11 +68,12 @@ int main(int argc, char **argv) {
     typedef itk::Image<HessianPixelType, 3> HessianImageType;
 
     //Frangi
-//    typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType> ObjectnessFilterType;
+    typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType> ObjectnessFilterType;
 
     // Sato
-    typedef itk::Hessian3DToVesselnessMeasureImageFilter<OutputPixelType>
-            ObjectnessFilterType;
+//    typedef itk::Hessian3DToVesselnessMeasureImageFilter<OutputPixelType>
+//            ObjectnessFilterType;
+
     typedef itk::MultiScaleHessianBasedMeasureImageFilter<InputImageType, HessianImageType, OutputImageType>
             MultiVesselnessType;
 
@@ -141,15 +142,15 @@ int main(int argc, char **argv) {
         DGtal::trace.progressBar(i, maxSigma);
 
         // Frangi
-//        objectnessFilter->SetBrightObject(true);
-//        objectnessFilter->SetScaleObjectnessMeasure(false);
-//        objectnessFilter->SetAlpha(0.5);
-//        objectnessFilter->SetBeta(1.0);
-//        objectnessFilter->SetGamma(5.0);
+        objectnessFilter->SetBrightObject(true);
+        objectnessFilter->SetScaleObjectnessMeasure(false);
+        objectnessFilter->SetAlpha(0.5);
+        objectnessFilter->SetBeta(1.0);
+        objectnessFilter->SetGamma(5.0);
 
         // Sato
-        objectnessFilter->SetAlpha1(0.5);
-        objectnessFilter->SetAlpha2(2.0);
+//        objectnessFilter->SetAlpha1(0.5);
+//        objectnessFilter->SetAlpha2(2.0);
 
 
         //Krissian

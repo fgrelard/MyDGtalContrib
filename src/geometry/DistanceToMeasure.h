@@ -20,8 +20,8 @@ public:
 
 public:
 
-    DistanceToMeasure(Value m0, const ImageFct &measure, Value rmax = 10.0, bool initialize = true)
-            : myMass(m0), myMeasure(measure), myDistance2(myMeasure.domain()),
+    DistanceToMeasure(Value m0, const ImageFct &measure, Value rmax = 10.0, Value mask = 1.1, bool initialize = true)
+            : myMass(m0), myMeasure(measure), myDistance2(myMeasure.domain()), myMask(mask),
               myR2Max(rmax * rmax) {
         if (initialize)
             init();
@@ -39,6 +39,7 @@ public:
         for (typename Domain::ConstIterator it = myDistance2.domain().begin(),
                      itE = myDistance2.domain().end(); it != itE; ++it, ++i) {
             DGtal::trace.progressBar(i, nb);
+            if (myMeasure(*it) == myMask) continue;
             myDistance2.setValue(*it, computeDistance2(*it));
         }
     }
@@ -140,7 +141,7 @@ public:
             if ((node.second != last) // all the vertices of the same layer have been processed.
                 && (m >= myMass))
                 break;
-            if (node.second > myR2Max) {
+            if (node.second > std::sqrt(myR2Max)) {
                 d2 = m * myR2Max;
                 break;
             }
@@ -154,14 +155,16 @@ public:
                 visitor.ignore();
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
-            return myR2Max;
-        return d2 / m;
+            return DGtal::NumberTraits<Value>::ZERO;
+        if (node.second >= std::sqrt(myR2Max) && m < myMass)
+            return DGtal::NumberTraits<Value>::ZERO;
+        return node.second * node.second;
     }
-
     Domain domain() const { return myMeasure.domain(); }
 
 protected:
     Value myMass;
+    Value myMask;
     const ImageFct &myMeasure;
     ImageFct myDistance2;
     Value myR2Max;

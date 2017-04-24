@@ -19,6 +19,8 @@
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
 #include "geometry/DistanceToMeasureEdge.h"
+#include "hessian/HessianRecursiveGaussian.h"
+#include "hessian/FrangiVesselness.h"
 
 using namespace std;
 using namespace DGtal;
@@ -37,8 +39,10 @@ FImg invert(const FImg &img) {
 
 template <typename TImage>
 struct ImageToDistance {
+        typedef typename TImage::Domain Domain;
+        typedef typename Domain::Point Point;
 
-    ImageToDistance() : myDistance(std::numeric_limits<float>::max()) {}
+        ImageToDistance() : myImage(Domain(Point::zero, Point::zero)), myDistance(std::numeric_limits<float>::max()) {}
 
     ImageToDistance(TImage image, float distance) : myImage(image), myDistance(distance) {}
 
@@ -59,11 +63,9 @@ TImage findClosestImage(const std::vector<ImageToDistance<TImage> >& vImage, flo
     typedef ImageToDistance<TImage> Value;
 
     Value minImage;
-    double valueMax = std::numeric_limits<double>::max();
     for (const Value& imageToDistance : vImage) {
         float diff = std::abs(imageToDistance.myDistance - distance);
-        if (diff < valueMax) {
-            valueMax = diff;
+        if (diff < minImage.myDistance) {
             minImage = imageToDistance;
         }
     }
@@ -121,23 +123,13 @@ int main(int argc, char **argv) {
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
     typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
     typedef DistanceToMeasureEdge<FloatImage> Distance;
-    typedef int InputPixelType;
-    typedef double OutputPixelType;
-    typedef itk::Image<InputPixelType, dimension> InputImageType;
-    typedef itk::Image<OutputPixelType, dimension> OutputImageType;
-    typedef itk::ImageFileReader<InputImageType> ReaderType;
-    typedef itk::ImageRegionIteratorWithIndex<OutputImageType> ImageIterator;
-    typedef itk::SymmetricSecondRankTensor<double, dimension> HessianPixelType;
-    typedef itk::Image<HessianPixelType, dimension> HessianImageType;
 
-    typedef itk::HessianRecursiveGaussianImageFilter<InputImageType> HessianFilterType;
-
-    typedef itk::Point<InputPixelType, dimension> ITKPoint;
-    typedef typename InputImageType::IndexType IndexType;
     typedef ImageContainerByITKImage<Domain, int> ITKImage;
-    typedef itk::ImageRegionIteratorWithIndex<HessianImageType> HessianIterator;
-    typedef typename HessianImageType::IndexType HessianIndexType;
-    typedef ImageToDistance<HessianImageType::Pointer> DistanceImage;
+
+    typedef DGtal::HessianRecursiveGaussian<GrayLevelImage> MyHessian;
+    typedef typename MyHessian::OutputImage HessianImage;
+    typedef ImageToDistance<HessianImage> MyDistanceImage;
+    typedef DGtal::FrangiVesselness<HessianImage> Vesselness;
 
     GrayLevelImage img = DGtal::ITKReader<GrayLevelImage>::importITK(inputFilename);
     auto domain = img.domain();
@@ -174,103 +166,39 @@ int main(int argc, char **argv) {
 
     ITKImage image = DGtal::ITKReader<ITKImage>::importITK(inputFilename);
 
-    ITKImage::ITKImagePointer imagePointer = image.getITKImagePointer();
-    HessianImageType::Pointer hessianImage = HessianImageType::New();
-    HessianImageType::RegionType region;
-    HessianImageType::IndexType start;
-    for (int i = 0; i < dimension; i++)
-        start[i] = 0;
 
-    HessianImageType::SizeType size;
-    for (int i = 0; i < dimension; i++) {
-        size[i] = imagePointer->GetRequestedRegion().GetSize()[i];
-    }
-    region.SetSize(size);
-    region.SetIndex(start);
-    hessianImage->SetRegions(region);
-    hessianImage->Allocate();
-    hessianImage->Update();
 
     double maxDistance = delta(
             *std::max_element(domain.begin(), domain.end(), [&](const Point &p1, const Point &p2) {
                 return delta.distance(p1) < delta.distance(p2);
             }));
-//    double maxDistance = 1.0;
-    std::vector<DistanceImage> hessianFiltersVector;
+
+    std::vector<MyDistanceImage> hessianFiltersVector;
 
     DGtal::trace.info() << "Max distance= " << maxDistance << std::endl;
 
     DGtal::trace.beginBlock("Multiscale hessian");
-    HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
-    hessianFilter->SetInput(imagePointer);
-    hessianFilter->SetNormalizeAcrossScale(true);
+    MyHessian hessian(img, 1.0, false);
+    HessianImage hessianImage(img.domain());
     for (float i = 0.5; i <= maxDistance; i+=0.5) {
         DGtal::trace.progressBar(i, maxDistance);
-        double currentSigma = (maxDistance * i)/(2 * (i + 0.5));
-        hessianFilter->SetSigma(currentSigma);
-        hessianFilter->Update();
-        HessianImageType::Pointer hessianImage = hessianFilter->GetOutput();
-        DistanceImage imageToDistance(hessianImage, i);
-        hessianFiltersVector.push_back(imageToDistance);
-        hessianImage->DisconnectPipeline();
-    }
-    DGtal::trace.endBlock();
-
-    DGtal::trace.beginBlock("Hessian computation");
-    int i = 0;
-
-    for (const auto &p : image.domain()) {
-        if (delta.distance(p) == 0.0) continue;
-        trace.progressBar(i, image.domain().size());
-        i++;
-
-        ITKPoint itkP;
-        HessianImageType::IndexType index;
-
-        for (int i = 0; i < dimension; i++) {
-            index[i] = p[i];
+        double currentSigma = i / 2.f;
+        hessian.setSigma(currentSigma);
+        auto res = hessian.computeHessian();
+        for (const auto& p : image.domain()) {
+                const double distanceP = delta.distance(p);
+                if (distanceP >= i && distanceP < i + 0.5)
+                        hessianImage.setValue(p, res(p));
         }
-        const double distanceP = delta.distance(p);
-        HessianImageType::Pointer currentHessianImage = findClosestImage(hessianFiltersVector, distanceP);
-        HessianPixelType hessian = currentHessianImage->GetPixel(index);
-        hessianImage->SetPixel(index, hessian);
     }
     DGtal::trace.endBlock();
+
 
     DGtal::trace.beginBlock("Frangi vesselness");
-    typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType>
-            ObjectnessFilterType;
-    ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
-    objectnessFilter->SetBrightObject(true);
-    objectnessFilter->SetScaleObjectnessMeasure(false);
-    objectnessFilter->SetAlpha(0.5);
-    objectnessFilter->SetBeta(1.0);
-    objectnessFilter->SetGamma(5.0);
-    objectnessFilter->SetObjectDimension(1);
-    objectnessFilter->SetInput(hessianImage);
-    objectnessFilter->Update();
-    OutputImageType::Pointer outObject = objectnessFilter->GetOutput();
-    ImageIterator it(outObject, outObject->GetRequestedRegion());
-    it.GoToBegin();
-    double min = std::numeric_limits<double>::max();
-    double max = std::numeric_limits<double>::min();
-    while (!it.IsAtEnd()) {
-        double value = it.Get();
-        if (value < min)
-            min = value;
-        if (value > max)
-            max = value;
-        OutputImageType::IndexType itkP = it.GetIndex();
-        Point p;
-        for (int i = 0; i < dimension; i++) {
-            p[i] = itkP[i];
-        }
-        pToValues[p] = value;
-        ++it;
-    }
+    Vesselness vesselness(hessianImage);
+    auto vesselnessImage = vesselness.computeVesselness();
     DGtal::trace.endBlock();
 
-    DGtal::trace.info() << min << " " << max << std::endl;
 //    GradientColorMap<float> cmap_grad(min, max);
 //
 //    cmap_grad.addColor(Color(255, 255, 255));
@@ -293,28 +221,18 @@ int main(int argc, char **argv) {
 //        viewer << CustomColors3D(currentColor, currentColor) << p3D;
 //    }
 
-    GrayLevelImage out(img.domain());
-    for (const auto &pair : pToValues) {
-        Point p = pair.first;
-        unsigned char value = pair.second * 255 / max;
-        out.setValue(p, value);
-    }
 
 
     size_t lastindex = outname.find_last_of(".");
     string extension = outname.substr(outname.find_last_of("."));
     string outRadiusName = outname.substr(0, lastindex) + "_radius" + extension;
-    FloatImage outRadius(img.domain());
-    for (const Point &p : domain) {
-        float value = delta.distance(p);
-        //float value = 1.0;
-        outRadius.setValue(p, value);
-    }
 
-    ITKWriter<GrayLevelImage>::exportITK(outname, out);
-    ITKWriter<FloatImage>::exportITK(outRadiusName, outRadius);
+    FloatImage out(vesselnessImage.domain());
+    for (const Z3i::Point &p : out.domain()) {
+        out.setValue(p, (float) vesselnessImage(p));
+    }
+    DGtal::ITKWriter<FloatImage>::exportITK(outname, out);
     app.exec();
 
     return 0;
 }
-

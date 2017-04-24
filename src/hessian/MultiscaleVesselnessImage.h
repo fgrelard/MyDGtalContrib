@@ -196,14 +196,23 @@ computeMultiscaleVesselness() {
     HessianImage currentHessian = myHessianMeasure.computeHessian();
 
     OutputImage vesselnessImage(currentHessian.domain());
+    for (const Point&  p : vesselnessImage.domain()) {
+        vesselnessImage.setValue(p, DGtal::NumberTraits<Value>::ZERO);
+    }
 
-    for (int i = 1; i < myNumberSigmaSteps; i++) {
-        if (i > 0) {
-            double stepSize = (mySigmaMax - mySigmaMin) / (myNumberSigmaSteps - 1);
-            double currentSigma = mySigmaMin + stepSize * i;
-            myHessianMeasure.setSigma(currentSigma);
-            currentHessian = myHessianMeasure.computeHessian();
+    myMeasure.setImage(currentHessian);
+    OutputImage currentVesselnessImage = myMeasure.computeVesselness();
+    for (const Point &p : currentVesselnessImage.domain()) {
+        Value currentValue = currentVesselnessImage(p);
+        if (currentValue > vesselnessImage(p)) {
+            vesselnessImage.setValue(p, currentValue);
         }
+    }
+    for (int i = 1; i < myNumberSigmaSteps; i++) {
+        double stepSize = (mySigmaMax - mySigmaMin) / (myNumberSigmaSteps - 1);
+        double currentSigma = mySigmaMin + stepSize * i;
+        myHessianMeasure.setSigma(currentSigma);
+        currentHessian = myHessianMeasure.computeHessian();
         myMeasure.setImage(currentHessian);
         OutputImage currentVesselnessImage = myMeasure.computeVesselness();
         for (const Point &p : currentVesselnessImage.domain()) {
