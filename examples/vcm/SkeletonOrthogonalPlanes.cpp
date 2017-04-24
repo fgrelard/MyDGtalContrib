@@ -93,7 +93,6 @@ int main( int  argc, char**  argv )
         }
         viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
 
-
         Image outImage(volume.domain());
 
         DGtal::imageFromRangeAndValue(skeleton.begin(), skeleton.end(), outImage, 10);

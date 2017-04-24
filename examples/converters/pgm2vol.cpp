@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
 
 	Z3i::Point translationVector(-100, -100, -100);
-	translationVector = Z3i::Point(0,0,0);
+    translationVector = Z3i::Point(0,0,0);
 	Image image = GenericReader<Image>::import(inputFilename);
 	Domain aDomain(image.domain().lowerBound() + translationVector, image.domain().upperBound() + translationVector);
 	Image out(aDomain);

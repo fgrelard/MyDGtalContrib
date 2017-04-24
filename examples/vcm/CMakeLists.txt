@@ -1,10 +1,14 @@
 SET(DGTAL_CONTRIB_EXAMPLES
-  OrthogonalPlaneEstimation
-  OrthogonalPlaneEstimationWithCurve
-  PruningSkeletonOrthogonalPlanes
-  SkeletonOrthogonalPlanes
-  RecenterSkeletonPoints
-  )
+        OrthogonalPlaneEstimation
+        OrthogonalPlaneEstimationWithCurve
+        PruningSkeletonOrthogonalPlanes
+        SkeletonOrthogonalPlanes
+        RecenterSkeletonPoints
+        VisuSlicesFromSkeleton
+        DeltaVCM
+        VCMTubularCriterion
+        DeltaDistanceVCMVesselness
+        )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})
   add_executable(${FILE} ${FILE})

@@ -20,32 +20,7 @@
 using namespace DGtal;
 using namespace std;
 
-void testMajorAxis() {
-        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-        std::string home = getenv("HOME");
-        std::string path = home + "/test_img/thskeleton_boudin.vol";
-        Image image = GenericReader<Image>::import(path);
-        Z3i::DigitalSet setVolume(image.domain());
-        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
-        SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
-        pair<Z3i::Point, Z3i::Point> pair = setProcessor.majorAxis();
-        trace.info() << pair.first << " " << pair.second << endl;
-}
 
-
-void testLengthMajorAxis() {
-        typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
-
-        std::string home = getenv("HOME");
-        std::string path = home + "/test_img/thskeleton_boudin.vol";
-        Image image = GenericReader<Image>::import(path);
-        Z3i::DigitalSet setVolume(image.domain());
-        SetFromImage<Z3i::DigitalSet>::append<Image>(setVolume, image, 0, 255);
-        SetProcessor<Z3i::DigitalSet> setProcessor(setVolume);
-        double radius = setProcessor.lengthMajorAxis();
-        trace.info() << radius << endl;
-        const Color CURVE3D_COLOR( 100, 100, 140, 128 );
-}
 
 
 void testClosestPointAt() {
@@ -86,8 +61,7 @@ void testSameContainer() {
 
 
 int main(int argc, char** argv) {
-        testMajorAxis();
-        testLengthMajorAxis();
+
         testClosestPointAt();
         testSameContainer();
         return 0;
