@@ -1,5 +1,5 @@
-#ifndef DISTANCE_TO_MEASURE_EDGE_H
-#define DISTANCE_TO_MEASURE_EDGE_H
+#ifndef DISTANCE_TO_MEASURE_RELEVANT_SCALE_H
+#define DISTANCE_TO_MEASURE_RELEVANT_SCALE_H
 
 #include "DGtal/base/Trace.h"
 #include "DGtal/topology/MetricAdjacency.h"
@@ -12,7 +12,7 @@
 #include <omp.h>
 
 template<typename ImageFct>
-class DistanceToMeasureEdge {
+class DistanceToMeasureRelevantScale {
 public:
     typedef typename ImageFct::Value Value;
     typedef typename ImageFct::Point Point;
@@ -24,11 +24,8 @@ public:
     typedef DGtal::MetricAdjacency<Space, 1> Adjacency;
 
 public:
-    DistanceToMeasureEdge() : myMeasure(Domain(Point::zero, Point::zero)), myDistance2(Domain(Point::zero, Point::zero)) {}
 
-    DistanceToMeasureEdge(const ImageFct& distance2) : myDistance2(distance2), myMeasure(distance2.domain()) {}
-
-    DistanceToMeasureEdge(Value m0, const ImageFct &measure, Value rmax = 10.0, Value mask = 1.1, bool initialize =
+    DistanceToMeasureRelevantScale(Value m0, const ImageFct &measure, Value rmax = 10.0, Value mask = 1.1, bool initialize =
     true)
             : myMass(m0), myMeasure(measure), myDistance2(myMeasure.domain()),
               myR2Max(rmax * rmax), myMask(mask) {
@@ -37,7 +34,7 @@ public:
     }
 
 
-    DistanceToMeasureEdge(const DistanceToMeasureEdge &other) : myMass(other.myMass), myMeasure(other.myMeasure),
+    DistanceToMeasureRelevantScale(const DistanceToMeasureRelevantScale &other) : myMass(other.myMass), myMeasure(other.myMeasure),
                                                                 myDistance2(other.myDistance2), myR2Max(other.myR2Max),
                                                                 myMask(other.myMask) {
     }
@@ -49,17 +46,7 @@ public:
         for (typename Domain::Iterator it = domain.begin(), ite = domain.end(); it != ite; ++it, ++i) {
             DGtal::trace.progressBar(i, nb);
             Point current = *it;
-
-            std::vector<Point> neighbors;
-            std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
-            Adjacency::writeNeighbors(inserter, current);
-            bool isMasked = (myMeasure(current) == myMask);
-            for (const Point& n : neighbors) {
-                if (!domain.isInside(n)) continue;
-                isMasked &= (myMeasure(n) == myMask);
-            }
-
-            if (!isMasked)
+            if (myMeasure(current) != myMask)
                 myDistance2.setValue(current, computeDistance2(current));
             else
                 myDistance2.setValue(current, 0);
@@ -152,7 +139,7 @@ public:
                 DistanceVisitor;
         typedef typename DistanceVisitor::Node MyNode;
 
-
+        Value aMass = myMass * myMass;
         Value m = DGtal::NumberTraits<Value>::ZERO;
         Adjacency graph;
         Distance l2;
@@ -164,12 +151,10 @@ public:
         DGtal::Statistic<Value> stat(true);
         stat.addValue(firstMass);
 
-        Value aMass = myMass * myMass;
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
-        Value currentMean = std::numeric_limits<Value>::max();
+        Value currentMean = std::numeric_limits<Value>::min();
         while (!visitor.finished()) {
             node = visitor.current();
-
             std::vector<MyNode> vec;
             visitor.getCurrentLayer(vec);
 
@@ -180,14 +165,8 @@ public:
                 stat.addValue(currentColor);
             }
 
-//            firstMass = stat.median();
-//            m = DGtal::NumberTraits<Value>::ZERO;
-//            for (const Value &v : stat) {
-//                m += v - firstMass;
-//            }
-
             m = stat.variance();
-            if (node.second >= std::sqrt(3)) {
+            if (node.second * node.second >= 3) {
                 if (m >= aMass) {
                     currentMean = stat.mean();
                     break;
@@ -196,18 +175,19 @@ public:
                     currentMean = previousMean;
                     break;
                 }
-            }
-            else if (m >= aMass) {
-                currentMean = previousMean - 1;
+            } else if (m >= aMass) {
                 break;
             }
             //Next layer
             previousMean = stat.mean();
+
+            //Next layer
             visitor.expandLayer();
         }
+
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return DGtal::NumberTraits<Value>::ZERO;
-        if (currentMean < previousMean)
+        if (currentMean >= previousMean)
             return DGtal::NumberTraits<Value>::ZERO;
 
         return node.second * node.second;
@@ -215,19 +195,10 @@ public:
 
     Domain domain() const { return myMeasure.domain(); }
 
-    DistanceToMeasureEdge& operator=(const DistanceToMeasureEdge& other) {
-        myMass = other.myMass;
-        myMask = other.myMask;
-        myMeasure = other.myMeasure;
-        myDistance2 = other.myDistance2;
-        myR2Max = other.myR2Max;
-        return *this;
-    }
-
 protected:
     Value myMass;
     Value myMask;
-    ImageFct myMeasure;
+    const ImageFct &myMeasure;
     ImageFct myDistance2;
     Value myR2Max;
 };

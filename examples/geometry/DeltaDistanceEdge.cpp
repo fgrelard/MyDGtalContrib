@@ -15,6 +15,8 @@
 #include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/viewers/Viewer3D.h"
 #include "geometry/DistanceToMeasureEdge.h"
+#include "geometry/DistanceToMeasureEdgeLocal.h"
+#include "geometry/DistanceToMeasureRelevantScale.h"
 
 using namespace std;
 using namespace DGtal;
@@ -68,7 +70,13 @@ int main( int argc, char** argv )
     double mass = vm["mass"].as<double>();
     double rmax = vm["rmax"].as<double>();
 
-    GrayLevelImage img = ITKReader<GrayLevelImage>::importITK(inputFilename);
+    GrayLevelImage img(Domain(Point::zero, Point::zero));
+    try {
+        img = GenericReader<GrayLevelImage>::import(inputFilename);
+    }
+    catch (const IOException& e) {
+        img = ITKReader<GrayLevelImage>::importITK(inputFilename);
+    }
     auto domain = img.domain();
     FloatImage fimg(img.domain());
     FloatImage::Iterator outIt = fimg.begin();
@@ -98,36 +106,37 @@ int main( int argc, char** argv )
     }));
     trace.info() << min << endl;
     GradientColorMap<float> cmap_grad( min, m );
-    cmap_grad.addColor( Color( 255, 255, 255 ) );
-    cmap_grad.addColor( Color( 255, 255, 0 ) );
-    cmap_grad.addColor( Color( 255, 0, 0 ) );
-    cmap_grad.addColor( Color( 0, 255, 0 ) );
-    cmap_grad.addColor( Color( 0,   0, 255 ) );
     cmap_grad.addColor( Color( 0,   0, 0 ) );
+    cmap_grad.addColor( Color( 0,   0, 255 ) );
+    cmap_grad.addColor( Color( 0, 255, 0 ) );
+    cmap_grad.addColor( Color( 255, 0, 0 ) );
+    cmap_grad.addColor( Color( 255, 255, 0 ) );
+    cmap_grad.addColor( Color( 255, 255, 255 ) );
+
     QApplication app(argc, argv);
     Viewer3D<> viewer;
     viewer.show();
 
-//        for ( typename Domain::ConstIterator it = delta.domain().begin(),
-//                      itE = delta.domain().end(); it != itE; ++it )
-//        {
-//                Point p = *it;
-//                Z3i::Point c(p[0], p[1], 0);
-//                float v = sqrt( delta.distance2( p ) );
-//                v = std::min( (float)m, std::max( v, 0.0f ) );
-//                RealVector grad = delta.projection( p );
-//                Z3i::RealVector grad3D(grad[0], grad[1], 0);
-//                // board <<  CustomStyle( p.className(),
-//                //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
-//                //         Point(p[0] + grad[0], p[1] + grad[1]);
-//                Color currentColor = cmap_grad( v );
-//                currentColor.alpha(255);
-//                viewer << CustomColors3D( Color::Black, currentColor )
-//                       << c;
-//                if (grad3D.norm() < 20)
-//                        viewer.addLine( c, c+grad3D );
-//
-//        }
+       // for ( typename Domain::ConstIterator it = delta.domain().begin(),
+       //               itE = delta.domain().end(); it != itE; ++it )
+       // {
+       //         Point p = *it;
+       //         Z3i::Point c(p[0], p[1], 0);
+       //         float v = sqrt( delta.distance2( p ) );
+       //         v = std::min( (float)m, std::max( v, 0.0f ) );
+       //         // RealVector grad = delta.projection( p );
+       //         // Z3i::RealVector grad3D(grad[0], grad[1], 0);
+       //         // board <<  CustomStyle( p.className(),
+       //         //                        new CustomColors( Color::Green, cmap_grad( v ) ) ) <<
+       //         //         Point(p[0] + grad[0], p[1] + grad[1]);
+       //         Color currentColor = cmap_grad( v );
+       //         currentColor.alpha(255);
+       //         viewer << CustomColors3D( Color::Black, currentColor )
+       //                << c;
+       //         // if (grad3D.norm() < 20)
+       //         //         viewer.addLine( c, c+grad3D );
+
+       // }
 
 
     FloatImage outDistance(img.domain());
