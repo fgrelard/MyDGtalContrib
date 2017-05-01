@@ -28,6 +28,8 @@
 #include <vcm/VCMAdjustableRadius.h>
 #include <DGtal/images/imagesSetsUtils/SetFromImage.h>
 #include <vcm/VCMVesselness.h>
+#include "DGtal/io/writers/VolWriter.h"
+#include "DGtal/io/readers/VolReader.h"
 
 using namespace std;
 using namespace DGtal;
@@ -89,7 +91,8 @@ int main(int argc, char **argv) {
     double R = vm["radiusInside"].as<double>();
     double r = vm["radiusNeighbour"].as<double>();
 
-    Image volume = ITKReader<Image>::importITK(inputFilename);
+//    Image volume = ITKReader<Image>::importITK(inputFilename);
+    Image volume = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domainVolume = volume.domain();
     Z3i::DigitalSet setVolume(domainVolume);
     SetFromImage<Z3i::DigitalSet>::append<Image> (setVolume, volume,
@@ -101,10 +104,10 @@ int main(int argc, char **argv) {
     vcm.init(setVolume.begin(), setVolume.end());
     Matrix vcm_r, evec, nil;
     RealVector2f eval;
-    MatrixImage matrixImage(domainVolume);
+    MatrixImage* matrixImage = new MatrixImage(domainVolume);
     DGtal::trace.beginBlock("Matrix image");
-    for (const Point& p : matrixImage.domain()) {
-        matrixImage.setValue(p, nil);
+    for (const Point& p : matrixImage->domain()) {
+        matrixImage->setValue(p, nil);
     }
     for (const Point& p : setVolume) {
         vcm_r = vcm.measure(chi, p);
@@ -120,24 +123,28 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        matrixImage.setValue(p, tmp);
+        matrixImage->setValue(p, tmp);
     }
     DGtal::trace.endBlock();
 
     DGtal::trace.beginBlock("Vesselness");
-    VCMVesselness<MatrixImage> vesselness(matrixImage, alpha, beta, gamma);
+    VCMVesselness<MatrixImage> vesselness(shared_ptr<MatrixImage>(matrixImage), alpha, beta, gamma);
     auto vesselnessImage = vesselness.computeVesselness();
     DGtal::trace.endBlock();
-
     FloatImage out(vesselnessImage.domain());
+    Image outVol(vesselnessImage.domain());
     for (const Point& p : out.domain()) {
         double value = vesselnessImage(p);
-        if (std::isnan(value))
+        if (std::isnan(value)) {
             out.setValue(p, 0);
+            outVol.setValue(p, 0);
+        }
         else {
             out.setValue(p, value);
+            outVol.setValue(p, value * 255);
         }
     }
-    ITKWriter<FloatImage>::exportITK(outname, out);
+    VolWriter<Image>::exportVol(outname, outVol);
+//    ITKWriter<FloatImage>::exportITK(outname, out);
     return 0;
 }

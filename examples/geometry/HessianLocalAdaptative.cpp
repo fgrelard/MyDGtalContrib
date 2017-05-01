@@ -174,21 +174,21 @@ int main(int argc, char **argv) {
         HessianImageType::IndexType index;
         index[0] = p[0];
         index[1] = p[1];
-        std::vector<double> value = matrix(p);
+        auto value = matrix(p);
         DGtal::trace.info() << "ITK= ";
         for (int i = 0; i < 3; i++) {
             DGtal::trace.info() << hessian[i] << " ";
         }
         DGtal::trace.info() << std::endl;
 
-        DGtal::trace.info() << "DGtal= ";
-        for (const double &d : value) {
-            DGtal::trace.info() << d << " ";
-        }
+//        DGtal::trace.info() << "DGtal= ";
+//        for (const double &d : value) {
+//            DGtal::trace.info() << d << " ";
+//        }
         DGtal::trace.info() << std::endl;
-        double *a = &value[0];
-        hessianImage->SetPixel(index, a);
-        //hessianImage->SetPixel(index, hessian);
+//        double *a = &value[0];
+//        hessianImage->SetPixel(index, a);
+        hessianImage->SetPixel(index, hessian);
 
     }
 

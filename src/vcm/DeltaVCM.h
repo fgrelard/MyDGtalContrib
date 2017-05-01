@@ -4,20 +4,6 @@
 #include "DGtal/math/linalg/SimpleMatrix.h"
 #include "DGtal/images/ImageContainerBySTLVector.h"
 
-namespace DGtal {
-    typedef SimpleMatrix<double, 2, 2> MatrixDouble;
-
-    bool operator!=(const MatrixDouble &m1, const MatrixDouble &m2) { return !(m1 == m2); }
-
-    typedef SimpleMatrix<float, 2, 2> MatrixFloat;
-
-    bool operator!=(const MatrixFloat &m1, const MatrixFloat &m2) { return !(m1 == m2); }
-
-    namespace functors {
-        bool operator==(Identity f1, Identity f2) { return true; }
-    }
-}
-
 
 template<typename TDistanceLikeFunction>
 class DeltaVCM {
