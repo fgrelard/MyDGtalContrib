@@ -273,6 +273,26 @@ Matrix sqrtMatrix(const Matrix& in) {
     return out;
 }
 
+
+void exportToSDP(const
+                 std::map<DGtal::Z3i::Point,
+                 std::vector<DGtal::Z3i::RealVector> >& pointToVectors,
+                 const std::string& outputFilename) {
+    std::ofstream outStream;
+    outStream.open(outputFilename.c_str());
+    for (const auto & pToV : pointToVectors) {
+        DGtal::Z3i::Point p = pToV.first;
+        std::vector<DGtal::Z3i::RealVector> vectors = pToV.second;
+        for (const DGtal::Z3i::RealVector& v : vectors) {
+            if (v == DGtal::Z3i::RealVector::zero) continue;
+            DGtal::Z3i::RealPoint dest = (DGtal::Z3i::RealPoint)p - v;
+            DGtal::Z3i::RealVector vNorm = -v.getNormalized();
+            outStream << p[0] << " " << p[1] << " " << p[2] << " " << dest[0] << " " << dest[1] << " " << dest[2] << " " << vNorm[0] << " " << vNorm[1] << " " <<vNorm[2] << std::endl;
+        }
+    }
+    outStream.close();
+}
+
 int main( int argc, char **argv )
 {
     using namespace DGtal;
@@ -354,13 +374,19 @@ int main( int argc, char **argv )
 
     srand(time(NULL));
     std::map<Z3i::Point, std::vector<Z3i::RealVector> > pToV = computePointToVectors(delta);
-
+    string newfilename= outputFilename.substr(0,outputFilename.find_last_of('.'))+".sdp";
+    exportToSDP(pToV, newfilename);
 
     MatrixImage* imageMatrix = new MatrixImage(fimg.domain());
     DGtal::trace.beginBlock("Constructing delta VCM");
     for ( typename Domain::ConstIterator it = delta.domain().begin(),
               itE = delta.domain().end(); it != itE; ++it ) {
         Point p = *it;
+        if (fimg(p) != 0)  {
+            Matrix mat;
+            imageMatrix->setValue(p, mat);
+            continue;
+        }
         Ball<Point> ball(p, radiusVCM);
         FloatImage aSet = ball.intersection( fimg );
         std::vector<RealVector> dirs;
@@ -389,7 +415,8 @@ int main( int argc, char **argv )
             }
         }
 
-        if (dirs.size() == 0 || sumDistanceB > sumDistanceBV || reverse) {
+        if (dirs.size() == 0 // || sumDistanceB > sumDistanceBV || reverse
+            ) {
             Matrix mat;
             imageMatrix->setValue(p, mat);
         }
