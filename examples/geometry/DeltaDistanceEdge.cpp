@@ -30,7 +30,7 @@ int main( int argc, char** argv )
 
     typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
-    typedef DistanceToMeasureEdge<FloatImage> Distance;
+    typedef DistanceToMeasureEdgeLocal<FloatImage> Distance;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()

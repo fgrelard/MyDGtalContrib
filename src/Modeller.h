@@ -29,6 +29,7 @@ public:
     Modeller(double aIncrement = 0.01) : myIncrement(aIncrement) {}
 
 public:
+
     Container drawCircle(float radius, const Point &center);
 
     void drawDisk(Eigen::Matrix<double, Eigen::Dynamic, 4> &m, double radius, const Point &center, long int &row);

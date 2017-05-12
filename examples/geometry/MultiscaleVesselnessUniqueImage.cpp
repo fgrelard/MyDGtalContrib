@@ -138,9 +138,9 @@ int main(int argc, char **argv) {
     // Frangi
     objectnessFilter->SetBrightObject(true);
     objectnessFilter->SetScaleObjectnessMeasure(false);
-    objectnessFilter->SetAlpha(0.1);
+    objectnessFilter->SetAlpha(0.5);
     objectnessFilter->SetBeta(1.0);
-    objectnessFilter->SetGamma(10.0);
+    objectnessFilter->SetGamma(100.0);
 
     // Sato
 //    objectnessFilter->SetAlpha1(0.5);
@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
     vesselnessType->SetNonNegativeHessianBasedMeasure(false);
     vesselnessType->SetGenerateScalesOutput(true);
     vesselnessType->SetSigmaMinimum(0.1);
-    vesselnessType->SetSigmaMaximum(3.0);
-    vesselnessType->SetNumberOfSigmaSteps(5);
+    vesselnessType->SetSigmaMaximum(5.0);
+    vesselnessType->SetNumberOfSigmaSteps(20);
     vesselnessType->PrepareOutputs();
     vesselnessType->UpdateLargestPossibleRegion();
     vesselnessType->UpdateOutputInformation();

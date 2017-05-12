@@ -14,7 +14,7 @@ class SetProcessor {
     BOOST_CONCEPT_ASSERT((DGtal::concepts::CDigitalSet<Container>));
 
 public:
-    typedef typename Container::value_type Point;
+    typedef typename Container::Point Point;
     typedef DGtal::SpaceND<Point::dimension, DGtal::int32_t> Space;
     typedef typename Space::RealPoint RealPoint;
     typedef typename Space::RealVector RealVector;

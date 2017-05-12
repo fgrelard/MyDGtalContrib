@@ -313,6 +313,7 @@ int main( int argc, char **argv )
     general_opt.add_options()
         ("help,h", "display this message")
         ("distance,d", po::value<std::string>(), "vol file (corresponding volume)")
+        ("scale,s", po::value<std::string>(), "scale image for VCM radius")
         ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
         ("alpha,a", po::value<double>()->default_value(0.1), "Frangi alpha")
         ("beta,b", po::value<double>()->default_value(1), "Frangi beta")
@@ -347,6 +348,9 @@ int main( int argc, char **argv )
 
 
     string distanceFilename = vm["distance"].as<std::string>();
+    string scaleImage;
+    if (vm.count("scale"))
+        scaleImage = vm["scale"].as<std::string>();
     string outputFilename = vm["output"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
     double alpha = vm["alpha"].as<double>();
@@ -356,6 +360,10 @@ int main( int argc, char **argv )
 
 
     FloatImage fimg = ITKReader<FloatImage>::importITK( distanceFilename );
+    FloatImage fimgScale(fimg.domain());
+    if (vm.count("scale"))
+        fimgScale =  ITKReader<FloatImage>::importITK(scaleImage);
+
     auto domain = fimg.domain();
 
 
@@ -387,6 +395,9 @@ int main( int argc, char **argv )
             imageMatrix->setValue(p, mat);
             continue;
         }
+        if (vm.count("scale") && fimgScale(p) > 0)
+            radiusVCM = fimgScale(p) + sqrt(3);
+
         Ball<Point> ball(p, radiusVCM);
         FloatImage aSet = ball.intersection( fimg );
         std::vector<RealVector> dirs;
@@ -405,6 +416,7 @@ int main( int argc, char **argv )
                     double distanceBV = Z3i::l2Metric(p, b+v);
                     sumDistanceB += distanceB;
                     sumDistanceBV += distanceBV;
+                    grad *= distanceB;
                     if ( bp.dot(dp) > 0)
                         dirs.push_back(grad);
                     else {
