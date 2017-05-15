@@ -203,7 +203,7 @@ public:
             SetProcessor<Set> processor(aSet);
             std::vector<Set> cc = processor.toConnectedComponents();
             for (const Set& s : cc) {
-                if (s.size() >= 2)
+                if (s.size() > 2)
                     m++;
             }
 
