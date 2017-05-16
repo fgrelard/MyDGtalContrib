@@ -26,11 +26,11 @@ namespace po = boost::program_options;
 int main( int argc, char** argv )
 {
     using namespace DGtal;
-    using namespace DGtal::Z3i;
+    using namespace DGtal::Z2i;
 
     typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
-    typedef DistanceToMeasureEdgeLocal<FloatImage> Distance;
+    typedef DistanceToMeasureRelevantScale<FloatImage> Distance;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()

@@ -196,14 +196,10 @@ public:
                 if (std::find(neighbors.begin(), neighbors.end(), n.first) == neighbors.end()) continue;
                 statNext = stat;
                 statNext.addValue(myMeasure(n.first));
-                if (statNext.variance() > stat.variance() && statNext.mean() > stat.mean())
-                    aSet.insert(n.first);
-            }
-
-            SetProcessor<Set> processor(aSet);
-            std::vector<Set> cc = processor.toConnectedComponents();
-            for (const Set& s : cc) {
-                if (s.size() > 2)
+                double sigmaNext = std::sqrt(statNext.variance());
+                double sigma = std::sqrt(stat.variance());
+                double threshold = sigma / stat.samples();
+                if (sigmaNext > (threshold + sigma) && statNext.mean() > stat.mean())
                     m++;
             }
 
