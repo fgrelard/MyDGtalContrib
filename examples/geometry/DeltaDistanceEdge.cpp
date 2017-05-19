@@ -26,11 +26,11 @@ namespace po = boost::program_options;
 int main( int argc, char** argv )
 {
     using namespace DGtal;
-    using namespace DGtal::Z2i;
+    using namespace DGtal::Z3i;
 
     typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
-    typedef DistanceToMeasureRelevantScale<FloatImage> Distance;
+    typedef DistanceToMeasureEdge<FloatImage> Distance;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -139,13 +139,13 @@ int main( int argc, char** argv )
        // }
 
 
-    FloatImage outDistance(img.domain());
+    GrayLevelImage outDistance(img.domain());
     for (const Point &p : domain) {
         float value = delta.distance(p);
         //float value = 1.0;
-        outDistance.setValue(p, value);
+        outDistance.setValue(p, (int)value);
     }
-    ITKWriter<FloatImage>::exportITK(outname, outDistance);
+    ITKWriter<GrayLevelImage>::exportITK(outname, outDistance);
     viewer << Viewer3D<>::updateDisplay;
     app.exec();
 

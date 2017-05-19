@@ -63,6 +63,36 @@ computePointToVectors(const DistanceFunction& delta) {
     return aMap;
 }
 
+template <typename DistanceFunction>
+std::map<Z3i::Point, std::vector<Z3i::RealVector> >
+computePointToVectorsSobel(const DistanceFunction& delta) {
+    std::map<Z3i::Point, std::vector<Z3i::RealVector> > aMap;
+    for (const Z3i::Point& p : delta.domain()) {
+        aMap[p] = std::vector<Z3i::RealVector>();
+    }
+    for (const Z3i::Point& p : delta.domain()) {
+        Z3i::RealVector v = delta.projection(p);
+        if (v == Z3i::RealVector::zero) {
+            aMap[p].push_back(Z3i::RealVector::zero);
+            continue;
+        }
+        v = v.getNormalized();
+        Z3i::RealPoint dest = (Z3i::RealPoint)p;
+        Z3i::RealPoint next = dest + v;
+        while (delta.domain().isInside(next) && delta((Z3i::Point)next) <= delta((Z3i::Point)dest)) {
+            dest = next;
+            next = dest + v;
+        }
+        Z3i::Point candidate = dest;
+        if (!delta.domain().isInside(next)) {
+            aMap[candidate].push_back(Z3i::RealVector::zero);
+        }
+        else if (delta.domain().isInside(candidate))
+            aMap[candidate].push_back(-v);
+    }
+    return aMap;
+}
+
 double signedAngle(const Z3i::RealVector& v) {
     double angle = atan2(v[1], v[0]);
     return (angle > 0 ? angle : (2*M_PI + angle));

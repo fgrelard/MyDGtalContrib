@@ -94,22 +94,6 @@ public:
         return q.inf(myDistance2.domain().upperBound());
     }
 
-    Value maxCentralDifference(const std::map<Value, Value>& rToS) {
-        Value maxDiff = 0;
-        Value maxRadius = 0;
-        for (auto it = std::next(rToS.begin(),1), itN = std::next(rToS.begin(),2), itP = rToS.begin();
-             itN != rToS.end(); ++it, ++itN, ++itP) {
-            Value diffNext = itN->second - it->second;
-            Value diffPrev = it->second - itP->second;
-            Value centralDiff = ((diffNext + diffPrev) / 2.) * it->second;
-            if (centralDiff > maxDiff) {
-                maxDiff = centralDiff;
-                maxRadius = it->first;
-            }
-        }
-        return maxRadius;
-    }
-
     virtual RealVector projection(const Point &p) const {
         std::vector<Point> neighborsP;
         std::back_insert_iterator<std::vector<Point> > outIterator(neighborsP);
@@ -149,6 +133,8 @@ public:
                                  std::abs(distance_center - otherDistance)) ? -(distance - distance_center) /
                                                                               2.0 :
                                 -(distance_center - otherDistance) / 2.0;
+
+
         }
         return vectorToReturn;
     }
@@ -178,10 +164,8 @@ public:
         DGtal::Statistic<Value> stat(true);
         stat.addValue(firstMass);
 
-        Value aMass = myMass * myMass;
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
         Value currentMean = std::numeric_limits<Value>::max();
-        std::map<Value, Value> radiusToSigma;
         while (!visitor.finished()) {
             node = visitor.current();
 
@@ -191,7 +175,6 @@ public:
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
-                if (currentColor == myMask) continue;
                 stat.addValue(currentColor);
             }
 
@@ -201,36 +184,25 @@ public:
 //                m += v - firstMass;
 //            }
 
-            m = stat.variance();
-            if (node.second > 0)
-                radiusToSigma[node.second] = std::sqrt(m);
-            // currentMean = stat.mean();
-            if (node.second * node.second > myR2Max) break;
-            // if (node.second >= std::sqrt(3)) {
-            //     if (m >= aMass) {
-            //         currentMean = stat.mean();
-            //         break;
-            //     }
-            //     else if (node.second * node.second > myR2Max) {
-            //         currentMean = previousMean;
-            //         break;
-            //     }
-            // }
-            // else if (m >= aMass) {
-            //     currentMean = previousMean - 1;
-            //     break;
-            // }
+            m = std::sqrt(stat.variance());
+
+            if (m >= myMass) {
+                currentMean = stat.mean();
+                break;
+            }
+            else if (node.second > std::sqrt(myR2Max)) {
+                currentMean = previousMean;
+                break;
+            }
             //Next layer
             previousMean = stat.mean();
             visitor.expandLayer();
         }
-        Value rad = maxCentralDifference(radiusToSigma);
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return DGtal::NumberTraits<Value>::ZERO;
-        if (currentMean < previousMean)
-            return DGtal::NumberTraits<Value>::ZERO;
 
-        return rad * rad;
+
+        return node.second * node.second;
     }
 
     Domain domain() const { return myMeasure.domain(); }

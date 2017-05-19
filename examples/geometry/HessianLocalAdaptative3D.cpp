@@ -207,6 +207,8 @@ int main(int argc, char **argv) {
     for (float i = 0.5; i <= maxDistance; i+=0.5) {
         DGtal::trace.progressBar(i, maxDistance);
         double currentSigma = (maxDistance * i)/(2 * (i + 0.5));
+        //        currentSigma = i /2.0;
+        DGtal::trace.info() << currentSigma << " " << i << std::endl;
         hessianFilter->SetSigma(currentSigma);
         hessianFilter->Update();
         HessianImageType::Pointer hessianImage = hessianFilter->GetOutput();
@@ -243,9 +245,9 @@ int main(int argc, char **argv) {
     ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
     objectnessFilter->SetBrightObject(true);
     objectnessFilter->SetScaleObjectnessMeasure(false);
-    objectnessFilter->SetAlpha(0.5);
+    objectnessFilter->SetAlpha(0.1);
     objectnessFilter->SetBeta(1.0);
-    objectnessFilter->SetGamma(5.0);
+    objectnessFilter->SetGamma(10.0);
     objectnessFilter->SetObjectDimension(1);
     objectnessFilter->SetInput(hessianImage);
     objectnessFilter->Update();

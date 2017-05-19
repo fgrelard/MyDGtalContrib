@@ -94,15 +94,20 @@ int main( int argc, char** argv )
 
     Z3i::DigitalSet cylinder = modeller.drawCylinder(50, 10);
     DigitalPlane<Z3i::Space> plane(Z3i::Point(0,75,0), Z3i::RealVector(0,1,0));
-    Z3i::Domain domainPlane(Z3i::Point(-5,74,0), Z3i::Point(20,76,50));
-    Z3i::DigitalSet aSet(domainPlane);
-    aSet.insert(domainPlane.begin(), domainPlane.end());
-    Z3i::DigitalSet planeSet = plane.intersectionWithSet(aSet);
+    // Z3i::Domain domainPlane(Z3i::Point(-5,38,0), Z3i::Point(20,40,50));
+    // Z3i::DigitalSet aSet(domainPlane);
+    // aSet.insert(domainPlane.begin(), domainPlane.end());
+    // Z3i::DigitalSet planeSet = plane.intersectionWithSet(aSet);
+    //    cylinder.insert(planeSet.begin(), planeSet.end());
+    Z3i::DigitalSet cylinder2 = modeller.drawCylinder(50, 10);
+    for (const auto& p : cylinder2) {
+        cylinder.insert(p + Z3i::Point(0,40,0));
+    }
+    // Ball<Z3i::Point> ball(Z3i::Point(0,40,35), 12);
+    // Z3i::DigitalSet ballSet = ball.pointSet();
+//    cylinder.insert(ballSet.begin(), ballSet.end());
 
-    Ball<Z3i::Point> ball(Z3i::Point(0,40,35), 12);
-    Z3i::DigitalSet ballSet = ball.pointSet();
-    cylinder.insert(ballSet.begin(), ballSet.end());
-    cylinder.insert(planeSet.begin(), planeSet.end());
+
 //	drawCone(curve, 32, 15, increment);
 
 //	createContinuousLogarithmicCurve(curve, 50, increment);
@@ -130,8 +135,12 @@ int main( int argc, char** argv )
 //    DigitalSet set2 = addNoise(set, noise);
 //	imageFromRangeAndValue(curve.begin(), curve.end(), anImage3D, 150);
 
-    Image3D anImage3D(domain);
-    for (auto it = domain.begin(), ite = domain.end();
+    Point lower, upper;
+
+    cylinder.computeBoundingBox(lower, upper);
+    Z3i::Domain domainObjects(lower - Point::diagonal(1), upper + Point::diagonal(1));
+    Image3D anImage3D(domainObjects);
+    for (auto it = domainObjects.begin(), ite = domainObjects.end();
          it != ite; ++it) {
         if (cylinder.find(*it) != cylinder.end())
             anImage3D.setValue(*it, 255);
