@@ -66,10 +66,29 @@ void testComputeCovarianceMatrix() {
 	trace.info() << vectorZero << " " << vectorOne << endl;
 }
 
+void testComputeCovarianceMatrix3D() {
+    typedef Eigen::MatrixXd MatrixXd;
+    typedef ImageSelector<Z3i::Domain, unsigned char>::Type Image;
+    typedef DGtal::Z3i::RealPoint RealPoint;
+
+    Image image = GenericReader<Image>::import("/home/florent/test_img/tubeZ.p3d");
+    ShapeDescriptor<Z3i::DigitalSet> stats(Z3i::DigitalSet(image.domain()));
+    MatrixXd matrixCovariance = stats.computeCovarianceMatrixImage(image);
+    RealPoint vectorZero = stats.extractEigenVector(matrixCovariance, 0);
+    RealPoint vectorOne = stats.extractEigenVector(matrixCovariance, 1);
+    RealPoint vectorTwo = stats.extractEigenVector(matrixCovariance, 2);
+
+    double eigenVal0 = stats.extractEigenValue(matrixCovariance,0);
+    double eigenVal1 = stats.extractEigenValue(matrixCovariance,1);
+    double eigenVal2 = stats.extractEigenValue(matrixCovariance,2);
+    trace.info() << vectorZero << " " << vectorOne << " " << vectorTwo << " " << eigenVal0 << " " << eigenVal1 << " " << eigenVal2 << endl;
+}
+
 int main() {
     testMajorAxis();
 	testCenterOfMass();
 	testCenterOfMass3D();
-	testComputeCovarianceMatrix();
+    testComputeCovarianceMatrix();
+    testComputeCovarianceMatrix3D();
 	return 0;
 }

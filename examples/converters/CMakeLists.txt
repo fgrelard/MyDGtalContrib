@@ -15,6 +15,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
   skelab2vol
   vol2pgm
   vol2surfacevol
+  vol2binvox
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

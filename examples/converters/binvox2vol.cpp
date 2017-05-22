@@ -101,8 +101,7 @@ Z3i::DigitalSet read_binvox(string filespec, const Z3i::DigitalSet& set)
 	
 	while((end_index < size) && input->good()) {
 		*input >> value >> count;
-
-		if (input->good()) {
+        if (input->good()) {
 			end_index = index + count;
 			if (end_index > size) break;
 			for(int i=index; i < end_index; i++)
@@ -110,7 +109,7 @@ Z3i::DigitalSet read_binvox(string filespec, const Z3i::DigitalSet& set)
 				voxels[i] = value;
 				if (value) {
 					int z = i / (width*height);
-					int y = (i / width) % width;
+                    int y = (i / width) % height;
 					int x = i % width;
 					voxelSet.insert(Z3i::Point(x,y,z));
 				}

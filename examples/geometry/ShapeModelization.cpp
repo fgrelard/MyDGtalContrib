@@ -110,9 +110,11 @@ int main( int argc, char** argv )
 
 //	drawCone(curve, 32, 15, increment);
 
-//	createContinuousLogarithmicCurve(curve, 50, increment);
-//	construct26ConnectedCurve(curve);
-//	createVolumeFromCurve(curve, vectorPoints, 7);
+    Z3i::DigitalSet curve = modeller.createLogarithmicCurve(50);
+    cylinder = modeller.createVolumeFromCurve(curve, 9);
+    // createContinuousLogarithmicCurve(curve, 50, increment);
+    // construct26ConnectedCurve(curve);
+    // createVolumeFromCurve(curve, vectorPoints, 7);
 
 //	createRotatedVolumeFromCurve(curve, vectorPoints, 5, 2*M_PI/3);
 
