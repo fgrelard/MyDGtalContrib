@@ -38,7 +38,7 @@ int main( int  argc, char**  argv )
                 ("help,h", "display this message")
                 ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
                 ("output,o", po::value<std::string>(), "output skeleton filename")
-                 ("radiusInside,R", po::value<double>()->default_value(10), "minimum threshold for binarization")
+                 ("radiusInside,R", po::value<double>()->default_value(10), "Big R (radius to trim Voronoi cells)")
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;

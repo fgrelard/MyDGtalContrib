@@ -108,9 +108,9 @@ Z3i::DigitalSet read_binvox(string filespec, const Z3i::DigitalSet& set)
 			{
 				voxels[i] = value;
 				if (value) {
-					int z = i / (width*height);
+                    int x = i / (width*height);
                     int y = (i / width) % height;
-					int x = i % width;
+                    int z = i % width;
 					voxelSet.insert(Z3i::Point(x,y,z));
 				}
 			}

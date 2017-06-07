@@ -139,13 +139,13 @@ int main( int argc, char** argv )
        // }
 
 
-    GrayLevelImage outDistance(img.domain());
+    FloatImage outDistance(img.domain());
     for (const Point &p : domain) {
         float value = delta.distance(p);
         //float value = 1.0;
-        outDistance.setValue(p, (int)value);
+        outDistance.setValue(p, value);
     }
-    ITKWriter<GrayLevelImage>::exportITK(outname, outDistance);
+    ITKWriter<FloatImage>::exportITK(outname, outDistance);
     viewer << Viewer3D<>::updateDisplay;
     app.exec();
 

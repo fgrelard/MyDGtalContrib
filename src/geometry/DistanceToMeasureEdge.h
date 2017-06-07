@@ -166,6 +166,8 @@ public:
 
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
         Value currentMean = std::numeric_limits<Value>::max();
+        Value initialRadius = 0, initialMass = 0;
+        bool lowRadius = false;
         while (!visitor.finished()) {
             node = visitor.current();
 
@@ -178,17 +180,20 @@ public:
                 stat.addValue(currentColor);
             }
 
-//            firstMass = stat.median();
-//            m = DGtal::NumberTraits<Value>::ZERO;
-//            for (const Value &v : stat) {
-//                m += v - firstMass;
-//            }
-
             m = std::sqrt(stat.variance());
 
             if (m >= myMass) {
                 currentMean = stat.mean();
-                break;
+                if (node.second > sqrt(3) && m > initialMass)
+                    break;
+                else {
+                    if (!lowRadius)  {
+                        initialMass = m;
+                        initialRadius = node.second;
+                    }
+                    lowRadius = true;
+                }
+
             }
             else if (node.second > std::sqrt(myR2Max)) {
                 currentMean = previousMean;
@@ -201,7 +206,10 @@ public:
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return DGtal::NumberTraits<Value>::ZERO;
 
-
+        if (lowRadius) {
+            if (node.second - initialRadius < sqrt(3))
+                return initialRadius * initialRadius;
+        }
         return node.second * node.second;
     }
 

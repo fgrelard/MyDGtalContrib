@@ -48,14 +48,13 @@ int main(int argc, char** argv) {
 	typedef HyperRectDomain<Space> Domain;
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
 
-	Z3i::Point translationVector(-100, -100, -100);
-    translationVector = Z3i::Point(0,0,0);
-	Image image = GenericReader<Image>::import(inputFilename);
-	Domain aDomain(image.domain().lowerBound() + translationVector, image.domain().upperBound() + translationVector);
+//	Z3i::Point translationVector(-100, -100, -100);
+    Image image = GenericReader<Image>::import(inputFilename);
+    Z3i::Domain aDomain = image.domain();
 	Image out(aDomain);
 
 	for (auto it = aDomain.begin(), ite = aDomain.end(); it != ite; ++it) {
-		if (image((*it - translationVector)) >= 1) {
+        if (image((*it)) >= 1) {
 			out.setValue(*it, 1);
 		}
 		//	out.setValue(*it, 1);

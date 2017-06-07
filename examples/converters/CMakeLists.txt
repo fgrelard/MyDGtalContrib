@@ -16,6 +16,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
   vol2pgm
   vol2surfacevol
   vol2binvox
+  vol2vol
   )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})
