@@ -167,9 +167,9 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
 
     Matrix A(size, 3);
     for (int i = 0; i < size; i++) {
-        A(i, 0) = (double) myData[i][0] * 1.0;
-        A(i, 1) = (double) myData[i][1] * 1.0;
-        A(i, 2) = (double) myData[i][2] * 1.0;
+        A(i, 0) = (double) myData[0] * 1.0;
+        A(i, 1) = (double) myData[1] * 1.0;
+        A(i, 2) = (double) myData[2] * 1.0;
     }
     Matrix centered = A.rowwise() - A.colwise().mean();
     Matrix cov = (centered.adjoint() * centered) / double(A.rows() - 1);

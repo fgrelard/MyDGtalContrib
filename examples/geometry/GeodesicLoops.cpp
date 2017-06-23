@@ -17,6 +17,7 @@
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "shapes/DigitalPlane.h"
 #include "geometry/DigitalPlaneProcessor.h"
+#include "ShapeDescriptor.h"
 
 using namespace std;
 using namespace DGtal;
@@ -123,7 +124,7 @@ int main( int  argc, char**  argv )
     obj.writeNeighbors(inserter, p);
     for (const Z3i::Point& n : neighbors) {
         Z3i::Point pSurface = setProc.closestPointAt(n);
-        if (n[1] != p[1] && p[2] == n[2] && n[1] >= 0 && pSurface[0] >=0 )
+        if (n[1] != p[1] && p[2] == n[2] )
             proj.insert(pSurface);
     }
 
@@ -135,6 +136,22 @@ int main( int  argc, char**  argv )
             geodesicLoop.insert(geodesic.begin(), geodesic.end());
         }
     }
+
+    std::vector<Z3i::Point> loops(geodesicLoop.begin(), geodesicLoop.end());
+        ShapeDescriptor<Z3i::DigitalSet> stats(loops);
+    Z3i::RealVector normal = stats.computeNormalFromLinearRegression();
+    DigitalPlane<Z3i::Space> plane(p, normal);
+    DigitalPlaneProcessor<Z3i::Space> digPlaneProc(plane);
+    std::vector<Z3i::RealVector> points = digPlaneProc.planeToQuadrangle();
+    double f = 20.0;
+
+    viewer.setLineColor(Color::Blue);
+    viewer.setFillColor(Color::Blue);
+    viewer.setFillTransparency(150);
+    viewer.addQuad(p + points[0] * f,
+                   p + points[1] * f,
+                  p + points[2] * f,
+                   p + points[3] * f);
 
     //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << proj;
 
