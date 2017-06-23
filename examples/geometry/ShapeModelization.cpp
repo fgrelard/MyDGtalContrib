@@ -92,50 +92,11 @@ int main( int argc, char** argv )
     int pitch =  20;
     int radius = 10;
 
-    Z3i::DigitalSet cylinder = modeller.drawCylinder(50, 10);
-    DigitalPlane<Z3i::Space> plane(Z3i::Point(0,75,0), Z3i::RealVector(0,1,0));
-    // Z3i::Domain domainPlane(Z3i::Point(-5,38,0), Z3i::Point(20,40,50));
-    // Z3i::DigitalSet aSet(domainPlane);
-    // aSet.insert(domainPlane.begin(), domainPlane.end());
-    // Z3i::DigitalSet planeSet = plane.intersectionWithSet(aSet);
-    //    cylinder.insert(planeSet.begin(), planeSet.end());
-    Z3i::DigitalSet cylinder2 = modeller.drawCylinder(50, 10);
-    for (const auto& p : cylinder2) {
-        cylinder.insert(p + Z3i::Point(0,40,0));
-    }
-    // Ball<Z3i::Point> ball(Z3i::Point(0,40,35), 12);
-    // Z3i::DigitalSet ballSet = ball.pointSet();
-//    cylinder.insert(ballSet.begin(), ballSet.end());
 
+    Z3i::DigitalSet cylinder = modeller.drawDeformedCylinder(50, 10);
 
-//	drawCone(curve, 32, 15, increment);
-
-    Z3i::DigitalSet curve = modeller.createLogarithmicCurve(50);
-    cylinder = modeller.createVolumeFromCurve(curve, 9);
-    // createContinuousLogarithmicCurve(curve, 50, increment);
-    // construct26ConnectedCurve(curve);
-    // createVolumeFromCurve(curve, vectorPoints, 7);
-
-//	createRotatedVolumeFromCurve(curve, vectorPoints, 5, 2*M_PI/3);
-
-//	createJunction(curve, vectorPoints, 0.5);
-//	Ball<PointVector<3, double>> ball(Point(0,0,0), 10);
     Z3i::Domain domain(Z3i::Point(-100,-100,-100)-Z3i::Point::diagonal(2), Z3i::Point(100, 300, 300)+Z3i::Point::diagonal(2));
-    //domain = Z3i::Domain(Z3i::Point(-20,-20,-20), Z3i::Point(20,20,60));
-//	createVolumeFromCurve(curve, vectorPoints, 10);
-    //createHelixCurve(vectorPoints, range, radius, pitch, increment);
-//	drawCircle(vectorPoints, 50.0, 0., 0., 0., increment);
-//	createSyntheticAirwayTree(vectorPoints, 4, 40, 0, 0, {10,50,0}, increment);
-//	Image3D anImage3D(domain);
 
-//	create2DNaive();
-//	vectorPoints = ball.pointsInBall();
-//    DigitalSet set(domain);
-//    for (auto it = vectorPoints.begin(), itE = vectorPoints.end(); it != itE; ++it) {
-//        set.insert(*it);
-//    }
-//    DigitalSet set2 = addNoise(set, noise);
-//	imageFromRangeAndValue(curve.begin(), curve.end(), anImage3D, 150);
 
     Point lower, upper;
 

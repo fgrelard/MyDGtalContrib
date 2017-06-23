@@ -232,9 +232,9 @@ Container Modeller<Container>::drawDeformedCylinder(int length, int radius) {
         Container aSet = drawEllipse(a, b, Point(0, 0, i));
         set.insert(aSet.begin(), aSet.end());
         if (i % 3 == 0) {
-            a -= rand() % 3 - 1;
+            a -= rand() % 7 - 3;
             if (a <= 1) a = 2;
-            b += rand() % 3 - 1;
+            b += rand() % 7 - 3;
             if (b <= 1) b = 2;
         }
     }

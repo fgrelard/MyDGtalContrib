@@ -4,6 +4,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
   FlipAxis
   HausdorffDistance
   HausdorffDistanceWithoutJunction
+  GeodesicLoops
   )
 
 if(WITH_ITK)

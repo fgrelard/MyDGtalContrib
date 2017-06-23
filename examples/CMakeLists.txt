@@ -15,4 +15,6 @@ if ( Boost_FOUND )
 endif( Boost_FOUND )
 
 add_subdirectory(vcm)
+add_subdirectory(geometry)
+add_subdirectory(hessian)
 add_subdirectory(converters)
