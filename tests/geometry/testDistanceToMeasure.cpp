@@ -13,6 +13,7 @@
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/viewers/Viewer3D.h"
+#include "geometry/DistanceToMeasureEdge.h"
 
 using namespace std;
 using namespace DGtal;
@@ -26,7 +27,7 @@ int main( int argc, char** argv )
 
         typedef ImageContainerBySTLVector<Domain,unsigned char> GrayLevelImage2D;
         typedef ImageContainerBySTLVector<Domain,float>         FloatImage2D;
-    typedef DistanceToMeasureEdge <FloatImage2D> Distance;
+        typedef DistanceToMeasureEdge <FloatImage2D> Distance;
 
         GrayLevelImage2D img  = GenericReader<GrayLevelImage2D>::import( "/home/florent/Documents/DGtal/VCM/img/annulus.pgm" );
         double           mass = 3;

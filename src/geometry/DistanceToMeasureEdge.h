@@ -164,9 +164,10 @@ public:
         DGtal::Statistic<Value> stat(true);
         stat.addValue(firstMass);
 
-        Value aMass = myMass * myMass;
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
         Value currentMean = std::numeric_limits<Value>::max();
+        Value initialRadius = 0, initialMass = 0;
+        bool lowRadius = false;
         while (!visitor.finished()) {
             node = visitor.current();
 
@@ -176,29 +177,26 @@ public:
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
-                if (currentColor == myMask) continue;
                 stat.addValue(currentColor);
             }
 
-//            firstMass = stat.median();
-//            m = DGtal::NumberTraits<Value>::ZERO;
-//            for (const Value &v : stat) {
-//                m += v - firstMass;
-//            }
+            m = std::sqrt(stat.variance());
 
-            m = stat.variance();
-            if (node.second >= std::sqrt(3)) {
-                if (m >= aMass) {
-                    currentMean = stat.mean();
+            if (m >= myMass) {
+                currentMean = stat.mean();
+                if (node.second > sqrt(3) && m > initialMass)
                     break;
+                else {
+                    if (!lowRadius)  {
+                        initialMass = m;
+                        initialRadius = node.second;
+                    }
+                    lowRadius = true;
                 }
-                else if (node.second * node.second > myR2Max) {
-                    currentMean = previousMean;
-                    break;
-                }
+
             }
-            else if (m >= aMass) {
-                currentMean = previousMean - 1;
+            else if (node.second > std::sqrt(myR2Max)) {
+                currentMean = previousMean;
                 break;
             }
             //Next layer
@@ -207,9 +205,11 @@ public:
         }
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return DGtal::NumberTraits<Value>::ZERO;
-        if (currentMean < previousMean)
-            return DGtal::NumberTraits<Value>::ZERO;
 
+        if (lowRadius) {
+            if (node.second - initialRadius < sqrt(3))
+                return initialRadius * initialRadius;
+        }
         return node.second * node.second;
     }
 

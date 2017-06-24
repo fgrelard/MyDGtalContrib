@@ -4,8 +4,8 @@
 #include <boost/program_options/variables_map.hpp>
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
-#include "DGtal/io/writers/VolWriter.h"
-#include "DGtal/io/readers/GenericReader.h"
+#include "DGtal/io/readers/VolReader.h"
+#include "DGtal/io/writers/ITKWriter.h"
 #include "DGtal/images/ImageSelector.h"
 
 using namespace std;
@@ -47,19 +47,8 @@ int main(int argc, char** argv) {
 	typedef Z3i::KSpace KSpace;
 	typedef HyperRectDomain<Space> Domain;
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
-
-//	Z3i::Point translationVector(-100, -100, -100);
-    Image image = GenericReader<Image>::import(inputFilename);
-    Z3i::Domain aDomain = image.domain();
-	Image out(aDomain);
-
-	for (auto it = aDomain.begin(), ite = aDomain.end(); it != ite; ++it) {
-        if (image((*it)) >= 1) {
-			out.setValue(*it, 1);
-		}
-		//	out.setValue(*it, 1);
-	}
 	
-	VolWriter<Image>::exportVol(outputFilename, out);
+	Image image = VolReader<Image>::importVol(inputFilename);
+	ITKWriter<Image>::exportITK(outputFilename, image);
 	return 0;
 }

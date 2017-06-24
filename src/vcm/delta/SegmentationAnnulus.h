@@ -3,6 +3,7 @@
 
 #include "geometry/DistanceToMeasure.h"
 #include "DGtal/kernel/sets/DigitalSetSelector.h"
+#include "geometry/DistanceToMeasureEdge.h"
 
 template<typename ImageFct>
 class SegmentationAnnulus {

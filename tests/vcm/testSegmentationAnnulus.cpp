@@ -13,7 +13,6 @@
 #include "shapes/Ball.h"
 #include "vcm/delta/SegmentationAnnulus.h"
 
-
 using namespace std;
 using namespace DGtal;
 

@@ -13,9 +13,11 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include "geometry/MedialAxis.h"
+#include "shapes/Border.h"
 #include "vcm/OrthogonalPlaneEstimator.h"
 #include "shapes/DigitalPlane.h"
 #include "geometry/DigitalPlaneProcessor.h"
+#include "ShapeDescriptor.h"
 
 using namespace std;
 using namespace DGtal;
@@ -66,8 +68,7 @@ int main( int  argc, char**  argv )
         ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
         ("thresholdMin,m", po::value<int>()->default_value(1), "minimum threshold for binarization")
         ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
-        ("radiusInside,R", po::value<double>()->default_value(7), "radius of the ball inside voronoi cell")
-        ("radiusNeighbour,r", po::value<double>()->default_value(15), "radius of the ball for the neighbourhood")
+        ("step,z", po::value<int>()->default_value(10), "z step")
         ;
 
     bool parseOK=true;
@@ -95,9 +96,7 @@ int main( int  argc, char**  argv )
     string inputFilename = vm["input"].as<std::string>();
     int thresholdMin = vm["thresholdMin"].as<int>();
     int thresholdMax = vm["thresholdMax"].as<int>();
-    double R = vm["radiusInside"].as<double>();
-    double r = vm["radiusNeighbour"].as<double>();
-
+    int z = vm["step"].as<int>();
     Image volume = VolReader<Image>::importVol(inputFilename);
     Z3i::Domain domainVolume = volume.domain();
     Z3i::DigitalSet setVolume(domainVolume);
@@ -107,52 +106,61 @@ int main( int  argc, char**  argv )
     Viewer3D<> viewer;
     viewer.show();
 
-    double radiusVCM = r;
-    KernelFunction chi(1.0, radiusVCM);
-    OrthoPlaneEstimator orthogonalPlaneEstimator(setVolume, chi, R, r);
-    orthogonalPlaneEstimator.setRadius(radiusVCM);
-    int sliceNumber = 0;
-    int moduloFactor = setVolume.size() / 1000;
-    L2Metric l2Metric;
-    double distanceB = 8;
-    Z3i::DigitalSet setB(setVolume.domain());
-    DTL2 dt(&setVolume.domain(), &setVolume, &l2Metric);
-    for (auto it = setVolume.begin(), ite = setVolume.end();
-         it != ite; ++it) {
-        if (setB.find(*it) != setB.end()) continue;
-        sliceNumber++;
-        // Compute VCM and diagonalize it.
-        viewer.setFillColor(Color::Gray);
-        viewer.setFillTransparency(255);
-
-        Z3i::Point current= *it; //it->getPoint();
-        double radius = dt(current) + 2;
-        orthogonalPlaneEstimator.setRadius(radius);
-        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
-        Z3i::RealVector normal = plane.getPlaneEquation().normal();
-        DigitalPlane<Z3i::Space> planeBefore(current - distanceB * normal, normal);
-        DigitalPlane<Z3i::Space> planeAfter(current + distanceB * normal, -normal);
-        Z3i::DigitalSet diff = markPointsBetweenPlanes(setVolume, planeBefore, planeAfter, 100);
-        setB.insert(diff.begin(), diff.end());
-        DigitalPlaneProcessor<Z3i::Space> planeProc(plane);
-        std::vector<Z3i::RealVector> points = planeProc.planeToQuadrangle();
-        double f = 20.0;
-
-        viewer.setLineColor(Color::Blue);
-        viewer.setFillColor(Color::Blue);
-        viewer.setFillTransparency(150);
-        viewer.addQuad(current + points[0] * f,
-                       current + points[1] * f,
-                       current + points[2] * f,
-                       current + points[3] * f);
-
-
+    MedialAxis<Z3i::DigitalSet> maComputer(setVolume);
+    Z3i::DigitalSet ma = maComputer.pointSet();
+    Border<Z3i::DigitalSet> borderComputer(setVolume);
+    Z3i::DigitalSet border = borderComputer.pointSet();
+    Z3i::Point p2(0,0,z);
+    SetProcessor<Z3i::DigitalSet> setProcessor(ma);
+    Z3i::Point p = setProcessor.closestPointAt(p2);
+    Z3i::DigitalSet geodesicLoop(border.domain());
+    Z3i::DigitalSet proj(border.domain());
+    SetProcessor<Z3i::DigitalSet> setProc(border);
+    Z3i::Point pSurface = setProc.closestPointAt(p);
+    proj.insert(pSurface);
+    Z3i::Object26_6 obj(Z3i::dt26_6, setVolume);
+    std::vector<Z3i::Point> neighbors;
+    std::back_insert_iterator<std::vector<Z3i::Point> > inserter(neighbors);
+    obj.writeNeighbors(inserter, p);
+    for (const Z3i::Point& n : neighbors) {
+        Z3i::Point pSurface = setProc.closestPointAt(n);
+        if (n[1] != p[1] && p[2] == n[2] )
+            proj.insert(pSurface);
     }
 
-    for (auto it = setVolume.begin(), ite = setVolume.end(); it != ite; ++it) {
-        if (volume(*it) >= thresholdMin)
-            viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;
+    for (const Z3i::Point& f : proj) {
+        for (const Z3i::Point& s : proj) {
+            if (f == s) continue;
+            AStarAlgorithm<Z3i::Point, Z3i::DigitalSet> aStar(f, s, border);
+            std::vector<Z3i::Point> geodesic = aStar.linkPoints();
+            geodesicLoop.insert(geodesic.begin(), geodesic.end());
+        }
     }
+
+    std::vector<Z3i::Point> loops(geodesicLoop.begin(), geodesicLoop.end());
+        ShapeDescriptor<Z3i::DigitalSet> stats(loops);
+    Z3i::RealVector normal = stats.computeNormalFromLinearRegression();
+    DigitalPlane<Z3i::Space> plane(p, normal);
+    DigitalPlaneProcessor<Z3i::Space> digPlaneProc(plane);
+    std::vector<Z3i::RealVector> points = digPlaneProc.planeToQuadrangle();
+    double f = 20.0;
+
+    viewer.setLineColor(Color::Blue);
+    viewer.setFillColor(Color::Blue);
+    viewer.setFillTransparency(150);
+    viewer.addQuad(p + points[0] * f,
+                   p + points[1] * f,
+                  p + points[2] * f,
+                   p + points[3] * f);
+
+    //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << proj;
+
+    for (const Z3i::Point& g : geodesicLoop) {
+        viewer << CustomColors3D(Color::Red, Color::Red) << g;
+    }
+
+
+
 
     viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
     viewer << Viewer3D<>::updateDisplay;

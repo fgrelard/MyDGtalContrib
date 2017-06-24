@@ -63,6 +63,36 @@ computePointToVectors(const DistanceFunction& delta) {
     return aMap;
 }
 
+template <typename DistanceFunction>
+std::map<Z3i::Point, std::vector<Z3i::RealVector> >
+computePointToVectorsSobel(const DistanceFunction& delta) {
+    std::map<Z3i::Point, std::vector<Z3i::RealVector> > aMap;
+    for (const Z3i::Point& p : delta.domain()) {
+        aMap[p] = std::vector<Z3i::RealVector>();
+    }
+    for (const Z3i::Point& p : delta.domain()) {
+        Z3i::RealVector v = delta.projection(p);
+        if (v == Z3i::RealVector::zero) {
+            aMap[p].push_back(Z3i::RealVector::zero);
+            continue;
+        }
+        v = v.getNormalized();
+        Z3i::RealPoint dest = (Z3i::RealPoint)p;
+        Z3i::RealPoint next = dest + v;
+        while (delta.domain().isInside(next) && delta((Z3i::Point)next) <= delta((Z3i::Point)dest)) {
+            dest = next;
+            next = dest + v;
+        }
+        Z3i::Point candidate = dest;
+        if (!delta.domain().isInside(next)) {
+            aMap[candidate].push_back(Z3i::RealVector::zero);
+        }
+        else if (delta.domain().isInside(candidate))
+            aMap[candidate].push_back(-v);
+    }
+    return aMap;
+}
+
 double signedAngle(const Z3i::RealVector& v) {
     double angle = atan2(v[1], v[0]);
     return (angle > 0 ? angle : (2*M_PI + angle));
@@ -273,6 +303,26 @@ Matrix sqrtMatrix(const Matrix& in) {
     return out;
 }
 
+
+void exportToSDP(const
+                 std::map<DGtal::Z3i::Point,
+                 std::vector<DGtal::Z3i::RealVector> >& pointToVectors,
+                 const std::string& outputFilename) {
+    std::ofstream outStream;
+    outStream.open(outputFilename.c_str());
+    for (const auto & pToV : pointToVectors) {
+        DGtal::Z3i::Point p = pToV.first;
+        std::vector<DGtal::Z3i::RealVector> vectors = pToV.second;
+        for (const DGtal::Z3i::RealVector& v : vectors) {
+            if (v == DGtal::Z3i::RealVector::zero) continue;
+            DGtal::Z3i::RealPoint dest = (DGtal::Z3i::RealPoint)p - v;
+            DGtal::Z3i::RealVector vNorm = -v.getNormalized();
+            outStream << p[0] << " " << p[1] << " " << p[2] << " " << dest[0] << " " << dest[1] << " " << dest[2] << " " << vNorm[0] << " " << vNorm[1] << " " <<vNorm[2] << std::endl;
+        }
+    }
+    outStream.close();
+}
+
 int main( int argc, char **argv )
 {
     using namespace DGtal;
@@ -293,6 +343,7 @@ int main( int argc, char **argv )
     general_opt.add_options()
         ("help,h", "display this message")
         ("distance,d", po::value<std::string>(), "vol file (corresponding volume)")
+        ("scale,s", po::value<std::string>(), "scale image for VCM radius")
         ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
         ("alpha,a", po::value<double>()->default_value(0.1), "Frangi alpha")
         ("beta,b", po::value<double>()->default_value(1), "Frangi beta")
@@ -327,6 +378,9 @@ int main( int argc, char **argv )
 
 
     string distanceFilename = vm["distance"].as<std::string>();
+    string scaleImage;
+    if (vm.count("scale"))
+        scaleImage = vm["scale"].as<std::string>();
     string outputFilename = vm["output"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
     double alpha = vm["alpha"].as<double>();
@@ -336,6 +390,10 @@ int main( int argc, char **argv )
 
 
     FloatImage fimg = ITKReader<FloatImage>::importITK( distanceFilename );
+    FloatImage fimgScale(fimg.domain());
+    if (vm.count("scale"))
+        fimgScale =  ITKReader<FloatImage>::importITK(scaleImage);
+
     auto domain = fimg.domain();
 
 
@@ -354,13 +412,22 @@ int main( int argc, char **argv )
 
     srand(time(NULL));
     std::map<Z3i::Point, std::vector<Z3i::RealVector> > pToV = computePointToVectors(delta);
-
+    string newfilename= outputFilename.substr(0,outputFilename.find_last_of('.'))+".sdp";
+    exportToSDP(pToV, newfilename);
 
     MatrixImage* imageMatrix = new MatrixImage(fimg.domain());
     DGtal::trace.beginBlock("Constructing delta VCM");
     for ( typename Domain::ConstIterator it = delta.domain().begin(),
               itE = delta.domain().end(); it != itE; ++it ) {
         Point p = *it;
+        if (fimg(p) != 0)  {
+            Matrix mat;
+            imageMatrix->setValue(p, mat);
+            continue;
+        }
+        if (vm.count("scale") && fimgScale(p) > 0)
+            radiusVCM = fimgScale(p) + sqrt(3);
+
         Ball<Point> ball(p, radiusVCM);
         FloatImage aSet = ball.intersection( fimg );
         std::vector<RealVector> dirs;
@@ -379,6 +446,7 @@ int main( int argc, char **argv )
                     double distanceBV = Z3i::l2Metric(p, b+v);
                     sumDistanceB += distanceB;
                     sumDistanceBV += distanceBV;
+                    grad *= distanceB;
                     if ( bp.dot(dp) > 0)
                         dirs.push_back(grad);
                     else {
@@ -389,7 +457,8 @@ int main( int argc, char **argv )
             }
         }
 
-        if (dirs.size() == 0 || sumDistanceB > sumDistanceBV || reverse) {
+        if (dirs.size() == 0 // || sumDistanceB > sumDistanceBV || reverse
+            ) {
             Matrix mat;
             imageMatrix->setValue(p, mat);
         }

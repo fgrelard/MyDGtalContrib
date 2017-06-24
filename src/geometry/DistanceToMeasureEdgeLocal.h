@@ -22,6 +22,7 @@ public:
     typedef typename Space::RealVector RealVector;
     typedef typename Point::Scalar Scalar;
     typedef DGtal::MetricAdjacency<Space, 1> Adjacency;
+    typedef DGtal::MetricAdjacency<Space, 3> Adjacency26;
 
 public:
     DistanceToMeasureEdgeLocal() : myMeasure(Domain(Point::zero, Point::zero)), myDistance2(Domain(Point::zero, Point::zero)) {}
@@ -49,15 +50,7 @@ public:
         for (typename Domain::Iterator it = domain.begin(), ite = domain.end(); it != ite; ++it, ++i) {
             DGtal::trace.progressBar(i, nb);
             Point current = *it;
-
-            std::vector<Point> neighbors;
-            std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
-            Adjacency::writeNeighbors(inserter, current);
             bool isMasked = (myMeasure(current) == myMask);
-            for (const Point& n : neighbors) {
-                if (!domain.isInside(n)) continue;
-                isMasked &= (myMeasure(n) == myMask);
-            }
 
             if (!isMasked)
                 myDistance2.setValue(current, computeDistance2(current));
@@ -145,13 +138,13 @@ public:
     }
 
     virtual Value computeDistance2(const Point &p) {
-        typedef DGtal::ExactPredicateLpSeparableMetric<Space, 2> Distance;
+        typedef DGtal::ExactPredicateLpSeparableMetric<Space, 1> Distance;
         typedef DistanceToPointFunctor<Distance> DistanceToPoint;
 
         typedef DGtal::DistanceBreadthFirstVisitor<Adjacency, DistanceToPoint, std::set<Point> >
                 DistanceVisitor;
         typedef typename DistanceVisitor::Node MyNode;
-
+        typedef DGtal::DigitalSetBySTLVector<Domain> Set;
 
         Value m = DGtal::NumberTraits<Value>::ZERO;
         Adjacency graph;
@@ -165,7 +158,7 @@ public:
         stat.addValue(firstMass);
 
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
-        Value currentMean = previousMean;
+        Value currentMean = firstMass;
         while (!visitor.finished()) {
             node = visitor.current();
 
@@ -174,54 +167,50 @@ public:
 
             std::vector<Point> neighbors;
             std::back_insert_iterator<std::vector<Point> > inserter(neighbors);
+
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
                 stat.addValue(currentColor);
+            }
+
+            currentMean = stat.mean() + std::sqrt(stat.variance());
+            for (const MyNode &n : vec) {
+                if (!myMeasure.domain().isInside(n.first)) continue;
+                double currentColor = myMeasure(n.first);
                 if (currentColor > currentMean) {
-                    Adjacency::writeNeighbors(inserter, n.first);
+                    Adjacency26::writeNeighbors(inserter, n.first);
                 }
             }
 
-            Value currentMean = stat.mean();
 
             visitor.expandLayer();
 
             std::vector<MyNode> vecNext;
             visitor.getCurrentLayer(vecNext);
 
-            statNext = stat;
+
+            Set aSet(myMeasure.domain());
             for (const MyNode &n : vecNext) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 if (std::find(neighbors.begin(), neighbors.end(), n.first) == neighbors.end()) continue;
+                statNext = stat;
                 statNext.addValue(myMeasure(n.first));
+                double sigmaNext = std::sqrt(statNext.variance());
+                double sigma = std::sqrt(stat.variance());
+                double threshold = sigma / stat.samples();
+                if (sigmaNext > (threshold + sigma) && statNext.mean() > stat.mean())
+                    m++;
             }
 
-//            firstMass = stat.median();
-//            m = DGtal::NumberTraits<Value>::ZERO;
-//            for (const Value &v : stat) {
-//                m += v - firstMass;
-//            }
-
-            m = std::sqrt(stat.variance());
-            if (node.second >= std::sqrt(3)) {
-                if (m > myMass) {
-                    if (statNext.mean() > currentMean) {
-                        currentMean = stat.mean();
-                        break;
-                    }
-                }
-            }
-            if (node.second > std::sqrt(myR2Max)) {
-                currentMean = previousMean;
+            if (m > myMass)
                 break;
-            }
-            //Next layer
-            previousMean = currentMean;
+            if (node.second * node.second > myR2Max)
+                break;
 
         }
-        if (m == DGtal::NumberTraits<Value>::ZERO)
-            return DGtal::NumberTraits<Value>::ZERO;
+        // if (m == DGtal::NumberTraits<Value>::ZERO)
+        //     return DGtal::NumberTraits<Value>::ZERO;
         // if (currentMean < previousMean)
         //     return DGtal::NumberTraits<Value>::ZERO;
 

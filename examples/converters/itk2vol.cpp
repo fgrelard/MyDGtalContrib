@@ -5,8 +5,9 @@
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
 #include "DGtal/io/writers/VolWriter.h"
-#include "DGtal/io/readers/GenericReader.h"
+#include "DGtal/io/readers/ITKReader.h"
 #include "DGtal/images/ImageSelector.h"
+#include "DGtal/io/writers/ITKWriter.h"
 
 using namespace std;
 using namespace DGtal;
@@ -47,19 +48,26 @@ int main(int argc, char** argv) {
 	typedef Z3i::KSpace KSpace;
 	typedef HyperRectDomain<Space> Domain;
 	typedef ImageSelector<Domain, unsigned char>::Type Image;
-
-//	Z3i::Point translationVector(-100, -100, -100);
-    Image image = GenericReader<Image>::import(inputFilename);
-    Z3i::Domain aDomain = image.domain();
+	Z3i::Point translationVector(0, 0, 0);
+	Image image = ITKReader<Image>::importITK(inputFilename);
+	Domain aDomain(image.domain().lowerBound() + translationVector, image.domain().upperBound() + translationVector);
 	Image out(aDomain);
-
+	
 	for (auto it = aDomain.begin(), ite = aDomain.end(); it != ite; ++it) {
-        if (image((*it)) >= 1) {
-			out.setValue(*it, 1);
-		}
-		//	out.setValue(*it, 1);
+		out.setValue(*it, image(*it));
 	}
 	
 	VolWriter<Image>::exportVol(outputFilename, out);
+//	ITKWriter<Image>::exportITK(outputFilename, image);
+
+
+// Z3i::Point upperBound = image.domain().upperBound();
+	// Domain domain(Z3i::Point(0,0,0), Z3i::Point(512,512,(upperBound[2]-1)*2));
+	// Image output(domain);
+	// for (auto it = domain.begin(), ite = domain.end(); it != ite; ++it) {
+	// 	Z3i::Point current = *it;
+	// 	Z3i::Point inImage(current[0], current[1], current[2] / 2);
+	// 	output.setValue(current, image(inImage));
+	// }
 	return 0;
 }

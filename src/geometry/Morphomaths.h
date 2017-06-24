@@ -14,6 +14,11 @@ class Morphomaths {
     BOOST_CONCEPT_ASSERT((DGtal::concepts::CImage<Image>));
 
 public:
+    typedef typename Image::Point Point;
+    typedef typename Image::Domain Domain;
+    typedef typename Image::Value Value;
+
+public:
     Morphomaths() = delete;
 
     Morphomaths(const Image &image, int aSize = 1) : myImage(image), mySize(aSize) {}
@@ -21,7 +26,7 @@ public:
     Morphomaths(const Morphomaths &other) : myImage(other.myImage), mySize(other.mySize) {}
 
 public:
-    bool process(int x, int y, int nx, int ny);
+    bool process(Point p, Value& valueMin, Value& valueMax);
 
     Image constructOnePxBorderImage();
 
@@ -41,20 +46,14 @@ protected:
 
 
 template<typename Image>
-bool Morphomaths<Image>::process(int x, int y, int nx, int ny) {
-    typedef typename Image::Point Point;
-
-    int valueMin = std::numeric_limits<int>::max();
-    int valueMax = 0;
-    for (int i = -nx; i <= nx; i++) {
-        for (int j = -ny; j <= ny; j++) {
-            Point current(x + i, y + j);
-            if (myImage.domain().isInside(current)) {
-                int value = myImage(current);
-                if ((i != 0 || j != 0)) {
-                    if (value < valueMin) valueMin = value;
-                    if (value > valueMax) valueMax = value;
-                }
+bool Morphomaths<Image>::process(Point p, Value& valueMin, Value& valueMax) {
+    Domain rect(p - Point::diagonal(mySize), p + Point::diagonal(mySize));
+    for (const Point& r : rect) {
+        if (myImage.domain().isInside(r)) {
+            Value value = myImage(r);
+            if (r != p) {
+                if (value < valueMin) valueMin = value;
+                if (value > valueMax) valueMax = value;
             }
         }
     }
@@ -88,16 +87,12 @@ Image Morphomaths<Image>::erosion() {
     Domain domain = myImage.domain();
     Image toReturn = constructOnePxBorderImage();
     myImage = toReturn;
-    Point upper = domain.upperBound(), lower = domain.lowerBound();
 
-    int width = upper[0] - lower[0] + 1;
-    int height = upper[1] - lower[1] + 1;
-
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            bool shouldBeEroded = process(i, j, mySize, mySize);
-            if (shouldBeEroded) toReturn.setValue(Point(i, j), 0);
-        }
+    for (const Point& p : domain) {
+        Value valueMin = std::numeric_limits<int>::max();
+        Value valueMax = 0;
+        bool shouldBeEroded = process(p, valueMin, valueMax);
+        if (shouldBeEroded) toReturn.setValue(p, valueMin);
     }
     Image out(domain);
     for (auto it = domain.begin(), ite = domain.end(); it != ite; ++it) {
@@ -118,14 +113,11 @@ Image Morphomaths<Image>::dilation() {
     BackgroundPredicate backgroundPredicate(myImage);
 
 
-    Point upper = domain.upperBound(), lower = domain.lowerBound();
-    int width = upper[0] - lower[0] + 1;
-    int height = upper[1] - lower[1] + 1;
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            bool shouldBeDilated = process(i, j, mySize, mySize);
-            if (shouldBeDilated) toReturn.setValue(Point(i, j), 1);
-        }
+   for (const Point& p : domain) {
+        Value valueMin = std::numeric_limits<int>::max();
+        Value valueMax = 0;
+        bool shouldBeEroded = process(p, valueMin, valueMax);
+        if (shouldBeEroded) toReturn.setValue(p, valueMax);
     }
     Image out(domain);
     for (auto it = domain.begin(), ite = domain.end(); it != ite; ++it) {

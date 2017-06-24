@@ -5,6 +5,40 @@
 using namespace DGtal;
 using namespace Z3i;
 
+void testDrawBallVisitor(Viewer3D<>& viewer) {
+    typedef DGtal::MetricAdjacency<Space, 1> Adjacency;
+
+    typedef DGtal::ExactPredicateLpSeparableMetric<Space, 1> Distance;
+    typedef DistanceToPointFunctor<Distance> DistanceToPoint;
+
+    typedef DGtal::DistanceBreadthFirstVisitor<Adjacency, DistanceToPoint, std::set<Point> >
+        DistanceVisitor;
+    typedef typename DistanceVisitor::Node MyNode;
+    Adjacency graph;
+    Distance l2;
+    Point p;
+    DistanceToPoint d2pfct(l2, p);
+    DistanceVisitor visitor(graph, d2pfct, p);
+
+    MyNode node;
+    std::vector<MyNode> vec;
+    visitor.current();
+    visitor.getCurrentLayer(vec);
+    visitor.expandLayer();
+    visitor.getCurrentLayer(vec);
+    visitor.expandLayer();
+    visitor.getCurrentLayer(vec);
+    visitor.expandLayer();
+    visitor.getCurrentLayer(vec);
+    visitor.expandLayer();
+    visitor.getCurrentLayer(vec);
+    node = visitor.current();
+    DGtal::trace.info() << node.second << " " << vec.size() << std::endl;
+    for (const auto& p : vec) {
+        viewer << CustomColors3D(Color::Red, Color::Red) << p.first;
+    }
+}
+
 DigitalSet translate(const DigitalSet& initial, const Point& translationVector) {
         DigitalSet out(Domain(initial.domain().lowerBound() + translationVector,
                               initial.domain().upperBound() + translationVector));
@@ -105,18 +139,19 @@ int main(int argc, char** argv) {
         QApplication app(argc, argv);
         Viewer3D<> viewer;
         viewer.show();
-        testDrawCircle(viewer);
-        testDrawDisk(viewer);
-        testDrawCone(viewer);
-        testDrawCylinder(viewer);
-        testDrawDeformedCylinder(viewer);
-        testCreateHelixCurve(viewer);
-        testCreateStraightLine(viewer);
-        testCreateSyntheticAirwayTree(viewer);
-        testCreateLogarithmicCurve(viewer);
-        testCreateVolumeFromCurve(viewer);
-        testCreateRotatedVolumeFromCurve(viewer);
-        testAddNoise(viewer);
+        testDrawBallVisitor(viewer);
+        // testDrawCircle(viewer);
+        // testDrawDisk(viewer);
+        // testDrawCone(viewer);
+        // testDrawCylinder(viewer);
+        // testDrawDeformedCylinder(viewer);
+        // testCreateHelixCurve(viewer);
+        // testCreateStraightLine(viewer);
+        // testCreateSyntheticAirwayTree(viewer);
+        // testCreateLogarithmicCurve(viewer);
+        // testCreateVolumeFromCurve(viewer);
+        // testCreateRotatedVolumeFromCurve(viewer);
+        // testAddNoise(viewer);
         viewer << Viewer3D<>::updateDisplay;
         app.exec();
 }
