@@ -110,9 +110,8 @@ int main( int  argc, char**  argv )
     Z3i::DigitalSet ma = maComputer.pointSet();
     Border<Z3i::DigitalSet> borderComputer(setVolume);
     Z3i::DigitalSet border = borderComputer.pointSet();
-    Z3i::Point p2(0,0,z);
-    SetProcessor<Z3i::DigitalSet> setProcessor(ma);
-    Z3i::Point p = setProcessor.closestPointAt(p2);
+    Z3i::Point p = *std::next(ma.begin(), z);
+    DGtal::trace.info() << p << std::endl;
     Z3i::DigitalSet geodesicLoop(border.domain());
     Z3i::DigitalSet proj(border.domain());
     SetProcessor<Z3i::DigitalSet> setProc(border);
@@ -120,12 +119,12 @@ int main( int  argc, char**  argv )
     proj.insert(pSurface);
     Z3i::Object26_6 obj(Z3i::dt26_6, setVolume);
     std::vector<Z3i::Point> neighbors;
+
     std::back_insert_iterator<std::vector<Z3i::Point> > inserter(neighbors);
     obj.writeNeighbors(inserter, p);
     for (const Z3i::Point& n : neighbors) {
         Z3i::Point pSurface = setProc.closestPointAt(n);
-        if (n[1] != p[1] && p[2] == n[2] )
-            proj.insert(pSurface);
+        proj.insert(pSurface);
     }
 
     for (const Z3i::Point& f : proj) {
@@ -138,19 +137,18 @@ int main( int  argc, char**  argv )
     }
 
     std::vector<Z3i::Point> loops(geodesicLoop.begin(), geodesicLoop.end());
-        ShapeDescriptor<Z3i::DigitalSet> stats(loops);
+        ShapeDescriptor<Z3i::DigitalSet> stats(geodesicLoop);
     Z3i::RealVector normal = stats.computeNormalFromLinearRegression();
     DigitalPlane<Z3i::Space> plane(p, normal);
     DigitalPlaneProcessor<Z3i::Space> digPlaneProc(plane);
     std::vector<Z3i::RealVector> points = digPlaneProc.planeToQuadrangle();
     double f = 20.0;
-
     viewer.setLineColor(Color::Blue);
     viewer.setFillColor(Color::Blue);
     viewer.setFillTransparency(150);
     viewer.addQuad(p + points[0] * f,
                    p + points[1] * f,
-                  p + points[2] * f,
+                   p + points[2] * f,
                    p + points[3] * f);
 
     //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << proj;
@@ -162,7 +160,7 @@ int main( int  argc, char**  argv )
 
 
 
-    viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
+    viewer << CustomColors3D(Color(220,220,220, 50), Color(220,220,220,50)) << setVolume;
     viewer << Viewer3D<>::updateDisplay;
     application.exec();
     return 0;

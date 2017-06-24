@@ -41,8 +41,6 @@ public:
 
     RealVector computeNormalFromLinearRegression();
 
-    RealVector computeNormalFromCovarianceMatrix();
-
     RealVector extractEigenVector(const Matrix &m, int colNumber);
 
     double extractEigenValue(const Matrix &m, int colNumber);
@@ -137,16 +135,26 @@ extractCenterOfMass() {
 template<typename Container>
 typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalFromLinearRegression() {
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1> VectorXi;
+    typedef typename Container::ConstIterator ConstIterator;
+    typedef typename Container::Domain Domain;
+    typedef typename Domain::Point Point;
+
     unsigned int size = myData.size();
     Matrix A(size, 3);
     VectorXi b = VectorXi::Zero(size, 1);
+    int dimens = Point::dimension;
 
-    for (int i = 0; i < size; i++) {
-        A(i, 0) = (double) myData[i][0] * 1.0;
-        A(i, 1) = (double) myData[i][1] * 1.0;
+    int i = 0;
+    for (ConstIterator it = myData.begin(), ite = myData.end();
+         it != ite; ++it) {
+        Point point = *it;
+        for (int j = 0; j < dimens-1; j++)
+            A(i, j) = (double) point[j] * 1.0;
         A(i, 2) = 1.0;
-        b(i, 0) = (double) myData[i][2] * 1.0;
+        b(i, 0) = (double) point[dimens - 1] * 1.0;
+        i++;
     }
+
     Eigen::Vector3d x = A.colPivHouseholderQr().solve(b);
     typename Container::Space::RealVector normal;
     normal[0] = x(0, 0);
@@ -155,32 +163,7 @@ typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalF
     return normal.getNormalized();
 }
 
-/**
- * Computes the normal of a plane from a set of points
- * Method : covariance matrix
- */
-template<typename Container>
-typename Container::Space::RealVector ShapeDescriptor<Container>::computeNormalFromCovarianceMatrix() {
 
-    unsigned int size = myData.size();
-    if (size < 2) return (Container::Space::RealVector::zero);
-
-    Matrix A(size, 3);
-    for (int i = 0; i < size; i++) {
-        A(i, 0) = (double) myData[0] * 1.0;
-        A(i, 1) = (double) myData[1] * 1.0;
-        A(i, 2) = (double) myData[2] * 1.0;
-    }
-    Matrix centered = A.rowwise() - A.colwise().mean();
-    Matrix cov = (centered.adjoint() * centered) / double(A.rows() - 1);
-    Eigen::SelfAdjointEigenSolver<Matrix> eig(cov);
-    typename Container::Space::RealVector normal;
-    auto veigen = eig.eigenvectors().col(0);
-    normal[0] = veigen[0];
-    normal[1] = veigen[1];
-    normal[2] = veigen[2];
-    return normal;
-}
 
 template<typename Container>
 typename ShapeDescriptor<Container>::Matrix
