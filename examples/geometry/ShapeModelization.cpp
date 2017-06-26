@@ -92,9 +92,12 @@ int main( int argc, char** argv )
     int pitch =  20;
     int radius = 10;
 
-
-    Z3i::DigitalSet cylinder = modeller.drawDeformedCylinder(50, 10);
-
+    Z3i::DigitalSet cylinder = modeller.drawCylinder(50, 10);
+    Z3i::DigitalSet deformedcylinder = modeller.drawDeformedCylinder(50, 10);
+    Z3i::DigitalSet translated(cylinder.domain());
+    for (const auto& p : deformedcylinder)
+        translated.insert(p + Z3i::Point(2, 0, 0));
+    cylinder.insert(translated.begin(), translated.end());
     Z3i::Domain domain(Z3i::Point(-100,-100,-100)-Z3i::Point::diagonal(2), Z3i::Point(100, 300, 300)+Z3i::Point::diagonal(2));
 
 

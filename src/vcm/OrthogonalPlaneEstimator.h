@@ -112,6 +112,10 @@ public:
                             const RealVector &dirVector = RealVector::zero,
                             const Container &points = emptyContainer);
 
+    Plane convergentPlaneAnisotropyAt(const Point & point,
+                                      double threshold,
+                                      double maxRadius);
+
     void setRadius(double radius);
 
     double getRadius() const { return myVCM->r(); }
@@ -126,6 +130,7 @@ private:
                               double currentRadius,
                               const RealVector &dirVector = RealVector::zero);
 
+    bool isAnisotropyReached(const Point& point, double threshold);
     // ------------------------- Private Datas --------------------------------
 
 protected:
@@ -232,6 +237,19 @@ isConvergenceReached(const Container &volume,
 }
 
 template<typename Container, typename KernelFunction>
+bool
+OrthogonalPlaneEstimator<Container, KernelFunction>::
+isAnisotropyReached(const Point& point,
+                    double threshold) {
+    typename LinearAlgebraTool::Matrix vcm_r, evec;
+    RealVector eval;
+    vcm_r = myVCM->measure(myChi, point);
+    LinearAlgebraTool::getEigenDecomposition(vcm_r, evec, eval);
+    double anisotropy = 1 - (eval[0] / eval[2]);
+    return (anisotropy > threshold);
+}
+
+template<typename Container, typename KernelFunction>
 typename OrthogonalPlaneEstimator<Container, KernelFunction>::Plane
 OrthogonalPlaneEstimator<Container, KernelFunction>::
 convergentPlaneAt(const Point &point,
@@ -254,6 +272,25 @@ convergentPlaneAt(const Point &point,
 
     } while (!isConvergent && currentRadius < maxRadius);
 
+    return convergentPlane;
+}
+
+template<typename Container, typename KernelFunction>
+typename OrthogonalPlaneEstimator<Container, KernelFunction>::Plane
+OrthogonalPlaneEstimator<Container, KernelFunction>::
+convergentPlaneAnisotropyAt(const Point &point,
+                            double threshold,
+                            double maxRadius) {
+
+    bool isConvergent;
+    double currentRadius = myVCM->r();
+    do {
+        setRadius(currentRadius);
+        isConvergent = isAnisotropyReached(point, threshold);
+        currentRadius++;
+    }
+    while (!isConvergent && currentRadius < maxRadius);
+    Plane convergentPlane = planeAt(point);
     return convergentPlane;
 }
 

@@ -119,7 +119,7 @@ int main( int  argc, char**  argv )
     DTL2 dt(&setVolume.domain(), &setVolume, &l2Metric);
     for (auto it = setVolume.begin(), ite = setVolume.end();
          it != ite; ++it) {
-        if (setB.find(*it) != setB.end()) continue;
+        if (setB.find(*it) != setB.end() || dt(*it) <= sqrt(3)) continue;
         sliceNumber++;
         // Compute VCM and diagonalize it.
         viewer.setFillColor(Color::Gray);
@@ -128,7 +128,9 @@ int main( int  argc, char**  argv )
         Z3i::Point current= *it; //it->getPoint();
         double radius = dt(current) + 2;
         orthogonalPlaneEstimator.setRadius(radius);
-        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
+//        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
+        viewer << CustomColors3D(Color::Red, Color::Red) << current;
+        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAnisotropyAt(current, 0.95, 30);
         Z3i::RealVector normal = plane.getPlaneEquation().normal();
         DigitalPlane<Z3i::Space> planeBefore(current - distanceB * normal, normal);
         DigitalPlane<Z3i::Space> planeAfter(current + distanceB * normal, -normal);
@@ -153,7 +155,6 @@ int main( int  argc, char**  argv )
         if (volume(*it) >= thresholdMin)
             viewer << CustomColors3D(Color(0,0,255,20), Color(0,0,255,20))<<*it;
     }
-
     viewer << CustomColors3D(Color(220,220,220,20), Color(220,220,220,20)) << setVolume;
     viewer << Viewer3D<>::updateDisplay;
     application.exec();
