@@ -90,7 +90,6 @@ int main(int argc, char** argv) {
     Z3i::Point center2 = shape2.extractCenterOfMass();
 
     Z3i::Vector vectorTranslation = center1 - center2;
-
     Z3i::DigitalSet registeredSet(firstDomain);
     for (const auto& p : setToRegister) {
         Z3i::Point pTranslated = p + vectorTranslation;

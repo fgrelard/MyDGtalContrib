@@ -141,7 +141,7 @@ RecenterSkeleton(const Container &skeleton,
     L2Metric l2Metric;
     myDT = new DTL2(myVolume->domain(), *myVolume, l2Metric);
     double r = 10;
-    double R = 10;
+    double R = 7;
     KernelFunction chi(1.0, r);
     int connexity = 6;
     myPlaneEstimator = new PlaneEstimator(volume, chi, R, r, connexity);
@@ -184,7 +184,7 @@ recenter() {
 
     Container branching = CurveProcessor<Container>(*mySkeleton).branchingPoints();
     std::vector<GraphEdge> graph = CurveDecomposition<Container>(*mySkeleton, branching).branchDecomposition();
-
+    DGtal::trace.info() << "Graph has " << graph.size() << " branches." << std::endl;
     DGtal::trace.beginBlock("Recentering");
     std::vector<Plane> planes = computePlanes();
     Container skeletonPoints(mySkeleton->domain());

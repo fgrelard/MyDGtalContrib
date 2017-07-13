@@ -107,7 +107,7 @@ PruningOrthogonalPlanes(const Container &skeleton,
     mySkeleton = new Container(skeleton);
     myVolume = new Container(volume);
     double r = 5;
-    double R = 30;
+    double R = 7;
     KernelFunction chi(1.0, r);
     myPlaneEstimatorVol = new PlaneEstimator(volume, chi, R, r);
 
@@ -173,12 +173,11 @@ prune() {
         previousNumber = hierarchicalGraph.size();
         for (GraphEdge *graphEdge : hierarchicalGraph) {
             if (graphEdge->size() == 0) continue;
-            double radius = graphEdge->size() * 0.4 + 1.0;
+            double radius = 5;
             KernelFunction chi(1.0, radius);
             CurveProcessor<Container> curveProc(*graphEdge);
-            double lengthCurve = (graphEdge->size() * 0.6) < 2 ? 2 : graphEdge->size() * 0.6;
             Container restrictEdge = curveProc.subCurve(*myDT, myBranchingPoints);
-            myPlaneEstimatorCurve = new PlaneEstimator(restrictEdge, chi, 10, radius);
+            myPlaneEstimatorCurve = new PlaneEstimator(restrictEdge, chi, 10, 5);
             double sumAngle = 0;
             std::for_each(restrictEdge.begin(),
                           restrictEdge.end(),

@@ -114,7 +114,7 @@ int main( int  argc, char**  argv )
     int sliceNumber = 0;
     int moduloFactor = setVolume.size() / 1000;
     L2Metric l2Metric;
-    double distanceB = 8;
+    double distanceB = 18;
     Z3i::DigitalSet setB(setVolume.domain());
     DTL2 dt(&setVolume.domain(), &setVolume, &l2Metric);
     for (auto it = setVolume.begin(), ite = setVolume.end();
@@ -128,9 +128,9 @@ int main( int  argc, char**  argv )
         Z3i::Point current= *it; //it->getPoint();
         double radius = dt(current) + 2;
         orthogonalPlaneEstimator.setRadius(radius);
-//        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
+        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAt(current, setVolume, 100);
         viewer << CustomColors3D(Color::Red, Color::Red) << current;
-        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAnisotropyAt(current, 0.95, 30);
+        //        DigitalPlane<Z3i::Space> plane = orthogonalPlaneEstimator.convergentPlaneAnisotropyAt(current, 0.95, 30);
         Z3i::RealVector normal = plane.getPlaneEquation().normal();
         DigitalPlane<Z3i::Space> planeBefore(current - distanceB * normal, normal);
         DigitalPlane<Z3i::Space> planeAfter(current + distanceB * normal, -normal);

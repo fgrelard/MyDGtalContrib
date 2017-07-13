@@ -66,6 +66,7 @@ int main( int  argc, char**  argv )
     general_opt.add_options()
         ("help,h", "display this message")
         ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+        ("skeleton,s", po::value<std::string>(), "vol file (skeleton)")
         ("thresholdMin,m", po::value<int>()->default_value(1), "minimum threshold for binarization")
         ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
         ("step,z", po::value<int>()->default_value(10), "z step")
@@ -93,6 +94,14 @@ int main( int  argc, char**  argv )
         return 0;
     }
 
+    string skelfilename;
+    bool withSkel = false;
+    if (vm.count("skeleton"))
+        withSkel = true;
+
+    if (withSkel)
+        skelfilename = vm["skeleton"].as<std::string>();
+
     string inputFilename = vm["input"].as<std::string>();
     int thresholdMin = vm["thresholdMin"].as<int>();
     int thresholdMax = vm["thresholdMax"].as<int>();
@@ -102,61 +111,82 @@ int main( int  argc, char**  argv )
     Z3i::DigitalSet setVolume(domainVolume);
     SetFromImage<Z3i::DigitalSet>::append<Image> (setVolume, volume,
                                                   thresholdMin-1, thresholdMax);
+
+
+
+
     QApplication application(argc,argv);
     Viewer3D<> viewer;
     viewer.show();
 
-    MedialAxis<Z3i::DigitalSet> maComputer(setVolume);
-    Z3i::DigitalSet ma = maComputer.pointSet();
+    Z3i::DigitalSet setSkeleton(domainVolume);
+    if (withSkel) {
+        Image skeleton = VolReader<Image>::importVol(skelfilename);
+        Z3i::Domain domainSkeleton = volume.domain();
+        SetFromImage<Z3i::DigitalSet>::append<Image> (setSkeleton, skeleton,
+                                                      thresholdMin-1, thresholdMax);
+    }
+    else {
+        MedialAxis<Z3i::DigitalSet> maComputer(setVolume);
+        setSkeleton = maComputer.pointSet();
+    }
     Border<Z3i::DigitalSet> borderComputer(setVolume);
     Z3i::DigitalSet border = borderComputer.pointSet();
-    Z3i::Point p = *std::next(ma.begin(), z);
-    DGtal::trace.info() << p << std::endl;
-    Z3i::DigitalSet geodesicLoop(border.domain());
-    Z3i::DigitalSet proj(border.domain());
-    SetProcessor<Z3i::DigitalSet> setProc(border);
-    Z3i::Point pSurface = setProc.closestPointAt(p);
-    proj.insert(pSurface);
-    Z3i::Object26_6 obj(Z3i::dt26_6, setVolume);
-    std::vector<Z3i::Point> neighbors;
 
-    std::back_insert_iterator<std::vector<Z3i::Point> > inserter(neighbors);
-    obj.writeNeighbors(inserter, p);
-    for (const Z3i::Point& n : neighbors) {
-        Z3i::Point pSurface = setProc.closestPointAt(n);
+    int i = 0;
+    for (const Z3i::Point& p : setSkeleton) {
+//        DGtal::trace.progressBar(i, setSkeleton.size());
+        i++;
+        Z3i::DigitalSet geodesicLoop(border.domain());
+        Z3i::DigitalSet proj(border.domain());
+        SetProcessor<Z3i::DigitalSet> setProc(border);
+        Z3i::Point pSurface = setProc.closestPointAt(p);
         proj.insert(pSurface);
-    }
-
-    for (const Z3i::Point& f : proj) {
-        for (const Z3i::Point& s : proj) {
-            if (f == s) continue;
-            AStarAlgorithm<Z3i::Point, Z3i::DigitalSet> aStar(f, s, border);
-            std::vector<Z3i::Point> geodesic = aStar.linkPoints();
-            geodesicLoop.insert(geodesic.begin(), geodesic.end());
+        Z3i::Object26_6 obj(Z3i::dt26_6, setVolume);
+        std::vector<Z3i::Point> neighbors;
+        std::back_insert_iterator<std::vector<Z3i::Point> > inserter(neighbors);
+        obj.writeNeighbors(inserter, p);
+        for (const Z3i::Point& n : neighbors) {
+            Z3i::Point pSurface = setProc.closestPointAt(n);
+            proj.insert(pSurface);
         }
-    }
 
-    std::vector<Z3i::Point> loops(geodesicLoop.begin(), geodesicLoop.end());
+        for (const Z3i::Point& f : proj) {
+            for (const Z3i::Point& s : proj) {
+                if (f == s) continue;
+                AStarAlgorithm<Z3i::Point, Z3i::DigitalSet> aStar(f, s, border);
+                std::vector<Z3i::Point> geodesic = aStar.linkPoints();
+                geodesicLoop.insert(geodesic.begin(), geodesic.end());
+            }
+        }
+
+        std::vector<Z3i::Point> loops(geodesicLoop.begin(), geodesicLoop.end());
         ShapeDescriptor<Z3i::DigitalSet> stats(geodesicLoop);
-    Z3i::RealVector normal = stats.computeNormalFromLinearRegression();
-    DigitalPlane<Z3i::Space> plane(p, normal);
-    DigitalPlaneProcessor<Z3i::Space> digPlaneProc(plane);
-    std::vector<Z3i::RealVector> points = digPlaneProc.planeToQuadrangle();
-    double f = 20.0;
-    viewer.setLineColor(Color::Blue);
-    viewer.setFillColor(Color::Blue);
-    viewer.setFillTransparency(150);
-    viewer.addQuad(p + points[0] * f,
-                   p + points[1] * f,
-                   p + points[2] * f,
-                   p + points[3] * f);
+        Z3i::RealVector normal = stats.computeNormalFromLinearRegression();
+        DigitalPlane<Z3i::Space> plane(p, normal);
+        DigitalPlaneProcessor<Z3i::Space> digPlaneProc(plane);
+        std::vector<Z3i::RealVector> points = digPlaneProc.planeToQuadrangle();
+        typedef typename DigitalPlaneProcessor<Z3i::Space>::SubImage SubImage;
+        // SubImage image2D = digPlaneProc.sliceFromPlane(volume, 100);
+        // PGMWriter<SubImage>::exportPGM("/home/florent/trash/Telea/slice"+to_string(i) + ".pgm", image2D);
 
-    //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << proj;
+        if (normal[2] > 0)
+            normal = -normal;
 
-    for (const Z3i::Point& g : geodesicLoop) {
-        viewer << CustomColors3D(Color::Red, Color::Red) << g;
+        DGtal::trace.info() << normal << std::endl;
+
+        double f = 20.0;
+        viewer.setLineColor(Color::Blue);
+        viewer.setFillColor(Color::Blue);
+        viewer.setFillTransparency(150);
+        viewer.addQuad(p + points[0] * f,
+                       p + points[1] * f,
+                       p + points[2] * f,
+                       p + points[3] * f);
+
+        //viewer << CustomColors3D(Color::Yellow, Color::Yellow) << proj;
+
     }
-
 
 
 

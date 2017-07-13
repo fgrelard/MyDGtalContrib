@@ -10,6 +10,7 @@
 
 template<typename TSpace>
 class DigitalPlaneProcessor {
+public:
     typedef DigitalPlane<TSpace> DigPlane;
     typedef DGtal::ExactPredicateLpSeparableMetric<TSpace, 2> L2Metric;
     typedef typename TSpace::RealVector RealVector;
