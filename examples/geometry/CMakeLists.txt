@@ -19,6 +19,7 @@ if(WITH_ITK)
     MultiscaleVesselnessUniqueImage
     MyHessianLocalAdaptative3D
     BarycenterRegistration
+    ExportToGraph
     )
   
 endif(WITH_ITK)
