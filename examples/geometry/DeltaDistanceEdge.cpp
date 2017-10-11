@@ -30,7 +30,7 @@ int main( int argc, char** argv )
 
     typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
-    typedef DistanceToMeasureEdge<FloatImage> Distance;
+    typedef DistanceToMeasureRelevantScale<FloatImage> Distance;
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -87,7 +87,7 @@ int main( int argc, char** argv )
         *outIt++ = v;
     }
     trace.beginBlock( "Computing delta-distance." );
-    Distance delta(mass, fimg, rmax, 0.0);
+    Distance delta(mass, fimg, rmax, 120/255.0);
     trace.endBlock();
 
     float m = 0.0f;
@@ -113,9 +113,9 @@ int main( int argc, char** argv )
     cmap_grad.addColor( Color( 255, 255, 0 ) );
     cmap_grad.addColor( Color( 255, 255, 255 ) );
 
-    QApplication app(argc, argv);
-    Viewer3D<> viewer;
-    viewer.show();
+    // QApplication app(argc, argv);
+    // Viewer3D<> viewer;
+    //viewer.show();
 
        // for ( typename Domain::ConstIterator it = delta.domain().begin(),
        //               itE = delta.domain().end(); it != itE; ++it )
@@ -138,7 +138,6 @@ int main( int argc, char** argv )
 
        // }
 
-
     FloatImage outDistance(img.domain());
     for (const Point &p : domain) {
         float value = delta.distance(p);
@@ -146,8 +145,9 @@ int main( int argc, char** argv )
         outDistance.setValue(p, value);
     }
     ITKWriter<FloatImage>::exportITK(outname, outDistance);
-    viewer << Viewer3D<>::updateDisplay;
-    app.exec();
+    // viewer.show();
+    // viewer << Viewer3D<>::updateDisplay;
+    // app.exec();
 
     return 0;
 }

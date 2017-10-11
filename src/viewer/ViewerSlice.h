@@ -10,6 +10,10 @@
 #include "DGtal/base/BasicFunctors.h"
 #include "shapes/DigitalPlane.h"
 #include "geometry/DigitalPlaneProcessor.h"
+#include "DGtal/io/DrawWithDisplay3DModifier.h"
+#include "DGtal/io/viewers/DrawWithViewer3DModifier.h"
+
+
 
 
 template<typename Space = DGtal::SpaceND<3>,
@@ -51,6 +55,22 @@ private:
     void displayCurrentSlice();
 
 private:
+    struct LowValuesToRed {
+        inline
+        unsigned int operator() (unsigned char aVal) const
+        {
+            DGtal::Color col;
+            if (aVal == 254)
+                col = DGtal::Color::Red;
+            else
+                col = DGtal::Color(aVal, aVal, aVal);
+            return  (((unsigned int) col.red()) <<  16)| (((unsigned int) col.green()) << 8)|((unsigned int) col.blue());
+        }
+    };
+
+
+
+private:
     std::vector<Plane> myPlanes;
     Image myImage;
     int myPatchWidth;
@@ -77,6 +97,8 @@ ViewerSlice(const std::vector<Plane> &planes,
                            SubPoint::diagonal(myPatchWidth));
 }
 
+
+
 template<typename Space, typename KSpace>
 void
 ViewerSlice<Space, KSpace>::
@@ -95,7 +117,19 @@ displayCurrentSlice() {
                                                           myPatchWidth,
                                                           myDomain3D.lowerBound());
     SubImage image = DigitalPlaneProcessor<Space>(plane).sliceFromPlane(myImage, myPatchWidth);
-    (*this) << image;
+
+    SubImage image2(image.domain());
+    SubPoint subCenter = (image.domain().upperBound() - image.domain().lowerBound() ) / 2.;
+    DGtal::trace.info() << subCenter << " " << plane.getCenter() << std::endl;
+    for (const SubPoint&  p : image.domain()) {
+        if (DGtal::Z2i::l2Metric(p, subCenter) <= 15 && image(p) < 10) {
+            image2.setValue(p, 254);
+        }
+        else {
+            image2.setValue(p, image(p));
+        }
+    }
+      (*this) <<  DGtal::AddTextureImage2DWithFunctor<SubImage, LowValuesToRed, Space, KSpace> (image2, LowValuesToRed(), DGtal::Viewer3D<Space, KSpace>::RGBMode);
     int numberImage = this->getCurrentGLImageNumber() - 1;
 
     (*this) << DGtal::UpdateImage3DEmbedding<Space, KSpace>(numberImage,
@@ -168,6 +202,7 @@ postSelection(const QPoint &point) {
             return (l2Metric(f.getCenter(), dgtalPoint) < l2Metric(s.getCenter(), dgtalPoint));
         });
         myCurrentIndex = iterator - myPlanes.begin();
+        DGtal::trace.info() << myPlanes[myCurrentIndex].getCenter() << " " << myPlanes[myCurrentIndex].getPlaneEquation().normal() << std::endl;
         displayCurrentSlice();
     }
 }

@@ -26,12 +26,14 @@ public:
 public:
 
     DistanceToMeasureRelevantScale(Value m0, const ImageFct &measure, Value rmax = 10.0, Value mask = 1.1, bool initialize =
-    true)
+                                   true, bool speedup = true)
             : myMass(m0), myMeasure(measure), myDistance2(myMeasure.domain()),
-              myR2Max(rmax * rmax), myMask(mask) {
+              myR2Max(rmax * rmax), myMask(mask), mySpeedUp(speedup) {
         if (initialize)
             init();
     }
+
+    DistanceToMeasureRelevantScale(const ImageFct& distance2) : myDistance2(distance2), myMeasure(distance2.domain()) {}
 
 
     DistanceToMeasureRelevantScale(const DistanceToMeasureRelevantScale &other) : myMass(other.myMass), myMeasure(other.myMeasure),
@@ -131,6 +133,31 @@ public:
         return proj.getNormalized() * sqrt(myDistance2(p));
     }
 
+    virtual Value maxAlongProj(const Point& p) const {
+        RealVector proj = -projection(p);
+        if (proj.norm() == 0) return 0;
+        proj = proj.getNormalized();
+        Value previousValue = std::sqrt(myDistance2(p));
+        Value nextValue = previousValue;
+        if (proj.norm() == 0 || previousValue == 0) return 0;
+
+        Point current = p, previous = p;
+        do {
+            previousValue = nextValue;
+            previous = current;
+            int i = 1;
+            while (current == previous) {
+                current = previous + proj * i;
+                i++;
+            }
+            if (!myDistance2.domain().isInside(current)) break;
+            nextValue = std::sqrt(myDistance2(current));
+
+
+        } while (previousValue <= nextValue);
+        return previousValue;
+    }
+
     virtual Value computeDistance2(const Point &p) {
         typedef DGtal::ExactPredicateLpSeparableMetric<Space, 2> Distance;
         typedef DistanceToPointFunctor<Distance> DistanceToPoint;
@@ -149,7 +176,7 @@ public:
         MyNode node;
         Value firstMass = myMeasure(p);
         DGtal::Statistic<Value> stat(true);
-        stat.addValue(firstMass);
+        //stat.addValue(firstMass);
 
         Value previousMean = DGtal::NumberTraits<Value>::ZERO;
         Value currentMean = std::numeric_limits<Value>::min();
@@ -157,14 +184,15 @@ public:
             node = visitor.current();
             std::vector<MyNode> vec;
             visitor.getCurrentLayer(vec);
-
             for (const MyNode &n : vec) {
                 if (!myMeasure.domain().isInside(n.first)) continue;
                 double currentColor = myMeasure(n.first);
-                if (currentColor == myMask) continue;
                 stat.addValue(currentColor);
             }
-
+            if (mySpeedUp && node.second > 4 && stat.mean() >= previousMean) {
+                currentMean = stat.mean();
+                break;
+            }
             m = stat.variance();
             if (node.second * node.second >= 3) {
                 if (m >= aMass) {
@@ -178,6 +206,7 @@ public:
             } else if (m >= aMass) {
                 break;
             }
+
             //Next layer
             previousMean = stat.mean();
 
@@ -190,10 +219,11 @@ public:
         if (currentMean >= previousMean)
             return DGtal::NumberTraits<Value>::ZERO;
 
+
         return node.second * node.second;
     }
 
-    Domain domain() const { return myMeasure.domain(); }
+    Domain domain() const { return myDistance2.domain(); }
 
 protected:
     Value myMass;
@@ -201,6 +231,7 @@ protected:
     const ImageFct &myMeasure;
     ImageFct myDistance2;
     Value myR2Max;
+    bool mySpeedUp = false;
 };
 
 #endif

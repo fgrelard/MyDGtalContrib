@@ -9,6 +9,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
         DeltaVCM
         DeltaDistanceVCMVesselness
         OrthogonalPlaneEvaluation
+        Torsion
         )
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})

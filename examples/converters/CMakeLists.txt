@@ -2,6 +2,11 @@ if (WITH_ITK)
   SET(DGTAL_CONTRIB_EXAMPLES
     itk2vol
     vol2itk
+    vol2vol
+    vol2surfacevol
+    vol2pgm
+    tre2vol
+    binvox2vol
     )
 endif(WITH_ITK)
 

@@ -12,6 +12,7 @@ if(WITH_ITK)
     ${DGTAL_CONTRIB_EXAMPLES}
     DeltaDistance
     DeltaDistanceEdge
+    DeltaDistanceMax
     VisuDeltaDistance
     HessianLocalAdaptative
     HessianLocalAdaptative3D
@@ -20,8 +21,10 @@ if(WITH_ITK)
     MyHessianLocalAdaptative3D
     BarycenterRegistration
     ExportToGraph
-    )
-  
+    SimpleThinning
+    JaccardIndex
+    ImageDifference
+    ComparisonImages)
 endif(WITH_ITK)
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})
