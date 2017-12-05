@@ -11,9 +11,17 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+<<<<<<< HEAD
 
 #include "geometry/CurveProcessor.h"
 
+=======
+#include "DGtal/io/readers/ITKReader.h"
+#include "DGtal/io/writers/ITKWriter.h"
+#include "geometry/CurveProcessor.h"
+
+
+>>>>>>> ab19dba2dcef4401c6d6cc908f2022f821ba6bfe
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
@@ -26,8 +34,13 @@ int main( int  argc, char**  argv )
         po::options_description general_opt("Allowed options are: ");
         general_opt.add_options()
                 ("help,h", "display this message")
+<<<<<<< HEAD
                 ("input,i", po::value<std::string>(), "vol file")
                 ("output,o", po::value<std::string>(), "skeleton naive thinning")
+=======
+                ("input,i", po::value<std::string>(), "vol file (vol)")
+                ("output,o", po::value<std::string>(), "output ensured connectivity")
+>>>>>>> ab19dba2dcef4401c6d6cc908f2022f821ba6bfe
                 ("thresholdMin,m", po::value<int>()->default_value(0), "minimum threshold for binarization")
                 ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
                 ;
@@ -68,6 +81,7 @@ int main( int  argc, char**  argv )
                                                       thresholdMin-1, thresholdMax);
 
         Z3i::Object26_6 obj(Z3i::dt26_6, setVol);
+<<<<<<< HEAD
 
         Z3i::DigitalSet setVolThin(setVol);
 
@@ -80,6 +94,20 @@ int main( int  argc, char**  argv )
 
         Image outImage(setVol.domain());
         DGtal::imageFromRangeAndValue(setVolThin.begin(), setVolThin.end(), outImage, 10);
+=======
+        Z3i::DigitalSet setVolThinned(setVol);
+
+        for (const Z3i::Point& p : domainVol) {
+            if (vol(p) < thresholdMin) continue;
+            if (obj.isSimple(p) && obj.neighborhoodSize(p) > 1) {
+                setVolThinned.erase(p);
+            }
+            obj = Z3i::Object26_6(Z3i::dt26_6, setVolThinned);
+        }
+
+        Image outImage(setVol.domain());
+        DGtal::imageFromRangeAndValue(setVolThinned.begin(), setVolThinned.end(), outImage, 10);
+>>>>>>> ab19dba2dcef4401c6d6cc908f2022f821ba6bfe
         VolWriter<Image>::exportVol(outputFilename, outImage);
         return 0;
 

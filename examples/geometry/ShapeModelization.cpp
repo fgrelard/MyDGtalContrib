@@ -49,8 +49,19 @@ typedef PointDeletable<Z3i::Point> Point;
 typedef vector<Point>::const_iterator PointIterator;
 
 
+Z3i::DigitalSet translate(const Z3i::DigitalSet& toTranslate,
+                          const Z3i::RealVector& v) {
+
+    Z3i::DigitalSet translated(toTranslate.domain());
+    for (const Z3i::Point&  p :toTranslate) {
+        translated.insert(p+v);
+    }
+    return translated;
+}
+
 int main( int argc, char** argv )
 {
+    typedef DGtal::DistanceTransformation<Z3i::Space, Z3i::DigitalSet, Z3i::L2Metric> DTL2;
     srand(time(NULL));
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -92,24 +103,61 @@ int main( int argc, char** argv )
     int pitch =  20;
     int radius = 10;
 
-    Z3i::DigitalSet cylinder = modeller.drawCylinder(50, 10);
-    Z3i::DigitalSet deformedcylinder = modeller.drawDeformedCylinder(50, 10);
-    Z3i::DigitalSet translated(cylinder.domain());
-    for (const auto& p : deformedcylinder)
-        translated.insert(p + Z3i::Point(2, 0, 0));
-    cylinder.insert(translated.begin(), translated.end());
+    Ball<Z3i::Point> ball(Z3i::Point(0,0,0), 5);
+    Z3i::DigitalSet ballPoints = ball.pointSet();
+    Z3i::DigitalSet bt1 = translate(ballPoints, Z3i::RealVector(6,6,6));
+    Z3i::DigitalSet bt2 = translate(ballPoints, Z3i::RealVector(6,18,6));
+    Z3i::DigitalSet bt3 = translate(ballPoints, Z3i::RealVector(6,30,6));
+
+    Z3i::DigitalSet cylinder = modeller.drawCylinder(30, 5);
+    Z3i::DigitalSet ct1 = translate(cylinder, Z3i::RealVector(30,6,6));
+    Z3i::DigitalSet ct2 = translate(cylinder, Z3i::RealVector(30,16,6));
+
+    Z3i::DigitalSet ct3 = translate(cylinder, Z3i::RealVector(70,6, 6));
+    Z3i::DigitalSet ct4 = translate(cylinder, Z3i::RealVector(70,26,6));
+    Z3i::DigitalSet surface = modeller.drawSurface(30);
+    Z3i::DigitalSet st = translate(surface, Z3i::RealVector(50,50,50));
+
+    bt1.insert(bt2.begin(), bt2.end());
+    bt1.insert(bt3.begin(), bt3.end());
+
+    bt1.insert(ct1.begin(), ct1.end());
+    bt1.insert(ct2.begin(), ct2.end());
+
+    bt1.insert(ct3.begin(), ct3.end());
+    bt1.insert(ct4.begin(), ct4.end());
+
+    bt1.insert(st.begin(), st.end());
+
     Z3i::Domain domain(Z3i::Point(-100,-100,-100)-Z3i::Point::diagonal(2), Z3i::Point(100, 300, 300)+Z3i::Point::diagonal(2));
 
 
-    Point lower, upper;
+    ct1.insert(ct2.begin(), ct2.end());
+    ct1.insert(ct3.begin(), ct3.end());
+    ct1.insert(ct4.begin(), ct4.end());
 
-    cylinder.computeBoundingBox(lower, upper);
+    Point lower, upper;
+    Z3i::DigitalSet airway(Z3i::Domain(Z3i::Point(0,0,0), Z3i::Point(100,100,100)));
+
+    //modeller.createDeformedSyntheticAirwayTree(airway, 4, 50, 0, 0, {0,0,0});
+
+    airway = modeller.createHelixCurve(20,10,5);
+    airway.computeBoundingBox(lower, upper);
+
+
     Z3i::Domain domainObjects(lower - Point::diagonal(1), upper + Point::diagonal(1));
+    Z3i::L2Metric l2Metric;
+    DTL2 dt(domainObjects, airway, l2Metric);
+
     Image3D anImage3D(domainObjects);
+    for (const Z3i::Point& p : domainObjects) {
+        anImage3D.setValue(p, 120);
+    }
     for (auto it = domainObjects.begin(), ite = domainObjects.end();
          it != ite; ++it) {
-        if (cylinder.find(*it) != cylinder.end())
+        if (airway.find(*it) != airway.end())
             anImage3D.setValue(*it, 255);
+            //anImage3D.setValue(*it, 140 + dt(*it) * 10);
     }
 //	anImage3D = ImageFromSet<Image3D>::create(set, 1);
 

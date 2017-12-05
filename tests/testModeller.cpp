@@ -135,11 +135,27 @@ void testAddNoise(Viewer3D<>& viewer){
         viewer << c;
 }
 
+void testDrawSurface(Viewer3D<>& viewer) {
+    Modeller<Z3i::DigitalSet> modeller;
+    Z3i::DigitalSet surface = modeller.drawSurface(100);
+    viewer << surface;
+}
+
+void testCreateDeformedSyntheticAirwayTree(Viewer3D<>& viewer) {
+    Modeller<Z3i::DigitalSet> modeller;
+    Z3i::DigitalSet airway(Z3i::Domain(Z3i::Point(0,0,0), Z3i::Point(100,100,100)));
+    Z3i::Point p(0,0,0);
+    modeller.createDeformedSyntheticAirwayTree(airway, 4, 50, 0, 0, p);
+    viewer << airway;
+}
+
 int main(int argc, char** argv) {
         QApplication app(argc, argv);
         Viewer3D<> viewer;
         viewer.show();
-        testDrawBallVisitor(viewer);
+        testCreateDeformedSyntheticAirwayTree(viewer);
+//        testDrawSurface(viewer);
+//        testDrawBallVisitor(viewer);
         // testDrawCircle(viewer);
         // testDrawDisk(viewer);
         // testDrawCone(viewer);

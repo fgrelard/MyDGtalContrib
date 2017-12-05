@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
     vesselnessType->SetNonNegativeHessianBasedMeasure(false);
     vesselnessType->SetGenerateScalesOutput(true);
     vesselnessType->SetSigmaMinimum(0.1);
-    vesselnessType->SetSigmaMaximum(10.0);
-    vesselnessType->SetNumberOfSigmaSteps(20);
+    vesselnessType->SetSigmaMaximum(3.0);
+    vesselnessType->SetNumberOfSigmaSteps(10);
     vesselnessType->PrepareOutputs();
     vesselnessType->UpdateLargestPossibleRegion();
     vesselnessType->UpdateOutputInformation();

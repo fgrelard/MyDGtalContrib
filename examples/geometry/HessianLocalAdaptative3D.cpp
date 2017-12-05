@@ -75,13 +75,17 @@ int main(int argc, char **argv) {
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
-            ("help,h", "display this message")
-            ("input,i", po::value<std::string>(), "image file (corresponding volume)")
-            ("distance,d", po::value<std::string>(), "distance image")
-            ("output,o", po::value<std::string>(), "image file (corresponding volume)")
-            ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
-            ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
-            ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization");
+        ("help,h", "display this message")
+        ("input,i", po::value<std::string>(), "image file (corresponding volume)")
+        ("distance,d", po::value<std::string>(), "distance image")
+        ("localDistance,l", po::value<std::string>(), "distance image")
+        ("output,o", po::value<std::string>(), "image file (corresponding volume)")
+        ("mass,a", po::value<double>()->default_value(1), "Mass to integrate for distance to measure")
+        ("alpha,f", po::value<double>()->default_value(0.1), "Alpha")
+        ("beta,s", po::value<double>()->default_value(1.0), "Beta")
+        ("gamma,t", po::value<double>()->default_value(10.0), "Gamma")
+        ("rmax,r", po::value<double>()->default_value(10), "Max radius for delta distance")
+        ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization");
 
 
     bool parseOK = true;
@@ -111,6 +115,9 @@ int main(int argc, char **argv) {
     int thresholdMax = vm["thresholdMax"].as<int>();
     double mass = vm["mass"].as<double>();
     double rmax = vm["rmax"].as<double>();
+    double alpha = vm["alpha"].as<double>();
+    double beta = vm["beta"].as<double>();
+    double gamma = vm["gamma"].as<double>();
     constexpr unsigned int dimension = 3;
 
     typedef SpaceND<dimension> Space;
@@ -163,13 +170,26 @@ int main(int argc, char **argv) {
     else {
         delta = Distance(mass, fimg, rmax, 0.0);
     }
+    double maxDistance = delta(
+        *std::max_element(domain.begin(), domain.end(), [&](const Point &p1, const Point &p2) {
+                return delta.distance(p1) < delta.distance(p2);
+            }));
+    FloatImage localDistanceImage(domain);
+    if (vm.count("localDistance")) {
+        std::string localDistanceName = vm["localDistance"].as<std::string>();
+        FloatImage localDistanceImage = ITKReader<FloatImage>::importITK(localDistanceName);
+    }
+    else {
+        for (const Z3i::Point&  p : domain)
+            localDistanceImage.setValue(p, maxDistance);
+    }
 
     trace.endBlock();
 
     std::map<Point, double> pToValues;
-    QApplication app(argc, argv);
-    Viewer3D<> viewer;
-    viewer.show();
+    //    QApplication app(argc, argv);
+    //    Viewer3D<> viewer;
+    //    viewer.show();
 
 
     ITKImage image = DGtal::ITKReader<ITKImage>::importITK(inputFilename);
@@ -191,10 +211,7 @@ int main(int argc, char **argv) {
     hessianImage->Allocate();
     hessianImage->Update();
 
-    double maxDistance = delta(
-            *std::max_element(domain.begin(), domain.end(), [&](const Point &p1, const Point &p2) {
-                return delta.distance(p1) < delta.distance(p2);
-            }));
+
 //    double maxDistance = 1.0;
     std::vector<DistanceImage> hessianFiltersVector;
 
@@ -204,40 +221,49 @@ int main(int argc, char **argv) {
     HessianFilterType::Pointer hessianFilter = HessianFilterType::New();
     hessianFilter->SetInput(imagePointer);
     hessianFilter->SetNormalizeAcrossScale(true);
-    for (float i = 0.5; i <= maxDistance; i+=0.5) {
+    for (float i = 1; i <= maxDistance-1; i++) {
         DGtal::trace.progressBar(i, maxDistance);
-        double currentSigma = (maxDistance * i)/(2 * (i + 0.5));
+//        double currentSigma = (maxDistance * i)/(2 * (i + 0.5));
+        double currentSigma = i/(maxDistance-i);
         //        currentSigma = i /2.0;
         DGtal::trace.info() << currentSigma << " " << i << std::endl;
         hessianFilter->SetSigma(currentSigma);
         hessianFilter->Update();
-        HessianImageType::Pointer hessianImage = hessianFilter->GetOutput();
-        DistanceImage imageToDistance(hessianImage, i);
-        hessianFiltersVector.push_back(imageToDistance);
-        hessianImage->DisconnectPipeline();
-    }
-    DGtal::trace.endBlock();
+        HessianImageType::Pointer currentHessianImage = hessianFilter->GetOutput();
+        DGtal::trace.beginBlock("Hessian computation");
+        int j = 0;
 
-    DGtal::trace.beginBlock("Hessian computation");
-    int i = 0;
+        for (const auto &p : image.domain()) {
+            if (delta.distance(p) == 0.0) continue;
+            trace.progressBar(i, image.domain().size());
+            j++;
 
-    for (const auto &p : image.domain()) {
-        if (delta.distance(p) == 0.0) continue;
-        trace.progressBar(i, image.domain().size());
-        i++;
+            ITKPoint itkP;
+            HessianImageType::IndexType index;
 
-        ITKPoint itkP;
-        HessianImageType::IndexType index;
-
-        for (int i = 0; i < dimension; i++) {
-            index[i] = p[i];
+            for (int i = 0; i < dimension; i++) {
+                index[i] = p[i];
+            }
+            double distanceP;
+            if (localDistanceImage(p) > 0)
+                 distanceP = delta.distance(p) * (delta.distance(p) / localDistanceImage(p));
+            else
+                distanceP = delta.distance(p);
+            size_t value = std::round(distanceP);
+            if (value == i) {
+                HessianPixelType hessian = currentHessianImage->GetPixel(index);
+                hessianImage->SetPixel(index, hessian);
+            }
         }
-        const double distanceP = delta.distance(p);
-        HessianImageType::Pointer currentHessianImage = findClosestImage(hessianFiltersVector, distanceP);
-        HessianPixelType hessian = currentHessianImage->GetPixel(index);
-        hessianImage->SetPixel(index, hessian);
+        DGtal::trace.endBlock();
+
+        // DistanceImage imageToDistance(hessianImage, i);
+        // hessianFiltersVector.push_back(imageToDistance);
+        // hessianImage->DisconnectPipeline();
     }
     DGtal::trace.endBlock();
+
+
 
     DGtal::trace.beginBlock("Frangi vesselness");
     typedef itk::HessianToObjectnessMeasureImageFilter<HessianImageType, OutputImageType>
@@ -245,9 +271,9 @@ int main(int argc, char **argv) {
     ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
     objectnessFilter->SetBrightObject(true);
     objectnessFilter->SetScaleObjectnessMeasure(false);
-    objectnessFilter->SetAlpha(0.1);
-    objectnessFilter->SetBeta(1.0);
-    objectnessFilter->SetGamma(10.0);
+    objectnessFilter->SetAlpha(alpha);
+    objectnessFilter->SetBeta(beta);
+    objectnessFilter->SetGamma(gamma);
     objectnessFilter->SetObjectDimension(1);
     objectnessFilter->SetInput(hessianImage);
     objectnessFilter->Update();
@@ -315,7 +341,7 @@ int main(int argc, char **argv) {
 
     ITKWriter<GrayLevelImage>::exportITK(outname, out);
     ITKWriter<FloatImage>::exportITK(outRadiusName, outRadius);
-    app.exec();
+    //app.exec();
 
     return 0;
 }

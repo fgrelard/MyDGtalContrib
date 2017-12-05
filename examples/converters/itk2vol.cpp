@@ -52,12 +52,13 @@ int main(int argc, char** argv) {
 	Image image = ITKReader<Image>::importITK(inputFilename);
 	Domain aDomain(image.domain().lowerBound() + translationVector, image.domain().upperBound() + translationVector);
 	Image out(aDomain);
-	
 	for (auto it = aDomain.begin(), ite = aDomain.end(); it != ite; ++it) {
 		out.setValue(*it, image(*it));
 	}
-	
+    DGtal::trace.info() << "imported" << std::endl;
+
 	VolWriter<Image>::exportVol(outputFilename, out);
+    DGtal::trace.info() << "exported" << std::endl;
 //	ITKWriter<Image>::exportITK(outputFilename, image);
 
 

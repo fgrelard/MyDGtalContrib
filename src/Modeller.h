@@ -13,6 +13,8 @@
 #include "DGtal/geometry/volumes/KanungoNoise.h"
 #include "DGtal/kernel/sets/DigitalSetInserter.h"
 #include "shapes/Cone.h"
+#include "geometry/CurveProcessor.h"
+#include "shapes/Ellipsoid.h"
 
 template<typename Container>
 class Modeller {
@@ -48,6 +50,8 @@ public:
 
     Container drawDeformedCylinder(int length, int radius);
 
+    Container drawSurface(int length);
+
     Container createHelixCurve(int range, int radiusWinding, int radiusSpiral, int pitch);
 
     Container createHelixCurve(int range, int radius, int pitch);
@@ -57,9 +61,14 @@ public:
     void createSyntheticAirwayTree(Container &c, int branchNumber, int lengthTrachea, int z, float rotationAngle,
                                    Point firstPoint);
 
+    void createDeformedSyntheticAirwayTree(Container &c, int branchNumber, int lengthTrachea, int z, float rotationAngle,
+                                           Point firstPoint);
+
     Container createLogarithmicCurve(int range);
 
     Container createVolumeFromCurve(const Container &curve, int ballRadius);
+
+    Container createVaryingDiameterEllipsoidFromCurve(const Container& curve, double a, double b, double c);
 
     Container createHalfVolumeFromCurve(const Container &curve, int ballRadius);
 
@@ -244,6 +253,21 @@ Container Modeller<Container>::drawDeformedCylinder(int length, int radius) {
     return aSet;
 }
 
+template <typename Container>
+Container Modeller<Container>::drawSurface(int length) {
+    std::set<Point> aSet;
+    for (float i = -length/2.f; i < length/2.f; i+=myIncrement){
+        for (float j = -length/2.f; j < length/2.f; j+=myIncrement) {
+            float z = -i*i/length - j*j/length;
+            aSet.insert(Point(i,j,z));
+        }
+    }
+    Domain domain = PointUtil::computeBoundingBox<Domain>(aSet);
+    Container container(domain);
+    container.insert(aSet.begin(), aSet.end());
+    return container;
+}
+
 
 /*
  * Radius  Winding : radius of the loop
@@ -331,13 +355,41 @@ Container Modeller<Container>::createLogarithmicCurve(int range) {
     for (float i = 1; i < range; i += myIncrement) {
         float x = i;
         float y = i;
-        float z = 20 * log(i);
+        float z = 30 * log(i);
         set.insert(Point((int) x, (int) y, (int) z));
     }
     Domain domain = PointUtil::computeBoundingBox<Domain>(set);
     Container aSet(domain);
     aSet.insert(set.begin(), set.end());
     return aSet;
+}
+
+
+template<typename Container>
+void Modeller<Container>::createDeformedSyntheticAirwayTree(Container &c, int branchNumber, int lengthTrachea, int z,
+                                                            float rotationAngle, Point firstPoint) {
+    if (branchNumber == 0) return;
+    int radius = lengthTrachea / 6;
+    //Creates a rotated cylinder
+    Container curve = createLogarithmicCurve(lengthTrachea);
+    Container rotatedCurve = createRotatedVolumeFromCurve(curve, 0, rotationAngle);
+    CurveProcessor<Container> curveProc(rotatedCurve);
+    Container endP = curveProc.endPoints();
+    Container rotatedTube = createVaryingDiameterEllipsoidFromCurve(rotatedCurve, radius, radius, radius+3);
+    //Filling the vector with points from matrix
+    for (const Point& p : rotatedCurve) {
+        Point tr = p + firstPoint;
+        c.insert(tr);
+    }
+    z += 0;
+    //Determining initial starting point for new branches
+    Point p = *max_element(endP.begin(), endP.end(), [&](const Point& f, const Point& s) {
+            return f[2] < s[2];
+        });
+    Ball<Point> ball(p, 3);
+    firstPoint += *ball.surfaceIntersection(rotatedCurve).begin();
+    createDeformedSyntheticAirwayTree(c, branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle + 0.2 * M_PI, firstPoint);
+    createDeformedSyntheticAirwayTree(c, branchNumber - 1, lengthTrachea * 0.7, z, rotationAngle - 0.2 * M_PI, firstPoint);
 }
 
 
@@ -349,6 +401,37 @@ Container Modeller<Container>::createVolumeFromCurve(const Container &curve, int
     }
     std::set<Point> setP;
     for (const Ball<Point> &current : v) {
+        for (const Point &point : current.pointSet()) {
+            setP.insert(point);
+        }
+    }
+    Domain domain = PointUtil::computeBoundingBox<Domain>(setP);
+    Container aSet(domain);
+    aSet.insert(setP.begin(), setP.end());
+    return aSet;
+}
+
+template <typename Container>
+Container Modeller<Container>::createVaryingDiameterEllipsoidFromCurve(const Container& curve, double a, double b, double c) {
+    std::vector<Ellipsoid<Point> > v;
+    size_t length  = curve.size();
+    size_t interval = length / 5.;
+    for (auto it = curve.begin(), ite = curve.end(); it != ite; ++it) {
+        size_t i = std::distance(curve.begin(), it);
+        Point point = *it;
+        if (i != length/2) {
+            v.push_back(Ellipsoid<Point>(point, a, b, c));
+        }
+        else {
+            double newB = b + 3;
+            double newA = newB - 1;
+            double newC = newB - 1;
+            v.push_back(Ellipsoid<Point>(point, newA, newB, newC));
+        }
+    }
+
+    std::set<Point> setP;
+    for (const Ellipsoid<Point> &current : v) {
         for (const Point &point : current.pointSet()) {
             setP.insert(point);
         }
@@ -403,7 +486,7 @@ Container Modeller<Container>::createRotatedVolumeFromCurve(const Container &cur
         if (m(i, 0) != 0 || m(i, 1) != 0 || m(i, 2) != 0) {
             Scalar posx = m(i, 0);
             Scalar posy = m(i, 1);
-            Scalar posz = m(i, 2) + 25;
+            Scalar posz = m(i, 2);
             rotatedCurves.insert({posx, posy, posz});
         }
     }

@@ -181,7 +181,6 @@ public:
             }
 
             m = std::sqrt(stat.variance());
-
             if (m >= myMass) {
                 currentMean = stat.mean();
                 if (node.second > sqrt(3) && m > initialMass)
@@ -195,7 +194,7 @@ public:
                 }
 
             }
-            else if (node.second > std::sqrt(myR2Max)) {
+            if (node.second > std::sqrt(myR2Max)) {
                 currentMean = previousMean;
                 break;
             }
@@ -203,6 +202,7 @@ public:
             previousMean = stat.mean();
             visitor.expandLayer();
         }
+
         if (m == DGtal::NumberTraits<Value>::ZERO)
             return DGtal::NumberTraits<Value>::ZERO;
 
