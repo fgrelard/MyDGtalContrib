@@ -20,6 +20,27 @@
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
+namespace DGtal {
+    typedef SimpleMatrix<double, 2, 2> MatrixDouble;
+
+    bool operator!=(const MatrixDouble &m1, const MatrixDouble &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<float, 2, 2> MatrixFloat;
+
+    bool operator!=(const MatrixFloat &m1, const MatrixFloat &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<double, 3, 3> MatrixDouble3D;
+
+    bool operator!=(const MatrixDouble3D &m1, const MatrixDouble3D &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<float, 3, 3> MatrixFloat3D;
+
+    bool operator!=(const MatrixFloat3D &m1, const MatrixFloat3D &m2) { return !(m1 == m2); }
+
+    namespace functors {
+        bool operator==(Identity f1, Identity f2) { return true; }
+    }
+}
 
 struct DoubleToFloatFunctor {
     float operator()(double value) {
