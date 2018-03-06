@@ -30,23 +30,211 @@
 #include <vcm/VCMVesselness.h>
 #include "DGtal/io/writers/VolWriter.h"
 #include "DGtal/io/readers/VolReader.h"
+#include "DGtal/math/Statistic.h"
+#include "shapes/Ball.h"
+#include "DGtal/kernel/BasicPointPredicates.h"
+#include "ShapeDescriptor.h"
 
 using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
 
-int main(int argc, char **argv) {
-    using namespace DGtal;
-    using namespace DGtal::Z3i;
+namespace DGtal {
+    typedef SimpleMatrix<double, 2, 2> MatrixDouble;
 
+    bool operator!=(const MatrixDouble &m1, const MatrixDouble &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<float, 2, 2> MatrixFloat;
+
+    bool operator!=(const MatrixFloat &m1, const MatrixFloat &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<double, 3, 3> MatrixDouble3D;
+
+    bool operator!=(const MatrixDouble3D &m1, const MatrixDouble3D &m2) { return !(m1 == m2); }
+
+    typedef SimpleMatrix<float, 3, 3> MatrixFloat3D;
+
+    bool operator!=(const MatrixFloat3D &m1, const MatrixFloat3D &m2) { return !(m1 == m2); }
+
+    namespace functors {
+        bool operator==(Identity f1, Identity f2) { return true; }
+    }
+}
+
+template <typename RealVector>
+double eigenNorm(const RealVector& eval) {
+    double l0 = std::sqrt(eval[0]);
+    double l1 = std::sqrt(eval[1]);
+    //double l2 = std::sqrt(eval[2]);
+    double eigenNorm = std::sqrt(l0 * l0 + l1 * l1);
+    return l1;
+}
+
+
+template <typename Point, typename DigitalSet>
+bool isOutOfTube(const std::map<Point, std::vector<Point> >& sToM,
+                 const Point& currentPoint,
+                 const Point& site,
+                 double radius) {
+    typedef typename DigitalSet::Space Space;
+    typedef typename DigitalSet::Domain Domain;
+    typedef DGtal::SimpleMatrix<double, Space::dimension, Space::dimension> Matrix;
+    typedef EigenDecomposition<Space::dimension, double, Matrix> LinearAlgebraTool;
+    typedef PointVector<Space::dimension, double> RealVector;
+
+    Statistic<double> X(true);
+
+
+    Ball<Point> ballP(currentPoint, radius);
+    Ball<Point> ballS(site, radius);
+
+    std::vector<Point> cell = sToM.at(site);
+    auto domain = PointUtil::computeBoundingBox<Domain>(cell);
+    DigitalSet cellSet(domain);
+    cellSet.insert(cell.begin(), cell.end());
+
+    DigitalSet fromSites = ballS.intersection(cellSet);
+    DigitalSet fromP = ballP.intersection(cellSet);
+
+    // ShapeDescriptor<DigitalSet> sdp(fromP);
+    // ShapeDescriptor<DigitalSet> sds(fromSites);
+
+    // auto matP = sdp.computeCovarianceMatrix();
+    // auto matS = sds.computeCovarianceMatrix();
+
+    // Matrix dgMatP, dgMatS;
+
+    // for (int i = 0; i < Space::dimension; i++) {
+    //     for (int j = 0; j < Space::dimension; j++) {
+    //         dgMatP.setComponent(i, j, matP(i,j));
+    //         dgMatS.setComponent(i, j, matS(i,j));
+    //     }
+    // }
+
+    // Matrix evec, evecS;
+    // RealVector eval, evalS;
+    // LinearAlgebraTool::getEigenDecomposition(dgMatP, evec, eval);
+    // LinearAlgebraTool::getEigenDecomposition(dgMatS, evecS, evalS);
+
+    // double nP = eigenNorm(eval);
+    // double nS = eigenNorm(evalS);
+
+    return (fromSites.size() < fromP.size());
+}
+
+
+template <typename DigitalSet, typename Point>
+DigitalSet extractSites(const Point& p, double radius, const DigitalSet& sites) {
+    Ball<Point> ball(p, radius);
+    DigitalSet intersection = ball.intersection(sites);
+    return intersection;
+}
+
+template <typename TImage>
+void compute_vcm(const TImage& image, std::string outname, int thresholdMax, double alpha, double beta, double gamma, double R, double r) {
+    typedef typename TImage::Domain Domain;
+    typedef typename Domain::Space Space;
+    typedef typename Space::Point Point;
+    typedef ImageContainerBySTLVector<Domain, double> DoubleImage;
+    typedef ImageContainerBySTLVector<Domain, float> FloatImage;
+    typedef functors::HatPointFunction<Point, float> KernelFunction;
+    typedef EigenDecomposition<Space::dimension, double> LinearAlgebraTool;
     typedef ImageContainerBySTLVector<Domain, unsigned char> Image;
     typedef ImageContainerBySTLVector<Domain, float> FloatImage;
+    typedef ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
     typedef VCMAdjustableRadius<Space, L2Metric> VCM;
-    typedef functors::BallConstantPointFunction<Point, double> KernelFunction;
-    typedef EigenDecomposition<3, double> LinearAlgebraTool;
-    typedef PointVector<3, double> RealVector2f;
     typedef typename VCM::MatrixNN Matrix;
-    typedef ImageContainerBySTLVector<Domain, Matrix> MatrixImage;
+    typedef PointVector<Space::dimension, double> RealVector2f;
+    typedef typename DigitalSetSelector< Domain, BIG_DS+HIGH_BEL_DS >::Type DigitalSet;
+    typedef functors::NotPointPredicate<DigitalSet> NotPredicate;
+    typedef VoronoiMap<Space, NotPredicate, L2Metric > Voronoi;
+
+//   Image volume = VolReader<Image>::importVol(inputFilename);
+    Domain domainVolume = image.domain();
+    DigitalSet setVolume(domainVolume);
+    SetFromImage<DigitalSet>::append(setVolume, image,
+                                     1, thresholdMax);
+    DGtal::trace.info() << setVolume.size() << std::endl;
+    L2Metric l2Metric;
+    NotPredicate notSetPred(setVolume);
+    Voronoi voronoimap(domainVolume,notSetPred,l2Metric);
+
+    KernelFunction chi(1.0, r);
+    VCM vcm(R, r, l2Metric, true);
+    vcm.init(setVolume.begin(), setVolume.end());
+    Matrix vcm_r, evec, nil;
+    RealVector2f eval;
+    FloatImage out(domainVolume);
+
+    DGtal::trace.beginBlock("Matrix image");
+
+    int i = 0;
+
+
+    std::map<Point, std::vector<Point> > siteToVCM;
+    //Compute VCM for sites
+    for (const Point& p : setVolume) {
+        siteToVCM[p] = std::vector<Point>();
+    }
+
+    for (const Point& p : image.domain()) {
+        Point site =voronoimap(p);
+        siteToVCM[site].push_back(p);
+    }
+
+    vcm.setMySmallR(r);
+    for (const Point& p : domainVolume) {
+        DGtal::trace.progressBar(i, domainVolume.size());
+        i++;
+        vcm_r = vcm.measure(chi, p);
+        if (vcm_r == nil) continue;
+
+        Point site = voronoimap(p);
+
+        //        DigitalSet sites = extractSites(p, r, setVolume);
+        // double meanNormSites = meanEigenNorm(siteToVCM,sites);
+        // double normP = eigenNorm(eval);
+
+        // DGtal::trace.info() << meanNormSites << " " << normP << std::endl;
+
+        // if (normP > meanNormSites) continue;
+        bool outOfTube = isOutOfTube<Point, DigitalSet>(siteToVCM, p, site, r);
+        if (outOfTube) continue;
+        LinearAlgebraTool::getEigenDecomposition(vcm_r, evec, eval);
+        double l0 = std::sqrt(eval[0]);
+        double l1 = std::sqrt(eval[1]);
+
+        if (Space::dimension==2) {
+            double circularity = l0 / l1;
+            double noise = std::sqrt( l0 * l0 + l1 * l1);
+            double criterion =
+                exp(-(std::pow(circularity, 2) / (2 * std::pow(alpha, 2)))) *
+                (1.0 - exp(-(std::pow(noise,2) / (2 * std::pow(gamma, 2)))));
+            out.setValue(p, criterion);
+        }
+        if (Space::dimension == 3) {
+            double l2 = std::sqrt(eval[2]);
+            double tub = l0 / std::sqrt(l1 * l2);
+            double circularity = l1 / l2;
+
+            double noise = std::sqrt( l0 * l0 + l1 * l1 + l2 * l2);
+            double criterion = (1.0 - exp(-(std::pow(circularity, 2) / (2 * std::pow(alpha, 2))))) *
+                exp(-(std::pow(tub, 2) / (2 * std::pow(beta, 2)))) *
+                (1.0 - exp(-(std::pow(noise,2) / (2 * std::pow(gamma, 2)))));
+            out.setValue(p, criterion);
+        }
+    }
+    DGtal::trace.endBlock();
+
+
+    ITKWriter<FloatImage>::exportITK(outname, out);
+
+}
+
+int main(int argc, char **argv) {
+    using namespace DGtal;
+
+
 
     po::options_description general_opt("Allowed options are: ");
     general_opt.add_options()
@@ -91,60 +279,24 @@ int main(int argc, char **argv) {
     double R = vm["radiusInside"].as<double>();
     double r = vm["radiusNeighbour"].as<double>();
 
-//    Image volume = ITKReader<Image>::importITK(inputFilename);
-    Image volume = VolReader<Image>::importVol(inputFilename);
-    Z3i::Domain domainVolume = volume.domain();
-    Z3i::DigitalSet setVolume(domainVolume);
-    SetFromImage<Z3i::DigitalSet>::append<Image> (setVolume, volume,
-                                                  thresholdMin-1, thresholdMax);
 
-    KernelFunction chi(1.0, r);
-    L2Metric l2Metric;
-    VCM vcm(R, r, l2Metric, true);
-    vcm.init(setVolume.begin(), setVolume.end());
-    Matrix vcm_r, evec, nil;
-    RealVector2f eval;
-    MatrixImage* matrixImage = new MatrixImage(domainVolume);
-    DGtal::trace.beginBlock("Matrix image");
-    for (const Point& p : matrixImage->domain()) {
-        matrixImage->setValue(p, nil);
-    }
-    for (const Point& p : setVolume) {
-        vcm_r = vcm.measure(chi, p);
-        if (vcm_r == nil) continue;
-        Matrix tmp;
-        for (size_t i = 0; i < vcm_r.rows(); i++) {
-            for (size_t j = 0; j < vcm_r.cols(); j++) {
-                auto valueIJ = vcm_r(i,j);
-                if (valueIJ >= 0) {
-                    tmp(i, j) = std::sqrt(valueIJ);
-                } else {
-                    tmp(i, j) = - std::sqrt(std::abs(valueIJ));
-                }
-            }
-        }
-        matrixImage->setValue(p, tmp);
-    }
-    DGtal::trace.endBlock();
+     const std::string extension =
+      inputFilename.substr( inputFilename.find_last_of( "." ) + 1 );
+     if ( extension == "pgm" || extension == "png" || extension == "gif" )
+     { // go for 2D
+         using namespace DGtal::Z2i;
+         typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
+          GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
+          compute_vcm(img,  outname, thresholdMax,  alpha, beta, gamma, R, r);
+     }
+     else
+     { // go for 3D
+         using namespace DGtal::Z3i;
+         typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
+          GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
+          compute_vcm(img, outname, thresholdMax,  alpha, beta, gamma, R, r);
 
-    DGtal::trace.beginBlock("Vesselness");
-    VCMVesselness<MatrixImage> vesselness(shared_ptr<MatrixImage>(matrixImage), alpha, beta, gamma);
-    auto vesselnessImage = vesselness.computeVesselness();
-    DGtal::trace.endBlock();
-    FloatImage out(vesselnessImage.domain());
-    Image outVol(vesselnessImage.domain());
-    for (const Point& p : out.domain()) {
-        double value = vesselnessImage(p);
-        if (std::isnan(value)) {
-            out.setValue(p, 0);
-            outVol.setValue(p, 0);
-        }
-        else {
-            out.setValue(p, value);
-            outVol.setValue(p, value * 255);
-        }
-    }
-    VolWriter<Image>::exportVol(outname, outVol);
-//    ITKWriter<FloatImage>::exportITK(outname, out);
+     }
+
     return 0;
 }

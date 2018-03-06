@@ -45,11 +45,11 @@ int main(int argc, char **argv) {
     using namespace DGtal;
     using namespace DGtal::Z3i;
 
-    typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage2D;
+    typedef ImageContainerBySTLVector<Domain, double> GrayLevelImage2D;
 
     typedef ImageContainerBySTLVector<Domain, double> FloatImage2D;
     typedef ImageContainerBySTLVector<Domain, DGtal::Color> OutImage;
-    typedef int InputPixelType;
+    typedef double InputPixelType;
     typedef double OutputPixelType;
     typedef itk::Image<InputPixelType, 3> InputImageType;
     typedef itk::Image<OutputPixelType, 3> OutputImageType;
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     typedef itk::ImageRegionIteratorWithIndex<OutputImageType> ImageIterator;
     typedef itk::Point<InputPixelType, 3> ITKPoint;
     typedef typename InputImageType::IndexType IndexType;
-    typedef ImageContainerByITKImage<Domain, int> ITKImage;
+    typedef ImageContainerByITKImage<Domain, double> ITKImage;
     typedef ImageContainerByITKImage<Domain, double> ITKImageDouble;
     typedef ImageContainerByITKImage<Domain, float> ITKImageFloat;
     typedef itk::SymmetricSecondRankTensor<double, 3> HessianPixelType;
@@ -91,7 +91,13 @@ int main(int argc, char **argv) {
             ("help,h", "display this message")
             ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
             ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
-            ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization");
+        ("thresholdMax,M", po::value<int>()->default_value(255), "maximum threshold for binarization")
+         ("numberSteps,n", po::value<int>()->default_value(10), "maximum threshold for binarization")
+        ("sigmaMin,s", po::value<double>()->default_value(1.0), "minimum sigma for Frangi")
+        ("sigmaMax,S", po::value<double>()->default_value(3.0), "maximum sigma for Frangi")
+        ("alpha,a", po::value<double>()->default_value(0.1), "Alpha")
+        ("beta,b", po::value<double>()->default_value(1.0), "Beta")
+        ("gamma,g", po::value<double>()->default_value(10.0), "Gamma");
 
 
     bool parseOK = true;
@@ -118,11 +124,15 @@ int main(int argc, char **argv) {
     string inputFilename = vm["input"].as<std::string>();
     string outname = vm["output"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
-
+    double alpha = vm["alpha"].as<double>();
+    double beta = vm["beta"].as<double>();
+    double gamma = vm["gamma"].as<double>();
+    double sigmaMin = vm["sigmaMin"].as<double>();
+    double sigmaMax = vm["sigmaMax"].as<double>();
+    double numberSteps = vm["numberSteps"].as<int>();
 
     GrayLevelImage2D img = DGtal::ITKReader<GrayLevelImage2D>::importITK(inputFilename);
     auto domain = img.domain();
-    std::map<Point, double> pToValues;
     QApplication app(argc, argv);
     Viewer3D<> viewer;
     viewer.show();
@@ -132,15 +142,14 @@ int main(int argc, char **argv) {
     size_t lastindex = outname.find_last_of(".");
     string extension = outname.substr(outname.find_last_of("."));
 
-    float maxSigma = 5.0;
     ObjectnessFilterType::Pointer objectnessFilter = ObjectnessFilterType::New();
 
     // Frangi
     objectnessFilter->SetBrightObject(true);
     objectnessFilter->SetScaleObjectnessMeasure(false);
-    objectnessFilter->SetAlpha(0.1);
-    objectnessFilter->SetBeta(1.0);
-    objectnessFilter->SetGamma(100.0);
+    objectnessFilter->SetAlpha(alpha);
+    objectnessFilter->SetBeta(beta);
+    objectnessFilter->SetGamma(gamma);
 
     // Sato
 //    objectnessFilter->SetAlpha1(0.5);
@@ -162,9 +171,9 @@ int main(int argc, char **argv) {
     vesselnessType->SetInput(imagePointer);
     vesselnessType->SetNonNegativeHessianBasedMeasure(false);
     vesselnessType->SetGenerateScalesOutput(true);
-    vesselnessType->SetSigmaMinimum(0.1);
-    vesselnessType->SetSigmaMaximum(3.0);
-    vesselnessType->SetNumberOfSigmaSteps(10);
+    vesselnessType->SetSigmaMinimum(sigmaMin);
+    vesselnessType->SetSigmaMaximum(sigmaMax);
+    vesselnessType->SetNumberOfSigmaSteps(numberSteps);
     vesselnessType->PrepareOutputs();
     vesselnessType->UpdateLargestPossibleRegion();
     vesselnessType->UpdateOutputInformation();

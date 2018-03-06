@@ -41,6 +41,8 @@ public:
 
     DigitalSet pointSet() const;
 
+    Domain box() const;
+
     DigitalSet pointsInHalfBall(const RealVector &normal = RealVector(0, 1, 0)) const;
 
     DigitalSet pointsSurfaceBall() const;
@@ -110,9 +112,9 @@ surfaceIntersection(const Image &image) {
 template<typename Point>
 typename Ball<Point>::DigitalSet Ball<Point>::intersection(const DigitalSet &setPoint) {
     DigitalSet intersection(setPoint.domain());
-    for (const Point &p : setPoint) {
-        double distance = Distance::euclideanDistance(p, myCenter);
-        if (distance <= myRadius) {
+    DigitalSet aSet = pointSet();
+    for (const Point &p : aSet) {
+        if (setPoint.find(p) != setPoint.end()) {
             intersection.insert(p);
         }
     }
@@ -131,11 +133,17 @@ typename Ball<Point>::DigitalSet Ball<Point>::surfaceIntersection(const DigitalS
     return intersection;
 }
 
-template<typename Point>
-typename Ball<Point>::DigitalSet Ball<Point>::pointSet() const {
+template <typename Point>
+typename Ball<Point>::Domain Ball<Point>::box() const {
     Point lower = myCenter + Point::diagonal(-myRadius);
     Point upper = myCenter + Point::diagonal(myRadius + 1);
     Domain domain(lower, upper);
+    return domain;
+}
+
+template<typename Point>
+typename Ball<Point>::DigitalSet Ball<Point>::pointSet() const {
+    Domain domain = box();
     DigitalSet points(domain);
     for (const Point &p : domain) {
         if (contains(p))

@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
         ITKImage::IndexType index;
         for (int i = 0; i < 3; i++)
             index[i] = p[i];
-        if (aSetDistance.find(p) != aSetDistance.end())
+        if (aSetDistance.find(p) != aSetDistance.end() && aSetObserved.find(p) != aSetObserved.end())
             outItk->SetPixel(index, blue);
         else if (diff.find(p) != diff.end())
             outItk->SetPixel(index, green);

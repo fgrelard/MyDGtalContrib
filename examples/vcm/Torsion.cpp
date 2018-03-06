@@ -22,6 +22,20 @@ using namespace std;
 using namespace DGtal;
 namespace po = boost::program_options;
 
+Z3i::RealVector naiveBinormal(const Z3i::RealVector& t1,
+                              const Z3i::RealVector& t2) {
+    if (std::abs(t1.dot(t2)) == 1)
+        return Z3i::RealVector::zero;
+    else {
+        return (t1.crossProduct(t2 - t1).getNormalized());
+    }
+}
+
+Z3i::RealVector closestVector(const Z3i::RealVector& reference,
+                              const Z3i::RealVector& first,
+                              const Z3i::RealVector& second) {
+    return ((first.cosineSimilarity(reference) < second.cosineSimilarity(reference)) ? first : second);
+}
 
 int main( int  argc, char**  argv )
 {
@@ -96,24 +110,43 @@ int main( int  argc, char**  argv )
         Z3i::RealVector eval;
         DGtal::trace.beginBlock("Matrix image");
         std::map<Z3i::Point, double> pToValues;
-        for (const Z3i::Point& p : setCurve) {
+        std::vector<Z3i::RealVector> tangents;
+        std::vector<Z3i::RealVector> vectors2;
+        std::vector<Z3i::RealVector> vectors3;
+        for (const Z3i::Point& p : orderedCurve) {
             vcm_r = vcm.measure(chi, p);
             if (vcm_r == nil) continue;
             LinearAlgebraTool::getEigenDecomposition(vcm_r, evec, eval);
-            pToValues[p] = eval[1];
-            double ratio = eval[1] / eval[2];
-            Z3i::RealVector v = evec.column(2);
-            Z3i::RealVector dir  = -p;
-            Z3i::RealVector vector;
-            if (v[2] < 0)
-                vector = -v;
-            else
-                vector = v;
-            viewer << CustomColors3D(Color::Red, Color::Red);
-            viewer.addLine(p, p+vector*5);
-            DGtal::trace.info() << eval[2] << std::endl;
+            tangents.push_back(evec.column(0));
+            vectors2.push_back(evec.column(1));
+            vectors3.push_back(evec.column(2));
+                        // pToValues[p] = eval[1];
+            // double ratio = eval[1] / eval[2];
+            // Z3i::RealVector v = evec.column(2);
+            // Z3i::RealVector dir  = -p;
+            // Z3i::RealVector vector;
+            // if (v[2] < 0)
+            //     vector = -v;
+            // else
+            //     vector = v;
+            // viewer << CustomColors3D(Color::Red, Color::Red);
+            // viewer.addLine(p, p+vector*5);
+            // DGtal::trace.info() << eval[2] << std::endl;
         }
         DGtal::trace.endBlock();
+        for (int i  = 0; i < tangents.size() - 1; i++) {
+            Z3i::Point current = orderedCurve[i];
+            Z3i::RealVector t1 = tangents[i];
+            Z3i::RealVector t2 = tangents[i+1];
+            Z3i::RealVector v2 = vectors2[i];
+            Z3i::RealVector v3 = vectors3[i];
+            Z3i::RealVector naiveBN = naiveBinormal(t1, t2);
+            if (naiveBN == Z3i::RealVector::zero) continue;
+            Z3i::RealVector realBN = closestVector(naiveBN, v2, v3);
+            viewer << CustomColors3D(Color::Red, Color::Red);
+            viewer.addLine(current, current+realBN*5);
+        }
+
 
 
 

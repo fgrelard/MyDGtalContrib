@@ -189,6 +189,10 @@ measure(const DigitalSet &neighbors,
 }
 
 
+
+
+
+
 template<typename TSpace, typename TSeparableMetric>
 template<typename Point2ScalarFunction>
 typename VCMAdjustableRadius<TSpace, TSeparableMetric>::MatrixNN
