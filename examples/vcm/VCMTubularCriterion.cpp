@@ -34,6 +34,7 @@
 #include "shapes/Ball.h"
 #include "DGtal/kernel/BasicPointPredicates.h"
 #include "ShapeDescriptor.h"
+#include "shapes/DigitalPlane.h"
 
 using namespace std;
 using namespace DGtal;
@@ -70,6 +71,66 @@ double eigenNorm(const RealVector& eval) {
     return l1;
 }
 
+
+template <typename Plane, typename DigitalSet, typename Image, typename Point>
+Plane planeForTube(const Image& image,
+                 const std::map<Point, std::vector<Point> >& sToM,
+                 const Point& site) {
+    typedef typename DigitalSet::Space Space;
+    typedef typename DigitalSet::Domain Domain;
+    typedef DGtal::SimpleMatrix<double, Space::dimension, Space::dimension> Matrix;
+    typedef EigenDecomposition<Space::dimension, double, Matrix> LinearAlgebraTool;
+    typedef PointVector<Space::dimension, double> RealVector;
+
+    std::vector<Point> cell = sToM.at(site);
+    auto domain = PointUtil::computeBoundingBox<Domain>(cell);
+    DigitalSet cellSet(image.domain());
+    cellSet.insert(cell.begin(), cell.end());
+
+    ShapeDescriptor<DigitalSet> sc(cellSet);
+    auto matP = sc.computeCovarianceMatrix();
+    if (matP.rows() == 0 || matP.cols() == 0) return Plane(Point::zero, RealVector::zero);
+    Matrix dgMatP;
+    for (int i = 0; i < Space::dimension; i++) {
+        for (int j = 0; j < Space::dimension; j++) {
+            dgMatP.setComponent(i, j, matP(i,j));
+        }
+    }
+
+    Matrix evec;
+    RealVector eval;
+    LinearAlgebraTool::getEigenDecomposition(dgMatP, evec, eval);
+
+    RealVector v2 = evec.column(Space::dimension-1);
+    Plane plane(site, v2);
+
+    DigitalSet above(image.domain()), below(image.domain());
+
+    DigitalSet localArea(image.domain());
+    Ball<Point> ball(site, 5);
+    for (const Point& b : ball.pointSet()) {
+        if (image.domain().isInside(b))
+            localArea.insert(b);
+    }
+    for (const Point& p : localArea) {
+        if (plane.isPointAbove(p))
+            above.insert(p);
+        else
+            below.insert(p);
+    }
+
+    Statistic<double> statA(true), statB(true);
+
+    for (const Point& p : above)
+        statA.addValue(image(p));
+    for (const Point& p : below)
+        statB.addValue(image(p));
+
+    if (statA.mean() > statB.mean())
+        return plane;
+    plane = Plane(site, -v2);
+    return plane;
+}
 
 template <typename Point, typename DigitalSet>
 bool isOutOfTube(const std::map<Point, std::vector<Point> >& sToM,
@@ -131,7 +192,9 @@ DigitalSet extractSites(const Point& p, double radius, const DigitalSet& sites) 
 }
 
 template <typename TImage>
-void compute_vcm(const TImage& image, std::string outname, int thresholdMax, double alpha, double beta, double gamma, double R, double r) {
+void compute_vcm(const TImage& image, const TImage& grayImage,
+                 std::string outname,
+                 int thresholdMax, double alpha, double beta, double gamma, double R, double r) {
     typedef typename TImage::Domain Domain;
     typedef typename Domain::Space Space;
     typedef typename Space::Point Point;
@@ -148,6 +211,8 @@ void compute_vcm(const TImage& image, std::string outname, int thresholdMax, dou
     typedef typename DigitalSetSelector< Domain, BIG_DS+HIGH_BEL_DS >::Type DigitalSet;
     typedef functors::NotPointPredicate<DigitalSet> NotPredicate;
     typedef VoronoiMap<Space, NotPredicate, L2Metric > Voronoi;
+    typedef DigitalPlane<Space> Plane;
+
 
 //   Image volume = VolReader<Image>::importVol(inputFilename);
     Domain domainVolume = image.domain();
@@ -175,11 +240,19 @@ void compute_vcm(const TImage& image, std::string outname, int thresholdMax, dou
     //Compute VCM for sites
     for (const Point& p : setVolume) {
         siteToVCM[p] = std::vector<Point>();
+
     }
 
-    for (const Point& p : image.domain()) {
-        Point site =voronoimap(p);
-        siteToVCM[site].push_back(p);
+     for (const Point& p : image.domain()) {
+         Point site =voronoimap(p);
+         siteToVCM[site].push_back(p);
+     }
+
+
+    std::map<Point, Plane> planes;
+    for (const Point& p : setVolume) {
+        Plane plane = planeForTube<Plane, DigitalSet>(grayImage, siteToVCM, p);
+        planes[p] = plane;
     }
 
     vcm.setMySmallR(r);
@@ -198,8 +271,12 @@ void compute_vcm(const TImage& image, std::string outname, int thresholdMax, dou
         // DGtal::trace.info() << meanNormSites << " " << normP << std::endl;
 
         // if (normP > meanNormSites) continue;
-        bool outOfTube = isOutOfTube<Point, DigitalSet>(siteToVCM, p, site, r);
-        if (outOfTube) continue;
+//        bool outOfTube = isOutOfTube<Point, DigitalSet>(siteToVCM, p, site, r);
+//        if (outOfTube) continue;
+        Plane plane = planes[site];
+        if (plane.getCenter() != Point::zero && !plane.isPointAbove(p)) continue;
+
+
         LinearAlgebraTool::getEigenDecomposition(vcm_r, evec, eval);
         double l0 = std::sqrt(eval[0]);
         double l1 = std::sqrt(eval[1]);
@@ -240,6 +317,7 @@ int main(int argc, char **argv) {
     general_opt.add_options()
         ("help,h", "display this message")
         ("input,i", po::value<std::string>(), "vol file (corresponding volume)")
+        ("grayimage,g", po::value<std::string>(), "gray image (corresponding volume)")
         ("output,o", po::value<std::string>(), "vol file (corresponding volume)")
         ("alpha,a", po::value<double>()->default_value(0.1), "Frangi alpha")
         ("beta,b", po::value<double>()->default_value(1), "Frangi beta")
@@ -271,6 +349,7 @@ int main(int argc, char **argv) {
 
     string inputFilename = vm["input"].as<std::string>();
     string outname = vm["output"].as<std::string>();
+    string grayname = vm["grayimage"].as<std::string>();
     int thresholdMax = vm["thresholdMax"].as<int>();
     int thresholdMin = vm["thresholdMin"].as<int>();
     double alpha = vm["alpha"].as<double>();
@@ -287,14 +366,16 @@ int main(int argc, char **argv) {
          using namespace DGtal::Z2i;
          typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
           GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
-          compute_vcm(img,  outname, thresholdMax,  alpha, beta, gamma, R, r);
+          GrayLevelImage grayImg = GenericReader<GrayLevelImage>::import(grayname);
+          compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
      }
      else
      { // go for 3D
          using namespace DGtal::Z3i;
          typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
           GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
-          compute_vcm(img, outname, thresholdMax,  alpha, beta, gamma, R, r);
+          GrayLevelImage grayImg = GenericReader<GrayLevelImage>::import(grayname);
+          compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
 
      }
 

@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
         DGtal::trace.progressBar(i, maxDistance);
 //        double currentSigma = (maxDistance * i)/(2 * (i + 0.5));
         double currentSigma = i/(maxDistance-i);
-        //        currentSigma = i /2.0;
+//        currentSigma = i /2.0;
         DGtal::trace.info() << currentSigma << " " << i << std::endl;
         hessianFilter->SetSigma(currentSigma);
         hessianFilter->Update();
@@ -321,11 +321,11 @@ int main(int argc, char **argv) {
 //        viewer << CustomColors3D(currentColor, currentColor) << p3D;
 //    }
 
-    GrayLevelImage out(img.domain());
+    FloatImage out(img.domain());
     for (const auto &pair : pToValues) {
         Point p = pair.first;
         unsigned char value = pair.second * 255 / max;
-        out.setValue(p, value);
+        out.setValue(p, pair.second);
     }
 
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv) {
         outRadius.setValue(p, value);
     }
 
-    ITKWriter<GrayLevelImage>::exportITK(outname, out);
+    ITKWriter<FloatImage>::exportITK(outname, out);
     ITKWriter<FloatImage>::exportITK(outRadiusName, outRadius);
     //app.exec();
 

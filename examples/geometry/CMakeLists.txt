@@ -24,7 +24,8 @@ if(WITH_ITK)
     SimpleThinning
     JaccardIndex
     ImageDifference
-    ComparisonImages)
+    ComparisonImages
+    CannyEdgeDetector)
 endif(WITH_ITK)
 
 FOREACH(FILE ${DGTAL_CONTRIB_EXAMPLES})
