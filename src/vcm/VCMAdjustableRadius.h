@@ -9,6 +9,7 @@
 #include "DGtal/kernel/sets/DigitalSetSelector.h"
 #include "DGtal/math/linalg/EigenDecomposition.h"
 #include "shapes/Ball.h"
+#include "DGtal/math/Statistic.h"
 
 template<typename TSpace, typename TSeparableMetric>
 class VCMAdjustableRadius : public DGtal::VoronoiCovarianceMeasure<TSpace, TSeparableMetric> {
@@ -64,6 +65,8 @@ public:
 
     template<typename Point2ScalarFunction>
     MatrixNN measure(const Point2ScalarFunction &chi_r, const Point &p) const;
+
+    std::vector<MatrixNN> measureMedian(const Point &p) const;
 
     template<typename Point2ScalarFunction>
     MatrixNN measure(const DigitalSet &neighbors, Point2ScalarFunction chi_r, Point p) const;
@@ -160,6 +163,35 @@ VCMAdjustableRadius<TSpace, TSeparableMetric>::measure(const Point2ScalarFunctio
     return vcm;
 }
 
+template<typename TSpace, typename TSeparableMetric>
+std::vector<typename VCMAdjustableRadius<TSpace, TSeparableMetric>::MatrixNN>
+VCMAdjustableRadius<TSpace, TSeparableMetric>::measureMedian(const typename VCMAdjustableRadius<TSpace, TSeparableMetric>::Point &p) const {
+
+    Ball<Point> ball(p, r());
+    DigitalSet neighbors = ball.intersection(this->myContainer);
+    MatrixNN vcm, nil;
+    // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
+    std::vector<MatrixNN> matrixVector;
+    for (auto it_neighbors = neighbors.begin(),
+                 it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors) {
+        Point q = *it_neighbors;
+        MatrixNN vcm_q = this->vcmMap().at(q);
+        vcm += vcm_q;
+        matrixVector.push_back(vcm_q);
+    }
+    std::sort(matrixVector.begin(), matrixVector.end(), [&](const MatrixNN& lhs, const MatrixNN& rhs) {
+            return std::sqrt(lhs(0,0) + lhs(1,1) + lhs(2,2)) < std::sqrt(rhs(0,0)+rhs(1,1)+rhs(2,2));
+        });
+//     if (matrixVector.size() > 0) {
+// //        DGtal::trace.info() << "coucou" << std::endl;
+//         MatrixNN median = matrixVector[matrixVector.size()/2];
+//         double norm = std::sqrt(median(0,0) + median(1,1) + median(2,2));
+// //        DGtal::trace.info() << norm << std::endl;
+//         return vcm * (1.0 - (norm / (M_PI*r()*r())));
+//     }
+    return matrixVector;
+}
+
 //-----------------------------------------------------------------------------
 template<typename TSpace, typename TSeparableMetric>
 template<typename Point2ScalarFunction>
@@ -171,6 +203,7 @@ measure(const DigitalSet &neighbors,
 
     MatrixNN vcm;
     // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
+    DGtal::Statistic<MatrixNN> s;
     for (auto it_neighbors = neighbors.begin(),
                  it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors) {
         Point q = *it_neighbors;
@@ -182,6 +215,7 @@ measure(const DigitalSet &neighbors,
                 MatrixNN vcm_q = it->second;
                 vcm_q *= coef;
                 vcm += vcm_q;
+                s.addValue(vcm_q);
             }
         }
     }

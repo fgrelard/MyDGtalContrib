@@ -16,7 +16,7 @@
 #include <itktools/itkModifiedKrissianVesselnessImageFilter.h>
 #include <itktools/itkMultiScaleGaussianEnhancementImageFilter.h>
 #include <itkImageDuplicator.h>
-#include <QtGui/QApplication>
+#include <QtWidgets/QApplication>
 #include "DGtal/io/readers/GenericReader.h"
 #include "DGtal/io/boards/Board2D.h"
 #include "DGtal/io/viewers/Viewer3D.h"

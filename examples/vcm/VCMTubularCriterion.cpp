@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <boost/filesystem.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
@@ -192,7 +193,7 @@ DigitalSet extractSites(const Point& p, double radius, const DigitalSet& sites) 
 }
 
 template <typename TImage>
-void compute_vcm(const TImage& image, const TImage& grayImage,
+TImage compute_vcm(const TImage& image, const TImage& grayImage,
                  std::string outname,
                  int thresholdMax, double alpha, double beta, double gamma, double R, double r) {
     typedef typename TImage::Domain Domain;
@@ -203,7 +204,6 @@ void compute_vcm(const TImage& image, const TImage& grayImage,
     typedef functors::HatPointFunction<Point, float> KernelFunction;
     typedef EigenDecomposition<Space::dimension, double> LinearAlgebraTool;
     typedef ImageContainerBySTLVector<Domain, unsigned char> Image;
-    typedef ImageContainerBySTLVector<Domain, float> FloatImage;
     typedef ExactPredicateLpSeparableMetric<Space, 2> L2Metric;
     typedef VCMAdjustableRadius<Space, L2Metric> VCM;
     typedef typename VCM::MatrixNN Matrix;
@@ -230,7 +230,7 @@ void compute_vcm(const TImage& image, const TImage& grayImage,
     Matrix vcm_r, evec, nil;
     RealVector2f eval;
     FloatImage out(domainVolume);
-
+    Image grayOut(domainVolume);
     DGtal::trace.beginBlock("Matrix image");
 
     int i = 0;
@@ -259,8 +259,14 @@ void compute_vcm(const TImage& image, const TImage& grayImage,
     for (const Point& p : domainVolume) {
         DGtal::trace.progressBar(i, domainVolume.size());
         i++;
-        vcm_r = vcm.measure(chi, p);
+        // vcm_r = vcm.measure(chi, p);
+        std::vector<Matrix> matrices = vcm.measureMedian(p);
+        vcm_r = nil;
+        for (Matrix m : matrices) {
+            vcm_r += m;
+        }
         if (vcm_r == nil) continue;
+
 
         Point site = voronoimap(p);
 
@@ -290,22 +296,32 @@ void compute_vcm(const TImage& image, const TImage& grayImage,
             out.setValue(p, criterion);
         }
         if (Space::dimension == 3) {
+            double norm = 1.0;
+            if (matrices.size() > 0) {
+                Matrix median = matrices[matrices.size()/2];
+                norm = std::sqrt(median(0,0) + median(1,1) + median(2,2));
+                norm = (norm == 0) ? 1.0 : norm;
+            }
             double l2 = std::sqrt(eval[2]);
             double tub = l0 / std::sqrt(l1 * l2);
-            double circularity = l1 / l2;
+            double circularity = (l1 / l2) // * (1.0 / norm)
+                ;
 
             double noise = std::sqrt( l0 * l0 + l1 * l1 + l2 * l2);
             double criterion = (1.0 - exp(-(std::pow(circularity, 2) / (2 * std::pow(alpha, 2))))) *
                 exp(-(std::pow(tub, 2) / (2 * std::pow(beta, 2)))) *
                 (1.0 - exp(-(std::pow(noise,2) / (2 * std::pow(gamma, 2)))));
+            criterion = circularity;
             out.setValue(p, criterion);
+            grayOut.setValue(p, (int)(criterion*255));
+
         }
     }
     DGtal::trace.endBlock();
 
 
     ITKWriter<FloatImage>::exportITK(outname, out);
-
+    return grayOut;
 }
 
 int main(int argc, char **argv) {
@@ -367,7 +383,7 @@ int main(int argc, char **argv) {
          typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
           GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
           GrayLevelImage grayImg = GenericReader<GrayLevelImage>::import(grayname);
-          compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
+          GrayLevelImage grayOut = compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
      }
      else
      { // go for 3D
@@ -375,8 +391,9 @@ int main(int argc, char **argv) {
          typedef ImageContainerBySTLVector<Domain, unsigned char> GrayLevelImage;
           GrayLevelImage img = GenericReader<GrayLevelImage>::import(inputFilename);
           GrayLevelImage grayImg = GenericReader<GrayLevelImage>::import(grayname);
-          compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
-
+          GrayLevelImage grayOut = compute_vcm(img, grayImg, outname, thresholdMax,  alpha, beta, gamma, R, r);
+          std::string basename = boost::filesystem::basename(outname);
+          VolWriter<GrayLevelImage>::exportVol(basename+".vol", grayOut);
      }
 
     return 0;
