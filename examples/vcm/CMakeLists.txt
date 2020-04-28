@@ -6,6 +6,7 @@ SET(DGTAL_CONTRIB_EXAMPLES
         RecenterSkeletonPoints
         VisuSlicesFromSkeleton
         VCMTubularCriterion
+        VCMBinaryTubularCriterion
         DeltaVCM
         DeltaDistanceVCMVesselness
         OrthogonalPlaneEvaluation

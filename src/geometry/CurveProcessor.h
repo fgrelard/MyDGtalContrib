@@ -32,7 +32,9 @@ public:
     typedef DGtal::MetricAdjacency<Space, 1> Adj6;
     typedef DGtal::MetricAdjacency<Space, 3> Adj26;
     typedef DGtal::DigitalTopology<Adj26, Adj6> DT26_6;
+    typedef DGtal::DigitalTopology<Adj6, Adj26> DT6_26;
     typedef DGtal::Object<DT26_6, Container> ObjectType;
+    typedef DGtal::Object<DT6_26, Container> ObjectComplementary;
     typedef typename Container::Space::RealVector RealVector;
     typedef typename ConnectedComponentMerger<Space>::Domain Domain;
 
@@ -42,6 +44,8 @@ public:
 public:
 
     Container ensureConnectivity();
+
+    Container ensureConnectivityComplementary();
 
     Container endPoints();
 
@@ -63,7 +67,11 @@ public:
 
     std::vector<Point> convertToOrderedCurve();
 
+    std::vector<Point> convertToOrderedCurveComplementary();
+
     std::vector<Point> convertToOrderedCurve(const Point &startingPoint);
+
+    std::vector<Point> convertToOrderedCurveComplementary(const Point& startingPoint);
 
     Container intersectionNeighborhood(const Container &otherCurve);
 
@@ -86,6 +94,29 @@ Container CurveProcessor<Container>::ensureConnectivity() {
     cleanSet = S;
     for (auto it = S.begin(), ite = S.end(); it != ite; ++it) {
         ObjectType obj(dt26_6, cleanSet);
+        if (obj.isSimple(*it) &&
+            endSet.find(*it) == endSet.end()) {
+            cleanSet.erase(*it);
+        }
+    }
+
+    return cleanSet;
+}
+
+template<typename Container>
+Container CurveProcessor<Container>::ensureConnectivityComplementary() {
+
+    Adj26 adj26;
+    Adj6 adj6;
+    DT6_26 dt6_26(adj6, adj26, DGtal::JORDAN_DT);
+    Container cleanSet(myCurve.domain());
+    ObjectComplementary obj(dt6_26, myCurve);
+    Container &S = obj.pointSet();
+
+    Container endSet = endPoints();
+    cleanSet = S;
+    for (auto it = S.begin(), ite = S.end(); it != ite; ++it) {
+        ObjectComplementary obj(dt6_26, cleanSet);
         if (obj.isSimple(*it) &&
             endSet.find(*it) == endSet.end()) {
             cleanSet.erase(*it);
@@ -385,11 +416,51 @@ std::vector<typename CurveProcessor<Container>::Point> CurveProcessor<Container>
     if (set.size() == 0) return orientedEdge;
 
     Container e = endPoints();
-    Point start = *(e.begin());
+    Point start;
+    if (e.size() == 0) {
+        start = *(set.begin());
+    } else {
+        start = *(e.begin());
+    }
     return convertToOrderedCurve(start);
 
 }
 
+
+template<typename Container>
+std::vector<typename CurveProcessor<Container>::Point> CurveProcessor<Container>::convertToOrderedCurve() {
+    std::vector<Point> orientedEdge;
+
+    Container set = myCurve;
+    if (set.size() == 0) return orientedEdge;
+
+    Container e = endPoints();
+    Point start;
+    if (e.size() == 0) {
+        start = *(set.begin());
+    } else {
+        start = *(e.begin());
+    }
+    return convertToOrderedCurve(start);
+}
+
+template<typename Container>
+std::vector<typename CurveProcessor<Container>::Point> CurveProcessor<Container>::convertToOrderedCurveComplementary() {
+    std::vector<Point> orientedEdge;
+
+    Container set = myCurve;
+    if (set.size() == 0) return orientedEdge;
+
+    Container e = endPoints();
+    Point start;
+    if (e.size() == 0) {
+        start = *(set.begin());
+    } else {
+        start = *(e.begin());
+    }
+    return convertToOrderedCurveComplementary(start);
+
+}
 
 template<typename Container>
 std::vector<typename CurveProcessor<Container>::Point>
@@ -406,6 +477,7 @@ CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<C
     Point start = startingPoint;
     orientedEdge.push_back(start);
     bool toAdd = true;
+    auto it = orientedEdge.end();
     while (toAdd) {
         std::vector<Point> neighbors;
         std::back_insert_iterator<std::vector<Point>> inserter(neighbors);
@@ -415,14 +487,58 @@ CurveProcessor<Container>::convertToOrderedCurve(const typename CurveProcessor<C
             if (std::find(orientedEdge.begin(), orientedEdge.end(), n) == orientedEdge.end()) {
                 orientedEdge.push_back(n);
                 start = n;
+                it = orientedEdge.end();
             } else
                 cpt++;
         }
-        if (cpt == neighbors.size())
+        if (cpt == neighbors.size()) {
+            start = *(--it);
+        }
+        if (orientedEdge.size() == myCurve.size())
             toAdd = false;
     }
     return orientedEdge;
 }
+
+
+template<typename Container>
+std::vector<typename CurveProcessor<Container>::Point>
+CurveProcessor<Container>::convertToOrderedCurveComplementary(const typename CurveProcessor<Container>::Point &startingPoint) {
+    std::vector<Point> orientedEdge;
+    Container edge = myCurve;
+    if (edge.size() == 0) return orientedEdge;
+
+    Adj26 adj26;
+    Adj6 adj6;
+    DT6_26 dt6_26(adj6, adj26, DGtal::JORDAN_DT);
+
+    ObjectComplementary objEdge(dt6_26, edge);
+    Point start = startingPoint;
+    orientedEdge.push_back(start);
+    bool toAdd = true;
+    auto it = orientedEdge.end();
+    while (toAdd) {
+        std::vector<Point> neighbors;
+        std::back_insert_iterator<std::vector<Point>> inserter(neighbors);
+        objEdge.writeNeighbors(inserter, start);
+        unsigned int cpt = 0;
+        for (const Point &n : neighbors) {
+            if (std::find(orientedEdge.begin(), orientedEdge.end(), n) == orientedEdge.end()) {
+                orientedEdge.push_back(n);
+                start = n;
+                it = orientedEdge.end();
+            } else
+                cpt++;
+        }
+        if (cpt == neighbors.size()) {
+            start = *(--it);
+        }
+        if (orientedEdge.size() == myCurve.size())
+            toAdd = false;
+    }
+    return orientedEdge;
+}
+
 
 template<typename Container>
 Container

@@ -1,5 +1,6 @@
 SET(DGTAL_CONTRIB_EXAMPLES
   EnsureConnectivity
+  EnsureConnectivity2D
   ShapeModelization
   FlipAxis
   HausdorffDistance
@@ -16,6 +17,7 @@ if(WITH_ITK)
     VisuDeltaDistance
     HessianLocalAdaptative
     HessianLocalAdaptative3D
+    vcm-curvature
     # MultiscaleVesselness
     # MultiscaleVesselnessUniqueImage
     MyHessianLocalAdaptative3D
