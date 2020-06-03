@@ -142,18 +142,25 @@ std::vector<Point> pts = PointListReader<Point>::getPointsFromFile(inputSDP.c_st
   // Flat zones are metallic blue, slightly curved zones are white,
   // more curved zones are yellow till red.
   GradientColorMap<double> colormap( 0.0, T );
-  colormap.addColor( Color( 128, 128, 255 ) );
-  colormap.addColor( Color( 255, 255, 255 ) );
-  colormap.addColor( Color( 255, 255, 0 ) );
-  colormap.addColor( Color( 255, 0, 0 ) );
+  colormap.addColor( Color(0, 0, 127) );
+  colormap.addColor( Color(0, 0, 254) );
+  colormap.addColor( Color(0, 96, 255) );
+  colormap.addColor( Color(0, 212, 255) );
+  colormap.addColor( Color(76, 255, 170) );
+  colormap.addColor( Color(170, 255, 76) );
+  colormap.addColor( Color(255, 229, 0) );
+  colormap.addColor( Color(255, 122, 0) );
+  colormap.addColor( Color(254, 18, 0) );
+  colormap.addColor( Color(127, 0, 0) );
+
   Board2D board;
   Matrix vcm_r, evec;
   RealVector eval;
   std::ofstream outfile;
   size_t lastindex = outputFilename.find_last_of(".");
   string rawname = outputFilename.substr(0, lastindex);
-  outfile.open(rawname + ".txt", std::ios_base::app);//std::ios_base::app
-
+  outfile.open(rawname + ".txt", std::ios_base::out);//std::ios_base::app
+  DGtal::trace.info() <<pts.size() << std::endl;
   for ( std::vector<Point>::const_iterator it = pts.begin(), itE = pts.end();
         it != itE; ++it )
     {
@@ -163,7 +170,6 @@ std::vector<Point> pts = PointListReader<Point>::getPointsFromFile(inputSDP.c_st
       double feature = eval[ 0 ] / ( eval[ 0 ] +  eval[ 1 ] );
 
       outfile << feature << std::endl;
-      DGtal::trace.info() << feature << std::endl;
       board << CustomStyle( it->className(),
                             new CustomColors( Color::Black,  colormap( feature > T ? T : feature ) ) )
             << *it;
